@@ -1,0 +1,1 @@
+-- Event card type: battles and unique historical moments (application enum on card_type text column).

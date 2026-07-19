@@ -1,0 +1,1 @@
+ALTER TABLE `booster_packs` ADD `weight_mythic` integer DEFAULT 0 NOT NULL;

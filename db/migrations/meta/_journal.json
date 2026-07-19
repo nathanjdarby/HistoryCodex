@@ -1,0 +1,272 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1784378788148,
+      "tag": "0000_kind_thunderbolt",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1784380772555,
+      "tag": "0001_cooing_annihilus",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784384272963,
+      "tag": "0002_sparkling_sebastian_shaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1784386761859,
+      "tag": "0003_careless_lilith",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1784386778821,
+      "tag": "0004_seed_default_pack",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1784390480262,
+      "tag": "0005_careful_outlaw_kid",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1784397280392,
+      "tag": "0006_faulty_otto_octavius",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1784397854280,
+      "tag": "0007_lonely_madripoor",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1784399940479,
+      "tag": "0008_uneven_killraven",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1784400451562,
+      "tag": "0009_hot_captain_marvel",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1784400708411,
+      "tag": "0010_free_preak",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1784401385285,
+      "tag": "0011_cute_kabuki",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1784401910958,
+      "tag": "0012_chubby_nomad",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1784402294027,
+      "tag": "0013_special_shinobi_shaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1784402850602,
+      "tag": "0014_green_nicolaos",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1784403200000,
+      "tag": "0015_seed_era_booster_packs",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1784403600000,
+      "tag": "0016_roman_britain_flavor_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1784404000000,
+      "tag": "0017_character_flavor_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1784404400000,
+      "tag": "0018_roman_empire_unit_flavor_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1784404800000,
+      "tag": "0019_ancient_greece_unit_flavor_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1784405200000,
+      "tag": "0020_sukarno_flavor_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1784405600000,
+      "tag": "0021_general_sudirman_flavor_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1784406000000,
+      "tag": "0022_character_image_frame",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1784406400000,
+      "tag": "0023_location_flavor_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1784406800000,
+      "tag": "0024_david_cheap_flavor_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1784410804219,
+      "tag": "0025_flat_war_machine",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1784411005138,
+      "tag": "0026_magenta_retro_girl",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "6",
+      "when": 1784411280121,
+      "tag": "0027_workable_mastermind",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "6",
+      "when": 1784411930654,
+      "tag": "0028_daily_leech",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1784413561000,
+      "tag": "0029_john_bulkeley_flavor_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "6",
+      "when": 1784414000000,
+      "tag": "0030_wager_flavor_text",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1784415000000,
+      "tag": "0031_card_quantity",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1784415600000,
+      "tag": "0032_booster_pack_ten_cards",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1784415700000,
+      "tag": "0033_event_card_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1784415800000,
+      "tag": "0034_game_rules",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "6",
+      "when": 1784415900000,
+      "tag": "0035_battle_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1784416000000,
+      "tag": "0036_strategic_card_expansion",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1784416100000,
+      "tag": "0037_catalog_decks",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0908;
+  --foreground: #ede4d3;
 }
 
 @theme inline {
@@ -12,15 +12,217 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  button {
+    text-align: inherit;
+  }
+}
+
+::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #171310;
+}
+::-webkit-scrollbar-thumb {
+  background: #4a3d2c;
+  border-radius: 8px;
+}
+
+@keyframes holo-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+.animate-holo-shimmer {
+  animation: holo-shimmer 3.5s linear infinite;
+}
+
+@keyframes pack-shake {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  15% {
+    transform: rotate(-4deg) scale(1.03);
+  }
+  30% {
+    transform: rotate(4deg) scale(1.05);
+  }
+  45% {
+    transform: rotate(-3deg) scale(1.04);
+  }
+  60% {
+    transform: rotate(3deg) scale(1.06);
+  }
+  75% {
+    transform: rotate(-2deg) scale(1.03);
+  }
+}
+
+@keyframes pack-flash {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes pack-card-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(28px) scale(0.82) rotate(-6deg);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.04) rotate(1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+.animate-pack-shake {
+  animation: pack-shake 0.85s ease-in-out infinite;
+}
+
+.animate-pack-flash {
+  animation: pack-flash 0.85s ease-in-out infinite;
+}
+
+.pack-card-reveal {
+  animation: pack-card-reveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Card size is driven primarily by viewport HEIGHT (vh), not width — the mat
+   stacks a fixed number of single-card-height rows (enemy row, seam,
+   player row, hand row), so its total vertical footprint is deterministic
+   regardless of match state. Sizing off vh means that footprint always
+   resolves to roughly one screen, on any resolution, without scrolling. The
+   width tiers below only raise the ceiling on wide screens — vh still wins
+   on short-but-wide windows since clamp()'s middle term is evaluated live. */
+.battle-mat {
+  --battle-card-width: clamp(4.75rem, 12.5vh, 8rem);
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 0%, rgba(120, 72, 24, 0.22), transparent 60%),
+    radial-gradient(ellipse 60% 45% at 50% 100%, rgba(40, 64, 96, 0.16), transparent 55%),
+    linear-gradient(180deg, #14100c 0%, #0c0a08 45%, #100d0a 100%);
+}
+
+@media (min-width: 640px) {
+  .battle-mat {
+    --battle-card-width: clamp(5.5rem, 13vh, 10rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  .battle-mat {
+    --battle-card-width: clamp(6rem, 13.5vh, 12.5rem);
+  }
+}
+
+/* Tall AND wide monitors — raise the ceiling so the extra vertical room
+   gets used instead of sitting empty above/below a mat capped at 12.5rem. */
+@media (min-width: 1280px) and (min-height: 950px) {
+  .battle-mat {
+    --battle-card-width: clamp(7rem, 15vh, 15rem);
+  }
+}
+
+.battle-mat-fullbleed {
+  border-top: 1px solid rgba(217, 119, 6, 0.25);
+  box-shadow: inset 0 1px 0 rgba(217, 119, 6, 0.1);
+}
+
+.battle-mat-texture {
+  opacity: 0.35;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(ellipse 85% 75% at 50% 45%, black 20%, transparent 100%);
+}
+
+.battle-lane {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.15));
+  backdrop-filter: blur(2px);
+}
+
+.battle-lane-divider {
+  height: 1px;
+  margin: 0.25rem 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(180, 140, 70, 0.35) 20%,
+    rgba(180, 140, 70, 0.55) 50%,
+    rgba(180, 140, 70, 0.35) 80%,
+    transparent
+  );
+}
+
+.battle-lane-divider-vertical {
+  width: 1px;
+  align-self: stretch;
+  margin: 0.25rem 0;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(180, 140, 70, 0.35) 20%,
+    rgba(180, 140, 70, 0.55) 50%,
+    rgba(180, 140, 70, 0.35) 80%,
+    transparent
+  );
+}
+
+.battle-mat-compact {
+  /* Content-sized mat — avoid stretching to fill viewport and leaving dead space */
+}
+
+/* In-match play cards: render full collection layout at 18rem, scale down uniformly.
+   --battle-card-width is set once on .battle-mat (responsive) so cards and the hand
+   row stay in sync instead of duplicating the same magic number in two places. */
+.battle-play-card {
+  --battle-card-source-width: 18rem;
+  width: var(--battle-card-width, 9.5rem);
+  min-width: var(--battle-card-width, 9.5rem);
+  max-width: var(--battle-card-width, 9.5rem);
+  height: calc(var(--battle-card-width, 9.5rem) * 7 / 5);
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.battle-play-card-inner {
+  width: var(--battle-card-source-width);
+  height: calc(var(--battle-card-source-width) * 7 / 5);
+  transform: scale(calc(var(--battle-card-width, 9.5rem) / var(--battle-card-source-width)));
+  transform-origin: top left;
+  pointer-events: auto;
+}
+
+.battle-hand-row {
+  min-height: calc(var(--battle-card-width, 9.5rem) * 7 / 5);
+}
+
+/* Empty lane slot — same footprint as .battle-play-card so a row of 5 slots
+   holds its width whether it's empty or full, instead of the row shrinking
+   or leaving mismatched gaps as units are deployed. */
+.battle-slot-empty {
+  width: var(--battle-card-width, 9.5rem);
+  min-width: var(--battle-card-width, 9.5rem);
+  height: calc(var(--battle-card-width, 9.5rem) * 7 / 5);
+  flex-shrink: 0;
 }

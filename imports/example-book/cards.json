@@ -1,0 +1,10 @@
+{
+  "defaults": {
+    "rarity": "common"
+  },
+  "Alfred the Great": {
+    "rarity": "legendary",
+    "archetype": "monarch",
+    "flavorText": "Optional override text for this card."
+  }
+}

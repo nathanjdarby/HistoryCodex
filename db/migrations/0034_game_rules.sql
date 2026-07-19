@@ -1,0 +1,51 @@
+CREATE TABLE `game_rules` (
+	`id` integer PRIMARY KEY NOT NULL,
+	`milestones_json` text NOT NULL,
+	`points_per_milestone` integer NOT NULL,
+	`daily_point_cap` integer NOT NULL,
+	`weekly_point_cap` integer NOT NULL,
+	`pack_general_multiplier` real NOT NULL,
+	`min_seconds_per_page` integer NOT NULL,
+	`soft_seconds_per_page` integer NOT NULL,
+	`max_wpm` integer NOT NULL,
+	`soft_wpm` integer NOT NULL,
+	`bulk_page_jump_threshold` integer NOT NULL,
+	`min_trust_for_instant_award` integer NOT NULL,
+	`trust_decay_per_flag` integer NOT NULL,
+	`trust_gain_on_approve` integer NOT NULL,
+	`updated_at` integer DEFAULT (unixepoch()) NOT NULL
+);
+--> statement-breakpoint
+INSERT INTO `game_rules` (
+	`id`,
+	`milestones_json`,
+	`points_per_milestone`,
+	`daily_point_cap`,
+	`weekly_point_cap`,
+	`pack_general_multiplier`,
+	`min_seconds_per_page`,
+	`soft_seconds_per_page`,
+	`max_wpm`,
+	`soft_wpm`,
+	`bulk_page_jump_threshold`,
+	`min_trust_for_instant_award`,
+	`trust_decay_per_flag`,
+	`trust_gain_on_approve`,
+	`updated_at`
+) VALUES (
+	1,
+	'[25,50,75,100]',
+	25,
+	150,
+	600,
+	1.25,
+	90,
+	120,
+	400,
+	300,
+	50,
+	70,
+	10,
+	5,
+	unixepoch()
+);
