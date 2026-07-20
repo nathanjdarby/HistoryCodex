@@ -13,8 +13,8 @@ services:
       # Set to false when TLS terminates at a reverse proxy that sets X-Forwarded-Proto
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
     volumes:
-      - historycodex-data:/app/data
-      - historycodex-uploads:/app/public/uploads
+      - ./data:/app/data
+      - ./public/uploads:/app/public/uploads
 
   # One-time setup: docker compose --profile setup run --rm setup
   setup:
@@ -25,15 +25,11 @@ services:
       DATABASE_PATH: /app/data/historycodex.db
     volumes:
       - ./:/app
-      - historycodex-data:/app/data
-      - historycodex-uploads:/app/public/uploads
+      - ./data:/app/data
+      - ./public/uploads:/app/public/uploads
     command: >
       sh -c "apt-get update && apt-get install -y --no-install-recommends python3 make g++ &&
       npm ci &&
       node scripts/migrate-production.mjs &&
       npm run db:seed &&
       npm run db:seed-auth"
-
-volumes:
-  historycodex-data:
-  historycodex-uploads:
