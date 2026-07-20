@@ -27,7 +27,7 @@
     "db:import-book-cards": "tsx db/import-catalog-book-cards.ts",
     "db:seed-play-test-deck": "tsx db/seed-play-test-deck.ts",
     "db:seed-alfred-wessex-starter-deck": "tsx db/seed-alfred-wessex-starter-deck.ts",
-    "test": "tsx --test lib/battle/__tests__/**/*.test.ts lib/server/__tests__/**/*.test.ts"
+    "test": "tsx --test lib/battle/__tests__/*.test.ts lib/server/__tests__/*.test.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.2",

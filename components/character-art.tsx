@@ -56,7 +56,7 @@ export function CharacterArt({
           src={imageUrl}
           alt=""
           fill
-          sizes="100%"
+          sizes={`${Math.max(size, 120)}px`}
           draggable={false}
           className="object-cover"
           style={frameCss}
