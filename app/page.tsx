@@ -9,6 +9,9 @@ export const metadata: Metadata = {
     "Read history books, collect characters and places from the past, and battle through the ages. Your personal codex awaits.",
 };
 
+/** Home reads featured cards/books from SQLite — must not prerender at Docker build time. */
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const [featuredCards, catalog] = await Promise.all([
     listFeaturedCharacters(6),
