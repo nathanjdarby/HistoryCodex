@@ -11,6 +11,25 @@ const nextConfig: NextConfig = {
   experimental: {
     proxyClientMaxBodySize: "100mb",
   },
+  async rewrites() {
+    return [
+      {
+        source: "/uploads/:path*",
+        destination: "/api/serve-upload/:path*",
+      },
+    ];
+  },
+  headers: async () => [
+    {
+      source: "/uploads/:path*",
+      headers: [
+        {
+          key: "Cache-Control",
+          value: "public, max-age=31536000, immutable",
+        },
+      ],
+    },
+  ],
   images: {
     remotePatterns: [
       {
