@@ -4,7 +4,17 @@ import os from "node:os";
 import path from "node:path";
 import { ApiError } from "@/lib/api-utils";
 
-const STAGING_ROOT = path.join(os.tmpdir(), "historycodex-imports");
+export const IMPORT_STAGING_ROOT = path.join(os.tmpdir(), "historycodex-imports");
+
+const STAGING_ROOT = IMPORT_STAGING_ROOT;
+
+const PREVIEW_MIME_TYPES: Record<string, string> = {
+  ".webp": "image/webp",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+};
 
 type StagedFile = {
   relativePath: string;
@@ -81,5 +91,49 @@ export async function stageImportFolderFiles(params: {
     dir,
     fileCount,
     folderName,
+  };
+}
+
+export function importStagingPreviewUrl(absDir: string, sourcePath: string): string | null {
+  const resolvedAbsDir = path.resolve(absDir);
+  const resolvedSource = path.resolve(sourcePath);
+  if (!resolvedAbsDir.startsWith(`${STAGING_ROOT}${path.sep}`)) {
+    return null;
+  }
+
+  const sessionId = path.relative(STAGING_ROOT, resolvedAbsDir).split(path.sep)[0];
+  if (!sessionId || !/^[a-f0-9-]{36}$/i.test(sessionId)) {
+    return null;
+  }
+
+  const fileRelative = path.relative(resolvedAbsDir, resolvedSource);
+  if (!fileRelative || fileRelative.startsWith("..") || path.isAbsolute(fileRelative)) {
+    return null;
+  }
+
+  const normalized = fileRelative.split(path.sep).join("/");
+  return `/api/admin/catalog-books/import/preview?session=${sessionId}&path=${encodeURIComponent(normalized)}`;
+}
+
+export function resolveStagedImportPreviewFile(sessionId: string, relativePath: string) {
+  if (!/^[a-f0-9-]{36}$/i.test(sessionId)) {
+    throw new ApiError(400, "Invalid staging session.");
+  }
+
+  const normalized = sanitizeRelativePath(relativePath);
+  const filePath = path.join(STAGING_ROOT, sessionId, normalized);
+  const sessionRoot = path.join(STAGING_ROOT, sessionId);
+  if (filePath !== sessionRoot && !filePath.startsWith(`${sessionRoot}${path.sep}`)) {
+    throw new ApiError(400, "Invalid preview path.");
+  }
+
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    throw new ApiError(404, "Preview file not found.");
+  }
+
+  const ext = path.extname(filePath).toLowerCase();
+  return {
+    filePath,
+    contentType: PREVIEW_MIME_TYPES[ext] ?? "application/octet-stream",
   };
 }

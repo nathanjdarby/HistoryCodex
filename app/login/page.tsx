@@ -77,7 +77,6 @@ function LoginForm() {
               name="email"
               required
               autoComplete="email"
-              defaultValue="user@example.com"
               className="app-input"
             />
           </label>
@@ -88,7 +87,6 @@ function LoginForm() {
               name="password"
               required
               autoComplete="current-password"
-              defaultValue="password"
               className="app-input"
             />
           </label>
@@ -99,12 +97,6 @@ function LoginForm() {
             {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
-
-        <div className="mt-6 rounded-lg border border-accent/30 bg-accent/10 px-3 py-2.5 text-xs text-muted">
-          <p className="font-medium text-foreground/80">Default accounts</p>
-          <p className="mt-1">Admin: admin@example.com / password</p>
-          <p>User: user@example.com / password</p>
-        </div>
       </div>
     </div>
   );

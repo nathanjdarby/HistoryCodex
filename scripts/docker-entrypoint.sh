@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-mkdir -p /app/data /app/public/uploads/characters /app/public/uploads/books /app/public/uploads/packs
+mkdir -p /app/public/uploads/characters /app/public/uploads/books /app/public/uploads/packs
 
 # Host bind mounts (scp/rsync as root) arrive owned by root — SQLite needs write access.
 chown -R nextjs:nodejs /app/data /app/public/uploads

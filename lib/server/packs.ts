@@ -7,6 +7,7 @@ import {
   characters,
   eras,
   pointsLedger,
+  userCharacters,
 } from "@/db/schema";
 import { ApiError } from "@/lib/api-utils";
 import { RARITY_ORDER, type RarityTier } from "@/lib/rarity";
@@ -84,6 +85,50 @@ export type PackConfigInput = z.infer<typeof packConfigInputSchema>;
 type PackConfig = InferSelectModel<typeof boosterPacks>;
 
 export type PackConfigForShop = PackConfig & { eraName: string | null };
+
+export type PackPoolCard = CharacterRow & {
+  era: InferSelectModel<typeof eras>;
+  owned: boolean;
+  quantity: number;
+};
+
+export type PackDetailForShop = {
+  pack: PackConfigForShop & { era: InferSelectModel<typeof eras> | null };
+  eligibility: Awaited<ReturnType<typeof getPackEligibility>>;
+  poolCards: PackPoolCard[];
+  dropRates: Partial<Record<RarityTier, number>>;
+};
+
+function computeDropRates(
+  config: PackConfig,
+  poolCards: Array<{ rarity: string }>,
+): Partial<Record<RarityTier, number>> {
+  if (poolCards.length === 0) return {};
+
+  const presentRarities = new Set(poolCards.map((card) => card.rarity as RarityTier));
+  const weights = weightsFromConfig(config);
+  const total = RARITY_ORDER.filter((rarity) => presentRarities.has(rarity)).reduce(
+    (sum, rarity) => sum + weights[rarity],
+    0,
+  );
+  if (total <= 0) return {};
+
+  const rates: Partial<Record<RarityTier, number>> = {};
+  for (const rarity of RARITY_ORDER) {
+    if (!presentRarities.has(rarity)) continue;
+    rates[rarity] = Math.round((weights[rarity] / total) * 1000) / 10;
+  }
+  return rates;
+}
+
+function defaultPackDescription(
+  pack: PackConfigForShop & { era: InferSelectModel<typeof eras> | null },
+  poolSize: number,
+) {
+  const eraLabel = pack.era?.name ?? pack.eraName ?? "history";
+  const cardTypeLabel = pack.cardType ? `${pack.cardType} cards` : "collectible cards";
+  return `Pull ${pack.cardsPerPack} ${cardTypeLabel} from ${eraLabel}. This pack draws from a pool of ${poolSize} unique card${poolSize === 1 ? "" : "s"} — build your collection, chase rare pulls, and strengthen your decks with duplicates.`;
+}
 
 async function attachEraNames(configs: PackConfig[]): Promise<PackConfigForShop[]> {
   if (configs.length === 0) return [];
@@ -326,5 +371,72 @@ export async function getPackEligibility(userId: number, packConfigId: number) {
       config.eraId != null ? await getEraPointsBalance(userId, config.eraId) : null,
     globalPointsBalance: stats.pointsBalance,
     defaultPaymentMethod: defaultPackPaymentMethod(config),
+  };
+}
+
+export async function getPackDetailForShop(
+  userId: number,
+  packConfigId: number,
+): Promise<PackDetailForShop> {
+  const config = await getPackConfig(packConfigId);
+  if (!config.active) {
+    throw new ApiError(404, "Pack not found");
+  }
+
+  const [packSummary] = await attachEraNames([config]);
+  const era =
+    config.eraId != null
+      ? (await db.select().from(eras).where(eq(eras.id, config.eraId)))[0] ?? null
+      : null;
+
+  const conditions = [];
+  if (config.eraId != null) conditions.push(eq(characters.eraId, config.eraId));
+  if (config.cardType != null) conditions.push(eq(characters.cardType, config.cardType));
+
+  const poolRows = await db
+    .select({
+      character: characters,
+      era: eras,
+      unlockedAt: userCharacters.unlockedAt,
+      quantity: userCharacters.quantity,
+    })
+    .from(characters)
+    .innerJoin(eras, eq(characters.eraId, eras.id))
+    .leftJoin(
+      userCharacters,
+      and(eq(userCharacters.characterId, characters.id), eq(userCharacters.userId, userId)),
+    )
+    .where(conditions.length ? and(...conditions) : undefined);
+
+  const poolCards: PackPoolCard[] = poolRows
+    .map((row) => ({
+      ...row.character,
+      era: row.era,
+      owned: row.unlockedAt != null,
+      quantity: row.unlockedAt != null ? row.quantity ?? 1 : 0,
+    }))
+    .sort((a, b) => {
+      const rarityDiff =
+        RARITY_ORDER.indexOf(b.rarity as RarityTier) -
+        RARITY_ORDER.indexOf(a.rarity as RarityTier);
+      if (rarityDiff !== 0) return rarityDiff;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+    });
+
+  const eligibility = await getPackEligibility(userId, packConfigId);
+  const dropRates = computeDropRates(config, poolCards);
+  const pack = {
+    ...packSummary,
+    era,
+    description:
+      packSummary.description?.trim() ||
+      defaultPackDescription({ ...packSummary, era }, poolCards.length),
+  };
+
+  return {
+    pack,
+    eligibility,
+    poolCards,
+    dropRates,
   };
 }

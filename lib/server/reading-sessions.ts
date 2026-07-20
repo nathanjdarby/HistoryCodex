@@ -292,7 +292,7 @@ export async function finalizeReadingSession(
     const type = `milestone_${milestone}` as MilestoneType;
     const ledgerPoints = needsQueue ? 0 : pointsPerMilestoneAward;
 
-    const result = db.run(sql`
+    const result = await db.execute(sql`
       insert into points_ledger (
         user_id, book_id, era_id, session_id, type, points, points_requested, status, metadata
       )
@@ -304,9 +304,10 @@ export async function finalizeReadingSession(
         ${JSON.stringify({ velocityScore: velocity.velocityScore, flagReason: velocity.flagReason })}
       )
       on conflict (book_id, type) where type like 'milestone_%' do nothing
+      returning id
     `);
 
-    if (result.changes > 0) {
+    if (result.length > 0) {
       awardedMilestones.push(type);
     }
   }

@@ -253,6 +253,13 @@ async function seedLocationForEra(era: { id: number; slug: string; name: string 
 }
 
 async function main() {
+  if (process.env.ALLOW_DESTRUCTIVE_SEED !== "historycodex") {
+    console.error(
+      "Refusing to run db:seed on shared Supabase. Set ALLOW_DESTRUCTIVE_SEED=historycodex to override.",
+    );
+    process.exit(1);
+  }
+
   for (const eraSeed of [...britishEras, ...worldEras]) {
     await seedEra(eraSeed);
   }

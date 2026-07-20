@@ -10,6 +10,13 @@ const DEFAULT_ACCOUNTS = [
 ];
 
 async function main() {
+  if (process.env.ALLOW_DESTRUCTIVE_SEED !== "historycodex") {
+    console.error(
+      "Refusing to run db:seed-auth on shared Supabase. Set ALLOW_DESTRUCTIVE_SEED=historycodex to override.",
+    );
+    process.exit(1);
+  }
+
   for (const account of DEFAULT_ACCOUNTS) {
     const [existing] = await db
       .select()

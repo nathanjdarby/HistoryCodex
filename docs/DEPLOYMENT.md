@@ -1,6 +1,6 @@
 # Deploying HistoryCodex to a live server
 
-HistoryCodex runs as a **Next.js Node server** with a **SQLite** database and **local file uploads** (`data/` and `public/uploads/`). This suits a single VPS with persistent storage.
+HistoryCodex runs as a **Next.js Node server** with a **Supabase Postgres** database (shared by local dev and production) and **local file uploads** (`public/uploads/`). This suits a single VPS with persistent storage for uploads and a managed Postgres host for data.
 
 ---
 
@@ -14,11 +14,13 @@ cd historycodex
 cp .env.example .env
 ```
 
-Edit `.env` and set a strong `AUTH_SECRET`:
+Edit `.env` and set:
 
-```bash
-openssl rand -base64 32
-```
+- **`AUTH_SECRET`** — generate with `openssl rand -base64 32`
+- **`DATABASE_URL`** — Supabase **pooler** URL (transaction mode, port 6543)
+- **`DATABASE_URL_DIRECT`** — Supabase **direct** URL (port 5432, for migrations only)
+
+See `.env.example` for the exact variable names and format.
 
 ### 2. Build and start
 
@@ -28,24 +30,9 @@ docker compose up -d --build
 
 The app listens on port **3000** (or `APP_PORT` from `.env`).
 
-On first boot the container runs **database migrations** automatically.
+On first boot the container runs **database migrations** automatically against Supabase via `DATABASE_URL_DIRECT`.
 
-### 3. Seed initial data (first time only)
-
-```bash
-docker compose --profile setup run --rm setup
-```
-
-This runs migrations, base eras/content seed, and default login accounts:
-
-| Account | Password | Role |
-|---------|----------|------|
-| `admin@example.com` | `password` | admin |
-| `user@example.com` | `password` | user |
-
-**Change these passwords immediately** after first login (or remove seed auth and create real accounts).
-
-### 4. Put HTTPS in front
+### 3. Put HTTPS in front
 
 Use **Caddy** or **nginx** as a reverse proxy with TLS. Example nginx server block:
 
@@ -74,32 +61,70 @@ Keep `AUTH_COOKIE_SECURE=true` when users access the site over HTTPS.
 
 ---
 
-## Moving your local dev data to the server
+## Shared Supabase database (local + production)
 
-If you already have content locally:
+Local development and production use the **same** Supabase project. Cards, users, and packs you create locally appear on live immediately.
 
-1. **Stop** the local app.
-2. Copy the database and uploads:
+**Implications:**
+
+- Broken local code can mutate **live production data**
+- **`npm run db:seed`** and **`npm run db:seed-auth`** are **disabled by default** — they would duplicate eras or create default accounts. To run them intentionally, set `ALLOW_DESTRUCTIVE_SEED=historycodex`.
+- **`npm run db:migrate`** applies schema changes to the shared database — coordinate before running on a branch with breaking migrations.
+- Idempotent backfills (`db:backfill-*`, `db:seed-all-card-balance`, etc.) are generally safe.
+
+---
+
+## SQLite → Supabase cutover (one-time)
+
+If you are migrating from the old SQLite deployment:
+
+### 1. Add Supabase URLs to `.env`
+
+Both local and server `.env` files need `DATABASE_URL` and `DATABASE_URL_DIRECT`.
+
+### 2. Apply Postgres schema to empty Supabase
 
 ```bash
-# From your laptop
-scp data/historycodex.db user@your-server:/path/to/historycodex/data/
+npm ci
+npm run db:migrate
+# or: node scripts/migrate-production.mjs
+```
+
+### 3. Import existing SQLite data
+
+Copy your production SQLite file locally (or use the server copy), then:
+
+```bash
+DATABASE_PATH=./data/historycodex.db npm run db:migrate-sqlite-to-supabase
+```
+
+This preserves numeric IDs (card IDs, pack URLs, user IDs) and resets Postgres serial sequences.
+
+**Warning:** The import script **truncates all Postgres tables** before inserting. Run only against a fresh schema or when you intend to replace all data.
+
+### 4. Deploy with Postgres env vars
+
+```bash
+docker compose up -d --build
+```
+
+### 5. Smoke test
+
+Verify: login, browse packs, open a pack, admin card create, catalog browse, reading milestones.
+
+Keep the SQLite backup until stable.
+
+---
+
+## Moving uploads to the server
+
+Uploads remain on the local filesystem (`public/uploads/`):
+
+```bash
 scp -r public/uploads user@your-server:/path/to/historycodex/public/
 ```
 
-With Docker volumes:
-
-```bash
-docker compose down
-# Copy files into the volume paths, or use docker cp
-docker compose up -d
-```
-
-3. On the server, run migrations (safe on existing DB):
-
-```bash
-docker compose exec app node scripts/migrate-production.mjs
-```
+The Docker Compose file bind-mounts `./public/uploads` into the container.
 
 If the app loop-restarts with `SQLITE_READONLY_DIRECTORY`, fix ownership on bind-mounted folders (or `git pull` and rebuild for the auto-fix entrypoint):
 
@@ -113,18 +138,17 @@ docker compose up -d
 
 ## Bare-metal deploy (no Docker)
 
-Requirements: **Node 20+**, build tools for `better-sqlite3` (`python3`, `make`, `g++` on Linux).
+Requirements: **Node 20+**
 
 ```bash
 git clone <repo> historycodex && cd historycodex
 cp .env.example .env
-# Edit AUTH_SECRET and other vars
+# Edit AUTH_SECRET, DATABASE_URL, DATABASE_URL_DIRECT
 
 npm ci
 npm run build
 node scripts/migrate-production.mjs
-npm run db:seed        # first time
-npm run db:seed-auth   # first time
+# Do NOT run db:seed / db:seed-auth on shared Supabase unless migrating from scratch
 
 PORT=3000 npm run start
 ```
@@ -140,7 +164,7 @@ pm2 startup
 
 Persistent paths on the server:
 
-- `data/historycodex.db` — back this up regularly
+- Supabase Postgres — managed by Supabase (back up via Supabase dashboard or `pg_dump`)
 - `public/uploads/` — character art, book covers, pack images
 
 ---
@@ -150,11 +174,14 @@ Persistent paths on the server:
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `AUTH_SECRET` | **Yes (prod)** | JWT signing secret for sessions |
-| `DATABASE_PATH` | No | SQLite file path (default `./data/historycodex.db`) |
+| `DATABASE_URL` | **Yes** | Supabase pooler URL (app runtime) |
+| `DATABASE_URL_DIRECT` | **Yes (migrations)** | Supabase direct URL (port 5432) |
+| `DATABASE_PATH` | Import only | Path to SQLite file for one-time `db:migrate-sqlite-to-supabase` |
 | `AUTH_COOKIE_SECURE` | No | `true` in production HTTPS (default) |
 | `GOOGLE_BOOKS_API_KEY` | No | Admin book search |
 | `READING_SESSIONS_REQUIRED` | No | Anti-cheat reading timer flag |
 | `APP_PORT` | No | Host port for Docker Compose |
+| `ALLOW_DESTRUCTIVE_SEED` | No | Set to `historycodex` to allow `db:seed` / `db:seed-auth` |
 
 See `.env.example` for the full list.
 
@@ -166,9 +193,10 @@ See `.env.example` for the full list.
 |------|---------|
 | View logs | `docker compose logs -f app` |
 | Run migrations | `docker compose exec app node scripts/migrate-production.mjs` |
+| Import SQLite → Supabase | `DATABASE_PATH=./data/historycodex.db npm run db:migrate-sqlite-to-supabase` |
 | Import book cards (CLI) | `docker compose --profile setup run --rm setup npm run db:import-book-cards -- ...` |
 | Apply card balance | `docker compose --profile setup run --rm setup npm run db:seed-all-card-balance` |
-| Backup database | Copy `data/historycodex.db` (and `-wal`/`-shm` if present) |
+| Backup database | Supabase dashboard / `pg_dump` via `DATABASE_URL_DIRECT` |
 | Update app | `git pull && docker compose up -d --build` |
 
 ---
@@ -187,8 +215,9 @@ For unattended agents you will still want **API key auth** on import routes (pla
 
 ## What is *not* included yet
 
-- **PostgreSQL** — app uses SQLite; fine for a single server, not ideal for horizontal scaling
-- **S3/object storage** — uploads are local filesystem
-- **Managed hosting (Vercel)** — not compatible with SQLite + local uploads without rework
+- **Supabase Auth** — app uses custom cookie sessions + `users` table
+- **Supabase Storage** — uploads are local filesystem
+- **Row Level Security** — app connects server-side with full DB access; RLS optional later
+- **Separate dev/prod databases** — intentionally one shared Supabase project
 
-For your use case (single live server + Hermes imports), Docker on a VPS is the intended path.
+For your use case (single live server + Hermes imports + shared dev/prod data), Docker on a VPS with Supabase Postgres is the intended path.

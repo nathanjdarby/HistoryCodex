@@ -28,7 +28,7 @@ Options:
   --default-rarity   Default rarity when cards.json has no override (default: common)
   --merge-links      Add imported cards without removing existing book links
   --dry-run          Scan and report without writing files or DB rows
-  --on-duplicate     Existing cards: ask, replace art, or ignore file and link platform card (default: ask)
+  --on-duplicate     Existing cards: ask, replace art, add book variant, or ignore (default: ask)
   --help             Show this help text
 `);
 }
@@ -91,7 +91,11 @@ function parseArgs(argv: string[]): ImportCatalogBookCardsOptions & { onDuplicat
   }
 
   options.dir = path.resolve(options.dir);
-  if (options.onDuplicate === "replace" || options.onDuplicate === "ignore") {
+  if (
+    options.onDuplicate === "replace" ||
+    options.onDuplicate === "ignore" ||
+    options.onDuplicate === "add_variant"
+  ) {
     options.duplicatePolicy = options.onDuplicate;
   }
   return options;
@@ -103,15 +107,16 @@ async function promptDuplicateDecision(card: ImportCardPreview): Promise<ImportD
     while (true) {
       const answer = (
         await rl.question(
-          `"${card.name}" (${card.cardType}) already exists on the platform. Replace art or ignore file and link existing card? [replace/ignore]: `,
+          `"${card.name}" (${card.cardType}) already exists on the platform. Replace art, add as a book variant, or ignore file and link existing card? [replace/variant/ignore]: `,
         )
       )
         .trim()
         .toLowerCase();
 
       if (answer === "replace" || answer === "r") return "replace";
+      if (answer === "variant" || answer === "v" || answer === "add_variant") return "add_variant";
       if (answer === "ignore" || answer === "i") return "ignore";
-      console.log("Please enter replace or ignore.");
+      console.log("Please enter replace, variant, or ignore.");
     }
   } finally {
     rl.close();

@@ -1,9 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
-import { Pencil, Plus, Trash2, Upload, X } from "lucide-react";
+import { LayoutGrid, List, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
+import { BoosterPacksEraSections } from "@/components/booster-packs-era-sections";
+import {
+  groupBoosterPacksByEraAz,
+  sortBoosterPacksByEraAz,
+} from "@/lib/client/booster-packs-by-era";
 import { fetchEras } from "@/lib/client/eras";
 import { CARD_TYPE_LABELS_PLURAL, type CardType } from "@/lib/card-types";
 
@@ -84,6 +89,8 @@ function toFormState(config: PackConfig): PackFormState {
   };
 }
 
+type ViewMode = "table" | "gallery";
+
 export default function AdminPacksPage() {
   const queryClient = useQueryClient();
   const { data: eras } = useQuery({ queryKey: ["eras"], queryFn: fetchEras });
@@ -97,12 +104,24 @@ export default function AdminPacksPage() {
   const [form, setForm] = useState<PackFormState>(emptyForm);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("gallery");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function eraName(eraId: number | null) {
     if (eraId == null) return "Any era";
     return eras?.find((e) => e.id === eraId)?.name ?? "Unknown era";
   }
+
+  const sortedPackConfigs = useMemo(
+    () =>
+      sortBoosterPacksByEraAz(packConfigs ?? [], (config) => eraName(config.eraId)),
+    [packConfigs, eras],
+  );
+
+  const packGroups = useMemo(
+    () => groupBoosterPacksByEraAz(packConfigs ?? [], (config) => eraName(config.eraId)),
+    [packConfigs, eras],
+  );
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -231,6 +250,34 @@ export default function AdminPacksPage() {
       {error && !formOpen && <p className="text-sm text-red-400">{error}</p>}
       {isLoading && <p className="text-sm text-muted">Loading...</p>}
 
+      <div className="flex justify-end">
+        <div className="flex rounded-md border border-border-strong bg-surface p-0.5 text-sm">
+          <button
+            type="button"
+            onClick={() => setViewMode("table")}
+            className={`rounded p-1.5 ${
+              viewMode === "table" ? "bg-surface-raised text-foreground" : "text-muted hover:text-foreground"
+            }`}
+            aria-label="Table view"
+            title="Table view"
+          >
+            <List size={15} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("gallery")}
+            className={`rounded p-1.5 ${
+              viewMode === "gallery" ? "bg-surface-raised text-foreground" : "text-muted hover:text-foreground"
+            }`}
+            aria-label="Gallery view"
+            title="Gallery view"
+          >
+            <LayoutGrid size={15} />
+          </button>
+        </div>
+      </div>
+
+      {viewMode === "table" ? (
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-border bg-surface/60">
@@ -260,7 +307,7 @@ export default function AdminPacksPage() {
             </tr>
           </thead>
           <tbody>
-            {packConfigs?.map((config) => (
+            {sortedPackConfigs.map((config) => (
               <tr key={config.id} className="border-b border-border hover:bg-surface/40">
                 <td className="px-3 py-2">
                   <div className="relative aspect-[4/7] w-10 overflow-hidden rounded border border-border bg-background">
@@ -340,6 +387,95 @@ export default function AdminPacksPage() {
           <p className="p-4 text-sm text-muted">No packs yet.</p>
         )}
       </div>
+      ) : !isLoading ? (
+        <BoosterPacksEraSections
+          groups={packGroups}
+          getPackKey={(config) => config.id}
+          gridClassName="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+          renderPack={(config) => (
+            <article className="group flex flex-col rounded-xl border border-border bg-surface/40 p-3">
+              <div className="relative mb-3 aspect-[4/7] w-full overflow-hidden rounded-lg border border-border bg-background">
+                {config.imageUrl ? (
+                  <Image
+                    src={config.imageUrl}
+                    alt={config.name}
+                    fill
+                    sizes="200px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center px-2 text-center text-xs text-subtle">
+                    No pack art
+                  </div>
+                )}
+              </div>
+                <div className="flex min-h-0 flex-1 flex-col gap-1">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="line-clamp-2 text-sm font-medium leading-snug text-foreground">
+                    {config.name}
+                  </p>
+                  <span
+                    className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] ${
+                      config.active
+                        ? "bg-emerald-900/50 text-emerald-200"
+                        : "bg-surface-raised text-muted"
+                    }`}
+                  >
+                    {config.active ? "Active" : "Inactive"}
+                  </span>
+                </div>
+                {config.description ? (
+                  <p className="line-clamp-2 text-xs text-muted">{config.description}</p>
+                ) : null}
+                <p className="text-[10px] text-muted">
+                  {eraName(config.eraId)}
+                  {config.cardType ? ` · ${config.cardType}s` : ""}
+                </p>
+                <p className="text-[10px] text-muted">
+                  {config.price} pts · {config.cardsPerPack} cards
+                </p>
+                <p className="font-mono text-[10px] text-muted">
+                  {config.weightCommon}/{config.weightUncommon}/{config.weightRare}/
+                  {config.weightEpic}/{config.weightLegendary}/{config.weightMythic}
+                </p>
+              </div>
+              <div className="mt-3 flex gap-2 border-t border-border pt-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    toggleActiveMutation.mutate({ id: config.id, active: !config.active })
+                  }
+                  disabled={toggleActiveMutation.isPending}
+                  className={`inline-flex flex-1 items-center justify-center rounded-md border px-2 py-1.5 text-xs ${
+                    config.active
+                      ? "border-emerald-900/50 text-emerald-300 hover:bg-emerald-900/20"
+                      : "border-border-strong text-muted hover:bg-surface-raised"
+                  }`}
+                >
+                  {config.active ? "Deactivate" : "Activate"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openEditForm(config)}
+                  className="rounded-md border border-border-strong p-1.5 text-muted hover:bg-surface-raised"
+                  aria-label={`Edit ${config.name}`}
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => promptDelete(config)}
+                  className="rounded-md border border-red-900/50 p-1.5 text-red-400 hover:bg-red-950/40"
+                  aria-label={`Delete ${config.name}`}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </article>
+          )}
+          emptyMessage={<p className="p-4 text-sm text-muted">No packs yet.</p>}
+        />
+      ) : null}
 
       {formOpen && (
         <div

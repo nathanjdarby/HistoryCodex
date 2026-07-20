@@ -1,4 +1,4 @@
-# HistoryCodex production image (Next.js standalone + SQLite)
+# HistoryCodex production image (Next.js standalone + Supabase Postgres)
 
 FROM node:20-bookworm-slim AS base
 RUN apt-get update \
@@ -14,6 +14,8 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
@@ -33,18 +35,15 @@ RUN apt-get update \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-# Migration script runs outside the Next.js standalone trace.
-COPY --from=deps /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
+COPY --from=deps /app/node_modules/postgres ./node_modules/postgres
 COPY --from=deps /app/node_modules/drizzle-orm ./node_modules/drizzle-orm
-COPY --from=deps /app/node_modules/bindings ./node_modules/bindings
-COPY --from=deps /app/node_modules/file-uri-to-path ./node_modules/file-uri-to-path
 COPY --from=builder /app/db/migrations ./db/migrations
 COPY --from=builder /app/scripts/migrate-production.mjs ./scripts/migrate-production.mjs
 COPY --from=builder /app/scripts/docker-entrypoint.sh ./scripts/docker-entrypoint.sh
 
 RUN chmod +x /app/scripts/docker-entrypoint.sh \
-  && mkdir -p /app/data /app/public/uploads/characters /app/public/uploads/books /app/public/uploads/packs \
-  && chown -R nextjs:nodejs /app/data /app/public/uploads
+  && mkdir -p /app/public/uploads/characters /app/public/uploads/books /app/public/uploads/packs \
+  && chown -R nextjs:nodejs /app/public/uploads
 
 EXPOSE 3000
 

@@ -35,6 +35,7 @@
     "db/seed*.ts",
     "db/backfill-*.ts",
     "db/import-catalog-book-cards.ts",
+    "db/migrate-sqlite-to-supabase.ts",
     "db/organize-*.ts"
   ]
 }

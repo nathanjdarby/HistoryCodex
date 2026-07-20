@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ -z "${DATABASE_URL:-}" ]]; then
+  echo 'Set DATABASE_URL (and optionally DATABASE_URL_DIRECT) to smoke-test against Supabase.' >&2
+  exit 1
+fi
+
 image="historycodex-production-smoke"
 container="historycodex-production-smoke-$RANDOM"
 
@@ -14,7 +19,8 @@ docker run -d \
   --name "$container" \
   -e AUTH_SECRET='production-smoke-test-secret-not-for-use' \
   -e AUTH_COOKIE_SECURE=false \
-  -e DATABASE_PATH=/app/data/smoke.db \
+  -e DATABASE_URL="$DATABASE_URL" \
+  -e DATABASE_URL_DIRECT="${DATABASE_URL_DIRECT:-$DATABASE_URL}" \
   "$image" >/dev/null
 
 for _ in $(seq 1 30); do
@@ -25,8 +31,7 @@ for _ in $(seq 1 30); do
   fi
 
   if docker logs "$container" 2>&1 | grep -q 'Ready in'; then
-    docker exec "$container" test -s /app/data/smoke.db
-    echo 'Production container migrated its database and started successfully.'
+    echo 'Production container migrated against Postgres and started successfully.'
     exit 0
   fi
   sleep 1

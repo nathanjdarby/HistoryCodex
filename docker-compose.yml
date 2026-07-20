@@ -1,35 +1,35 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
     restart: unless-stopped
     ports:
       - "127.0.0.1:${APP_PORT:-3000}:3000"
     environment:
       NODE_ENV: production
       AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in .env}
-      DATABASE_PATH: /app/data/historycodex.db
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      DATABASE_URL_DIRECT: ${DATABASE_URL_DIRECT:-${DATABASE_URL}}
       GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY:-}
       READING_SESSIONS_REQUIRED: ${READING_SESSIONS_REQUIRED:-false}
-      # Set to false when TLS terminates at a reverse proxy that sets X-Forwarded-Proto
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
     volumes:
-      - ./data:/app/data
       - ./public/uploads:/app/public/uploads
 
-  # One-time setup: docker compose --profile setup run --rm setup
   setup:
     profiles: ["setup"]
     image: node:20-bookworm-slim
     working_dir: /app
     environment:
-      DATABASE_PATH: /app/data/historycodex.db
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      DATABASE_URL_DIRECT: ${DATABASE_URL_DIRECT:-${DATABASE_URL}}
     volumes:
       - ./:/app
-      - ./data:/app/data
       - ./public/uploads:/app/public/uploads
     command: >
       sh -c "apt-get update && apt-get install -y --no-install-recommends python3 make g++ &&
       npm ci &&
       node scripts/migrate-production.mjs &&
-      npm run db:seed &&
-      npm run db:seed-auth"
+      echo 'WARNING: db:seed and db:seed-auth are disabled for shared Supabase DB.'"

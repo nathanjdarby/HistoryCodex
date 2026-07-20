@@ -44,13 +44,14 @@ export async function updateBookProgress(userId: number, bookId: number, current
     if (pct < milestone) continue;
     const type = `milestone_${milestone}` as MilestoneType;
 
-    const result = db.run(sql`
+    const result = await db.execute(sql`
       insert into points_ledger (user_id, book_id, era_id, type, points)
       values (${userId}, ${bookId}, ${book.eraId}, ${type}, ${rules.pointsPerMilestone})
       on conflict (book_id, type) where type like 'milestone_%' do nothing
+      returning id
     `);
 
-    if (result.changes > 0) {
+    if (result.length > 0) {
       awardedMilestones.push(type);
     }
   }

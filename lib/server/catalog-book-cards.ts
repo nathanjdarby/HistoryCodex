@@ -150,16 +150,17 @@ export async function addCatalogBookCard(catalogBookId: number, characterId: num
 export async function removeCatalogBookCard(catalogBookId: number, characterId: number) {
   await getCatalogBook(catalogBookId);
 
-  const result = await db
+  const deleted = await db
     .delete(catalogBookCards)
     .where(
       and(
         eq(catalogBookCards.catalogBookId, catalogBookId),
         eq(catalogBookCards.characterId, characterId),
       ),
-    );
+    )
+    .returning({ id: catalogBookCards.id });
 
-  if (result.changes === 0) {
+  if (deleted.length === 0) {
     throw new ApiError(404, "Card is not linked to this book");
   }
 }

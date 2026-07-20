@@ -1,24 +1,35 @@
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
-import path from "node:path";
-import fs from "node:fs";
+import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import * as schema from "./schema";
 
-function resolveDatabasePath() {
-  if (process.env.DATABASE_PATH) {
-    return path.resolve(process.env.DATABASE_PATH);
+type Db = PostgresJsDatabase<typeof schema>;
+
+let client: ReturnType<typeof postgres> | undefined;
+let dbInstance: Db | undefined;
+
+function getClient() {
+  if (!client) {
+    const url = process.env.DATABASE_URL;
+    if (!url) {
+      throw new Error("DATABASE_URL is required (Supabase Postgres connection string).");
+    }
+    client = postgres(url, {
+      prepare: false,
+      max: 10,
+    });
   }
-  return path.join(process.cwd(), "data", "historycodex.db");
+  return client;
 }
 
-const dbPath = resolveDatabasePath();
-const dataDir = path.dirname(dbPath);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+function getDb(): Db {
+  if (!dbInstance) {
+    dbInstance = drizzle(getClient(), { schema });
+  }
+  return dbInstance;
 }
 
-const sqlite = new Database(dbPath);
-sqlite.pragma("journal_mode = WAL");
-sqlite.pragma("foreign_keys = ON");
-
-export const db = drizzle(sqlite, { schema });
+export const db = new Proxy({} as Db, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getDb() as object, prop, receiver);
+  },
+});

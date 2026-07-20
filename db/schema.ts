@@ -1,16 +1,19 @@
 import { sql } from "drizzle-orm";
 import {
-  sqliteTable,
+  pgTable,
   text,
   integer,
-  real,
+  serial,
+  boolean,
+  doublePrecision,
+  timestamp,
   uniqueIndex,
   index,
   primaryKey,
-} from "drizzle-orm/sqlite-core";
+} from "drizzle-orm/pg-core";
 
-export const eras = sqliteTable("eras", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const eras = pgTable("eras", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   startYear: integer("start_year").notNull(),
@@ -19,15 +22,13 @@ export const eras = sqliteTable("eras", {
   colorSecondary: text("color_secondary").notNull(),
   region: text("region"),
   description: text("description"),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const catalogBooks = sqliteTable(
+export const catalogBooks = pgTable(
   "catalog_books",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     title: text("title").notNull(),
     author: text("author"),
     isbn: text("isbn"),
@@ -40,13 +41,9 @@ export const catalogBooks = sqliteTable(
     eraId: integer("era_id").references(() => eras.id),
     /** Year shown on the user timeline when this book is added to a library. */
     timelineYear: integer("timeline_year"),
-    active: integer("active", { mode: "boolean" }).notNull().default(true),
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_catalog_books_era").on(table.eraId),
@@ -54,10 +51,10 @@ export const catalogBooks = sqliteTable(
   ],
 );
 
-export const books = sqliteTable(
+export const books = pgTable(
   "books",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -79,14 +76,10 @@ export const books = sqliteTable(
     status: text("status", { enum: ["to_read", "reading", "finished"] })
       .notNull()
       .default("to_read"),
-    startedAt: integer("started_at", { mode: "timestamp" }),
-    finishedAt: integer("finished_at", { mode: "timestamp" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_books_user").on(table.userId),
@@ -95,10 +88,10 @@ export const books = sqliteTable(
   ],
 );
 
-export const timelineEntries = sqliteTable(
+export const timelineEntries = pgTable(
   "timeline_entries",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     kind: text("kind", { enum: ["book", "event", "person", "note"] }).notNull(),
     title: text("title").notNull(),
     summary: text("summary"),
@@ -112,12 +105,8 @@ export const timelineEntries = sqliteTable(
     eraId: integer("era_id").references(() => eras.id),
     bookId: integer("book_id").references(() => books.id),
     imageUrl: text("image_url"),
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_entries_year").on(table.year),
@@ -126,10 +115,10 @@ export const timelineEntries = sqliteTable(
   ],
 );
 
-export const entryLinks = sqliteTable(
+export const entryLinks = pgTable(
   "entry_links",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     sourceEntryId: integer("source_entry_id")
       .notNull()
       .references(() => timelineEntries.id, { onDelete: "cascade" }),
@@ -138,9 +127,7 @@ export const entryLinks = sqliteTable(
       .references(() => timelineEntries.id, { onDelete: "cascade" }),
     linkType: text("link_type").notNull().default("relates_to"),
     note: text("note"),
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("ux_entry_links_unique").on(
@@ -191,8 +178,8 @@ export const DISPLAY_NAME_AS_ENUM = [
   "full_name",
 ] as const;
 
-export const users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   role: text("role", { enum: USER_ROLE_ENUM }).notNull().default("user"),
@@ -202,13 +189,11 @@ export const users = sqliteTable("users", {
   displayNameAs: text("display_name_as", { enum: DISPLAY_NAME_AS_ENUM })
     .notNull()
     .default("email"),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const characters = sqliteTable("characters", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const characters = pgTable("characters", {
+  id: serial("id").primaryKey(),
   eraId: integer("era_id")
     .notNull()
     .references(() => eras.id),
@@ -223,22 +208,20 @@ export const characters = sqliteTable("characters", {
   imageFocusX: integer("image_focus_x").notNull().default(50),
   imageFocusY: integer("image_focus_y").notNull().default(50),
   imageScale: integer("image_scale").notNull().default(100),
-  holographic: integer("holographic", { mode: "boolean" }).notNull().default(false),
+  holographic: boolean("holographic").notNull().default(false),
   attack: integer("attack").notNull().default(0),
   defense: integer("defense").notNull().default(0),
   abilityName: text("ability_name"),
   abilityEffect: text("ability_effect", { enum: ABILITY_EFFECT_ENUM }),
   abilityValue: integer("ability_value"),
   abilityTrigger: text("ability_trigger", { enum: ABILITY_TRIGGER_ENUM }),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const catalogBookCards = sqliteTable(
+export const catalogBookCards = pgTable(
   "catalog_book_cards",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     catalogBookId: integer("catalog_book_id")
       .notNull()
       .references(() => catalogBooks.id, { onDelete: "cascade" }),
@@ -246,9 +229,7 @@ export const catalogBookCards = sqliteTable(
       .notNull()
       .references(() => characters.id, { onDelete: "cascade" }),
     sortOrder: integer("sort_order").notNull().default(0),
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("ux_catalog_book_cards_book_character").on(
@@ -261,10 +242,10 @@ export const catalogBookCards = sqliteTable(
 
 export const CATALOG_DECK_KIND_ENUM = ["starter", "themed"] as const;
 
-export const catalogDecks = sqliteTable(
+export const catalogDecks = pgTable(
   "catalog_decks",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     name: text("name").notNull(),
     description: text("description"),
     imageUrl: text("image_url"),
@@ -272,13 +253,9 @@ export const catalogDecks = sqliteTable(
     deckKind: text("deck_kind", { enum: CATALOG_DECK_KIND_ENUM }).notNull().default("themed"),
     price: integer("price").notNull().default(0),
     sortOrder: integer("sort_order").notNull().default(0),
-    active: integer("active", { mode: "boolean" }).notNull().default(true),
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_catalog_decks_kind").on(table.deckKind),
@@ -286,10 +263,10 @@ export const catalogDecks = sqliteTable(
   ],
 );
 
-export const catalogDeckCards = sqliteTable(
+export const catalogDeckCards = pgTable(
   "catalog_deck_cards",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     catalogDeckId: integer("catalog_deck_id")
       .notNull()
       .references(() => catalogDecks.id, { onDelete: "cascade" }),
@@ -307,19 +284,17 @@ export const catalogDeckCards = sqliteTable(
   ],
 );
 
-export const userCharacters = sqliteTable(
+export const userCharacters = pgTable(
   "user_characters",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     characterId: integer("character_id")
       .notNull()
       .references(() => characters.id),
-    unlockedAt: integer("unlocked_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    unlockedAt: timestamp("unlocked_at", { withTimezone: true }).notNull().defaultNow(),
     quantity: integer("quantity").notNull().default(1),
     sourceBookId: integer("source_book_id").references(() => books.id),
   },
@@ -329,8 +304,8 @@ export const userCharacters = sqliteTable(
   ],
 );
 
-export const boosterPacks = sqliteTable("booster_packs", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const boosterPacks = pgTable("booster_packs", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
   imageUrl: text("image_url"),
@@ -344,13 +319,9 @@ export const boosterPacks = sqliteTable("booster_packs", {
   weightEpic: integer("weight_epic").notNull(),
   weightLegendary: integer("weight_legendary").notNull(),
   weightMythic: integer("weight_mythic").notNull().default(0),
-  active: integer("active", { mode: "boolean" }).notNull().default(true),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const POINTS_LEDGER_TYPE_ENUM = [
@@ -368,10 +339,10 @@ export const POINTS_LEDGER_TYPE_ENUM = [
 
 export const POINTS_LEDGER_STATUS_ENUM = ["pending", "settled", "held", "reversed"] as const;
 
-export const pointsLedger = sqliteTable(
+export const pointsLedger = pgTable(
   "points_ledger",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -385,9 +356,7 @@ export const pointsLedger = sqliteTable(
     metadata: text("metadata"),
     characterId: integer("character_id").references(() => characters.id),
     packConfigId: integer("pack_config_id").references(() => boosterPacks.id),
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("ux_points_book_milestone")
@@ -408,10 +377,10 @@ export const READING_SESSION_STATUS_ENUM = [
 
 export const READING_SESSION_SOURCE_ENUM = ["timer", "manual_override", "admin"] as const;
 
-export const readingSessions = sqliteTable(
+export const readingSessions = pgTable(
   "reading_sessions",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -422,23 +391,19 @@ export const readingSessions = sqliteTable(
     startPage: integer("start_page").notNull(),
     endPage: integer("end_page"),
     pagesLogged: integer("pages_logged").notNull().default(0),
-    startTime: integer("start_time", { mode: "timestamp" }).notNull(),
-    endTime: integer("end_time", { mode: "timestamp" }),
+    startTime: timestamp("start_time", { withTimezone: true }).notNull(),
+    endTime: timestamp("end_time", { withTimezone: true }),
     activeSeconds: integer("active_seconds").notNull().default(0),
     pausedSeconds: integer("paused_seconds").notNull().default(0),
-    lastHeartbeat: integer("last_heartbeat", { mode: "timestamp" }).notNull(),
+    lastHeartbeat: timestamp("last_heartbeat", { withTimezone: true }).notNull(),
     clientToken: text("client_token").notNull().unique(),
     source: text("source", { enum: READING_SESSION_SOURCE_ENUM }).notNull().default("timer"),
     pagesPerMinX100: integer("pages_per_min_x100"),
     wpmEstimate: integer("wpm_estimate"),
     velocityScore: integer("velocity_score"),
     flagReason: text("flag_reason"),
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_reading_sessions_user").on(table.userId),
@@ -450,10 +415,10 @@ export const readingSessions = sqliteTable(
   ],
 );
 
-export const userEraStats = sqliteTable(
+export const userEraStats = pgTable(
   "user_era_stats",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -462,9 +427,7 @@ export const userEraStats = sqliteTable(
       .references(() => eras.id, { onDelete: "cascade" }),
     pointsBalance: integer("points_balance").notNull().default(0),
     totalPointsEarned: integer("total_points_earned").notNull().default(0),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("ux_user_era_stats_user_era").on(table.userId, table.eraId),
@@ -472,20 +435,18 @@ export const userEraStats = sqliteTable(
   ],
 );
 
-export const userPointCaps = sqliteTable("user_point_caps", {
+export const userPointCaps = pgTable("user_point_caps", {
   userId: integer("user_id")
     .primaryKey()
     .references(() => users.id, { onDelete: "cascade" }),
   dailyEarned: integer("daily_earned").notNull().default(0),
   dailyCap: integer("daily_cap").notNull().default(150),
-  dailyResetAt: integer("daily_reset_at", { mode: "timestamp" }).notNull(),
+  dailyResetAt: timestamp("daily_reset_at", { withTimezone: true }).notNull(),
   weeklyEarned: integer("weekly_earned").notNull().default(0),
   weeklyCap: integer("weekly_cap").notNull().default(600),
-  weeklyResetAt: integer("weekly_reset_at", { mode: "timestamp" }).notNull(),
+  weeklyResetAt: timestamp("weekly_reset_at", { withTimezone: true }).notNull(),
   trustScore: integer("trust_score").notNull().default(100),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const VERIFICATION_QUEUE_STATUS_ENUM = [
@@ -495,10 +456,10 @@ export const VERIFICATION_QUEUE_STATUS_ENUM = [
   "expired",
 ] as const;
 
-export const verificationQueue = sqliteTable(
+export const verificationQueue = pgTable(
   "verification_queue",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -510,10 +471,8 @@ export const verificationQueue = sqliteTable(
       .notNull()
       .default("pending"),
     reviewedBy: integer("reviewed_by").references(() => users.id),
-    reviewedAt: integer("reviewed_at", { mode: "timestamp" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_verification_queue_user").on(table.userId),
@@ -521,10 +480,10 @@ export const verificationQueue = sqliteTable(
   ],
 );
 
-export const antiCheatEvents = sqliteTable(
+export const antiCheatEvents = pgTable(
   "anti_cheat_events",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -532,43 +491,37 @@ export const antiCheatEvents = sqliteTable(
     severity: integer("severity").notNull().default(1),
     sessionId: integer("session_id").references(() => readingSessions.id),
     details: text("details"),
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("idx_anti_cheat_events_user").on(table.userId)],
 );
 
-export const userStats = sqliteTable(
+export const userStats = pgTable(
   "user_stats",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     pointsBalance: integer("points_balance").notNull().default(0),
     totalPointsEarned: integer("total_points_earned").notNull().default(0),
     booksFinished: integer("books_finished").notNull().default(0),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [uniqueIndex("ux_user_stats_user").on(table.userId)],
 );
 
-export const userEras = sqliteTable(
+export const userEras = pgTable(
   "user_eras",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     eraId: integer("era_id")
       .notNull()
       .references(() => eras.id, { onDelete: "cascade" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex("ux_user_eras_user_era").on(table.userId, table.eraId),
@@ -576,8 +529,8 @@ export const userEras = sqliteTable(
   ],
 );
 
-export const eraCampaigns = sqliteTable("era_campaigns", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const eraCampaigns = pgTable("era_campaigns", {
+  id: serial("id").primaryKey(),
   eraId: integer("era_id")
     .notNull()
     .references(() => eras.id, { onDelete: "cascade" })
@@ -585,12 +538,10 @@ export const eraCampaigns = sqliteTable("era_campaigns", {
   slug: text("slug").notNull().unique(),
   title: text("title").notNull(),
   themeJson: text("theme_json").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const userCampaignProgress = sqliteTable(
+export const userCampaignProgress = pgTable(
   "user_campaign_progress",
   {
     userId: integer("user_id")
@@ -601,9 +552,7 @@ export const userCampaignProgress = sqliteTable(
       .references(() => eras.id, { onDelete: "cascade" }),
     nodesUnlocked: text("nodes_unlocked").notNull().default("[]"),
     currentNode: text("current_node"),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     primaryKey({ columns: [table.userId, table.eraId] }),
@@ -611,13 +560,13 @@ export const userCampaignProgress = sqliteTable(
   ],
 );
 
-export const gameRules = sqliteTable("game_rules", {
+export const gameRules = pgTable("game_rules", {
   id: integer("id").primaryKey(),
   milestonesJson: text("milestones_json").notNull(),
   pointsPerMilestone: integer("points_per_milestone").notNull(),
   dailyPointCap: integer("daily_point_cap").notNull(),
   weeklyPointCap: integer("weekly_point_cap").notNull(),
-  packGeneralMultiplier: real("pack_general_multiplier").notNull(),
+  packGeneralMultiplier: doublePrecision("pack_general_multiplier").notNull(),
   minSecondsPerPage: integer("min_seconds_per_page").notNull(),
   softSecondsPerPage: integer("soft_seconds_per_page").notNull(),
   maxWpm: integer("max_wpm").notNull(),
@@ -627,34 +576,28 @@ export const gameRules = sqliteTable("game_rules", {
   trustDecayPerFlag: integer("trust_decay_per_flag").notNull(),
   trustGainOnApprove: integer("trust_gain_on_approve").notNull(),
   battleRulesJson: text("battle_rules_json"),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const userDecks = sqliteTable(
+export const userDecks = pgTable(
   "user_decks",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
-    isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    isDefault: boolean("is_default").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("idx_user_decks_user").on(table.userId)],
 );
 
-export const userDeckCards = sqliteTable(
+export const userDeckCards = pgTable(
   "user_deck_cards",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     deckId: integer("deck_id")
       .notNull()
       .references(() => userDecks.id, { onDelete: "cascade" }),
@@ -671,10 +614,10 @@ export const userDeckCards = sqliteTable(
 
 export const MATCH_STATUS_ENUM = ["active", "won", "lost", "abandoned"] as const;
 
-export const matches = sqliteTable(
+export const matches = pgTable(
   "matches",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
+    id: serial("id").primaryKey(),
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -687,12 +630,8 @@ export const matches = sqliteTable(
     turnNumber: integer("turn_number").notNull().default(1),
     stateJson: text("state_json").notNull(),
     winner: text("winner"),
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_matches_user").on(table.userId),

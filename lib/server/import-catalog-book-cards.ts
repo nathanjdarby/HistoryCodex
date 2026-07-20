@@ -18,6 +18,7 @@ import {
 } from "@/lib/server/catalog-book-cards";
 import { createCatalogBook, getCatalogBook } from "@/lib/server/catalog-books";
 import { convertFileToWebp } from "@/lib/server/image-webp";
+import { importStagingPreviewUrl } from "@/lib/server/stage-import-folder";
 import type { Archetype, Rarity } from "@/lib/sprite/generateSprite";
 
 const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
@@ -59,7 +60,31 @@ export type CardImportOverride = {
   eraSlug?: string;
 };
 
-export type ImportDuplicateDecision = "replace" | "ignore";
+export type ImportDuplicateDecision = "replace" | "ignore" | "add_variant";
+
+export type ImportDuplicateCharacterPreview = {
+  id: number;
+  name: string;
+  seed: string;
+  cardType: (typeof CARD_TYPE_ENUM)[number];
+  rarity: Rarity;
+  cost: number;
+  attack: number;
+  defense: number;
+  archetype: Archetype | null;
+  abilityName: string | null;
+  abilityEffect: (typeof characters.$inferSelect)["abilityEffect"];
+  abilityValue: number | null;
+  abilityTrigger: (typeof characters.$inferSelect)["abilityTrigger"];
+  flavorText: string | null;
+  imageUrl: string | null;
+  holographic: boolean;
+  era: {
+    name: string;
+    colorPrimary: string;
+    colorSecondary: string;
+  };
+};
 
 export type ImportCardPreview = {
   key: string;
@@ -72,6 +97,8 @@ export type ImportCardPreview = {
   eraSlug: string;
   existingCharacterId?: number;
   existingImageUrl?: string | null;
+  existingCharacter?: ImportDuplicateCharacterPreview | null;
+  incomingPreviewUrl?: string | null;
   matchedBy?: "seed" | "name";
 };
 
@@ -107,7 +134,7 @@ export type ImportCatalogBookCardsResult = {
     name: string;
     cardType: string;
     seed: string;
-    action: "created" | "updated" | "skipped" | "linked_existing";
+    action: "created" | "updated" | "skipped" | "linked_existing" | "created_variant";
   }[];
 };
 
@@ -143,6 +170,31 @@ function cardSeed(bookSlug: string, cardType: (typeof CARD_TYPE_ENUM)[number], n
   if (base) return `${bookSlug}-${cardType}-${base}`;
   const hash = createHash("sha256").update(name).digest("hex").slice(0, 12);
   return `${bookSlug}-${cardType}-${hash}`;
+}
+
+function variantSeedBase(bookSlug: string, cardType: (typeof CARD_TYPE_ENUM)[number], name: string) {
+  const base = slugifyCardName(name) || slugify(name);
+  if (base) return `${bookSlug}-${cardType}-${base}`;
+  const hash = createHash("sha256").update(name).digest("hex").slice(0, 12);
+  return `${bookSlug}-${cardType}-${hash}`;
+}
+
+async function allocateVariantSeed(params: {
+  bookSlug: string;
+  bookId: number;
+  cardType: (typeof CARD_TYPE_ENUM)[number];
+  name: string;
+}) {
+  const prefix = `${variantSeedBase(params.bookSlug, params.cardType, params.name)}-book${params.bookId}`;
+  let candidate = prefix;
+  let suffix = 2;
+
+  while (true) {
+    const [existing] = await db.select({ id: characters.id }).from(characters).where(eq(characters.seed, candidate));
+    if (!existing) return candidate;
+    candidate = `${prefix}-${suffix}`;
+    suffix++;
+  }
 }
 
 function cardNameFromFilename(filename: string) {
@@ -255,6 +307,62 @@ function buildCharacterValues(params: {
     abilityValue: stats.abilityValue,
     flavorText,
     imageUrl: params.imageUrl,
+  };
+}
+
+function buildCharacterValuesFromExisting(
+  existing: typeof characters.$inferSelect,
+  params: { eraId: number; seed: string; imageUrl: string },
+) {
+  return {
+    eraId: params.eraId,
+    name: existing.name,
+    seed: params.seed,
+    cardType: existing.cardType,
+    rarity: existing.rarity,
+    cost: existing.cost,
+    archetype: existing.archetype,
+    attack: existing.attack,
+    defense: existing.defense,
+    abilityName: existing.abilityName,
+    abilityEffect: existing.abilityEffect,
+    abilityValue: existing.abilityValue,
+    abilityTrigger: existing.abilityTrigger,
+    flavorText: existing.flavorText,
+    imageUrl: params.imageUrl,
+    imageFocusX: existing.imageFocusX,
+    imageFocusY: existing.imageFocusY,
+    imageScale: existing.imageScale,
+    holographic: existing.holographic,
+  };
+}
+
+function toDuplicateCharacterPreview(
+  character: typeof characters.$inferSelect,
+  era: typeof eras.$inferSelect,
+): ImportDuplicateCharacterPreview {
+  return {
+    id: character.id,
+    name: character.name,
+    seed: character.seed,
+    cardType: character.cardType,
+    rarity: character.rarity,
+    cost: character.cost,
+    attack: character.attack,
+    defense: character.defense,
+    archetype: character.archetype,
+    abilityName: character.abilityName,
+    abilityEffect: character.abilityEffect,
+    abilityValue: character.abilityValue,
+    abilityTrigger: character.abilityTrigger,
+    flavorText: character.flavorText,
+    imageUrl: character.imageUrl,
+    holographic: character.holographic,
+    era: {
+      name: era.name,
+      colorPrimary: era.colorPrimary,
+      colorSecondary: era.colorSecondary,
+    },
   };
 }
 
@@ -638,6 +746,13 @@ async function buildImportContext(options: ImportCatalogBookCardsOptions): Promi
       eraSlug: cardEra.slug,
       existingCharacterId: match?.character.id,
       existingImageUrl: match?.character.imageUrl ?? null,
+      existingCharacter: match
+        ? toDuplicateCharacterPreview(
+            match.character,
+            allEras.find((era) => era.id === match.character.eraId) ?? cardEra,
+          )
+        : null,
+      incomingPreviewUrl: importStagingPreviewUrl(absDir, card.sourcePath),
       matchedBy: match?.matchedBy,
     });
   }
@@ -716,6 +831,14 @@ export async function importCatalogBookCardsFromDir(
             cardType: preview.cardType,
             seed: preview.seed,
             action: "linked_existing",
+          });
+        } else if (decision === "add_variant") {
+          result.created++;
+          result.cards.push({
+            name: preview.name,
+            cardType: preview.cardType,
+            seed: preview.seed,
+            action: "created_variant",
           });
         } else {
           result.updated++;
@@ -797,6 +920,40 @@ export async function importCatalogBookCardsFromDir(
           seed,
           action: "linked_existing",
         });
+        continue;
+      }
+
+      if (decision === "add_variant") {
+        const [existing] = await db
+          .select()
+          .from(characters)
+          .where(eq(characters.id, preview.existingCharacterId));
+        if (!existing) {
+          throw new ApiError(404, `Existing card not found for "${preview.name}".`);
+        }
+
+        const variantSeed = await allocateVariantSeed({
+          bookSlug: context.bookSlug,
+          bookId: book.id,
+          cardType,
+          name: preview.name,
+        });
+        const imageUrl = await importImageFile(preview.sourcePath);
+        const values = buildCharacterValuesFromExisting(existing, {
+          eraId: cardEraId,
+          seed: variantSeed,
+          imageUrl,
+        });
+        const [created] = await db.insert(characters).values(values).returning();
+        importedCharacterIds.push(created!.id);
+        result.created++;
+        result.cards.push({
+          name: preview.name,
+          cardType,
+          seed: variantSeed,
+          action: "created_variant",
+        });
+        result.imported++;
         continue;
       }
 

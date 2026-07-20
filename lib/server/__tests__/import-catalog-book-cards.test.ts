@@ -4,6 +4,7 @@ import path from "node:path";
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import { discoverCardsInImportDir } from "@/lib/server/import-catalog-book-cards";
+import { importStagingPreviewUrl } from "@/lib/server/stage-import-folder";
 
 const tempDirs: string[] = [];
 
@@ -54,6 +55,23 @@ describe("discoverCardsInImportDir", () => {
         ["Battle of Hastings", "event"],
         ["Plague", "event"],
       ],
+    );
+  });
+
+  it("builds a preview URL for staged import files", () => {
+    const sessionId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+    const stagingRoot = path.join(os.tmpdir(), "historycodex-imports");
+    const stagedDir = path.join(stagingRoot, sessionId);
+    fs.mkdirSync(stagedDir, { recursive: true });
+    tempDirs.push(stagedDir);
+
+    const imagePath = path.join(stagedDir, "Characters", "William.png");
+    touchImage(imagePath);
+
+    const previewUrl = importStagingPreviewUrl(stagedDir, imagePath);
+    assert.equal(
+      previewUrl,
+      "/api/admin/catalog-books/import/preview?session=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee&path=Characters%2FWilliam.png",
     );
   });
 });

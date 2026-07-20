@@ -16,6 +16,7 @@ import type {
   ImportCatalogBookCardsResult,
   ImportDuplicateDecision,
 } from "@/lib/server/import-catalog-book-cards";
+import { ImportDuplicateCardReview } from "@/components/import-duplicate-card-review";
 
 type CatalogBook = {
   id: number;
@@ -432,6 +433,13 @@ function ImportBookCardsPageInner() {
               </button>
               <button
                 type="button"
+                onClick={() => setDecisionForAll("add_variant")}
+                className="rounded-md border border-border-strong px-3 py-1.5 text-sm text-foreground hover:bg-surface"
+              >
+                Add variant all
+              </button>
+              <button
+                type="button"
                 onClick={() => setDecisionForAll("ignore")}
                 className="rounded-md border border-border-strong px-3 py-1.5 text-sm text-foreground hover:bg-surface"
               >
@@ -440,48 +448,15 @@ function ImportBookCardsPageInner() {
             </div>
           </div>
 
-          <div className="space-y-3">
-            {pendingDuplicates.map((card) => {
-              const decision = duplicateDecisions[card.seed] ?? "replace";
-              return (
-                <div
-                  key={card.seed}
-                  className="flex flex-col gap-3 rounded-lg border border-border bg-background/50 p-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="font-medium text-foreground">{card.name}</p>
-                    <p className="text-sm capitalize text-muted">
-                      {card.cardType}
-                      {card.matchedBy === "name" ? " · matched by name on platform" : ""}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setDecisionForCard(card.seed, "replace")}
-                      className={`rounded-md px-3 py-1.5 text-sm ${
-                        decision === "replace"
-                          ? "bg-accent text-accent-foreground"
-                          : "border border-border-strong text-foreground/80 hover:bg-surface"
-                      }`}
-                    >
-                      Replace
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDecisionForCard(card.seed, "ignore")}
-                      className={`rounded-md px-3 py-1.5 text-sm ${
-                        decision === "ignore"
-                          ? "bg-surface-raised text-foreground"
-                          : "border border-border-strong text-foreground/80 hover:bg-surface"
-                      }`}
-                    >
-                      Ignore
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="space-y-4">
+            {pendingDuplicates.map((card) => (
+              <ImportDuplicateCardReview
+                key={card.seed}
+                card={card}
+                decision={duplicateDecisions[card.seed] ?? "replace"}
+                onDecisionChange={(decision) => setDecisionForCard(card.seed, decision)}
+              />
+            ))}
           </div>
 
           <button
@@ -505,8 +480,12 @@ function ImportBookCardsPageInner() {
       {result ? (
         <div className="rounded-md border border-emerald-900/40 bg-emerald-950/20 px-3 py-2 text-sm text-emerald-300">
           Import complete for &quot;{result.bookTitle}&quot; ({result.eraSlug}) — {result.imported}{" "}
-          cards ({result.created} created, {result.updated} replaced, {result.skipped} linked
-          existing, {result.linked} linked to book).
+          cards ({result.created} created
+          {result.cards.some((entry) => entry.action === "created_variant")
+            ? `, ${result.cards.filter((entry) => entry.action === "created_variant").length} variants`
+            : ""}
+          , {result.updated} replaced, {result.skipped} linked existing, {result.linked} linked to
+          book).
         </div>
       ) : null}
 

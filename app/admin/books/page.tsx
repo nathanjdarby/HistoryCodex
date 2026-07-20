@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookOpen, FolderInput, LayoutGrid, List, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { BookOpen, FolderInput, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import type { Era } from "@/lib/types";
 import { BookCoverUpload } from "@/components/book-cover-upload";
 import { CatalogBookCardPicker } from "@/components/catalog-book-card-picker";
+import { CatalogBooksEraSections } from "@/components/catalog-books-era-sections";
 import { applyPastedTextToTextarea } from "@/lib/client/paste-text";
 
 type CatalogBook = {
@@ -101,27 +102,61 @@ function toForm(book: CatalogBook, eras?: Era[]): FormState {
   };
 }
 
-type ViewMode = "list" | "gallery";
-
-function CatalogBookCover({
+function AdminCatalogBookRow({
   book,
-  className = "aspect-[2/3]",
-  iconSize = 28,
+  onEdit,
+  onDelete,
 }: {
   book: CatalogBook;
-  className?: string;
-  iconSize?: number;
+  onEdit: (book: CatalogBook) => void;
+  onDelete: (id: number) => void;
 }) {
   return (
-    <div className={`relative w-full overflow-hidden rounded bg-surface-raised ${className}`}>
-      {book.coverUrl ? (
-        <Image src={book.coverUrl} alt={book.title} fill sizes="200px" className="object-cover" />
-      ) : (
-        <div className="flex h-full items-center justify-center text-subtle">
-          <BookOpen size={iconSize} />
-        </div>
-      )}
-    </div>
+    <article className="flex flex-wrap items-center gap-4 px-4 py-3">
+      <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded bg-surface-raised">
+        {book.coverUrl ? (
+          <Image src={book.coverUrl} alt="" fill sizes="44px" className="object-cover" />
+        ) : (
+          <div className="flex h-full items-center justify-center text-subtle">
+            <BookOpen size={16} />
+          </div>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-medium text-foreground">{book.title}</p>
+        <p className="text-sm text-muted">
+          {book.author ?? "Unknown author"} · {book.totalPages} pp
+          {(book.cardCount ?? 0) > 0 ? ` · ${book.cardCount} cards` : ""}
+        </p>
+      </div>
+      <span
+        className={`rounded px-2 py-0.5 text-xs ${book.active ? "bg-emerald-900/50 text-emerald-200" : "bg-surface-raised text-muted"}`}
+      >
+        {book.active ? "Active" : "Hidden"}
+      </span>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => onEdit(book)}
+          className="rounded border border-border-strong p-1.5 text-muted hover:bg-surface-raised"
+          aria-label={`Edit ${book.title}`}
+        >
+          <Pencil size={14} />
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (confirm(`Delete "${book.title}" from the catalog?`)) {
+              onDelete(book.id);
+            }
+          }}
+          className="rounded border border-red-900/50 p-1.5 text-red-400 hover:bg-red-950/40"
+          aria-label={`Delete ${book.title}`}
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+    </article>
   );
 }
 
@@ -142,7 +177,6 @@ export default function AdminBooksPage() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchWarnings, setSearchWarnings] = useState<string[]>([]);
   const [searching, setSearching] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("gallery");
 
   async function runSearch() {
     if (!searchQuery.trim()) return;
@@ -308,42 +342,12 @@ export default function AdminBooksPage() {
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Filter catalog…"
-          className="w-full max-w-md rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm"
-        />
-        <div className="flex rounded-md border border-border-strong bg-surface p-0.5 text-sm">
-          <button
-            type="button"
-            onClick={() => setViewMode("gallery")}
-            className={`rounded p-1.5 ${
-              viewMode === "gallery"
-                ? "bg-surface-raised text-foreground"
-                : "text-muted hover:text-foreground"
-            }`}
-            aria-label="Gallery view"
-            title="Gallery view"
-          >
-            <LayoutGrid size={15} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode("list")}
-            className={`rounded p-1.5 ${
-              viewMode === "list"
-                ? "bg-surface-raised text-foreground"
-                : "text-muted hover:text-foreground"
-            }`}
-            aria-label="List view"
-            title="List view"
-          >
-            <List size={15} />
-          </button>
-        </div>
-      </div>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Filter catalog…"
+        className="w-full max-w-md rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm"
+      />
 
       {isLoading && <p className="text-sm text-muted">Loading catalog…</p>}
 
@@ -354,115 +358,19 @@ export default function AdminBooksPage() {
         </div>
       )}
 
-      {viewMode === "gallery" ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {filtered.map((book) => (
-            <article
-              key={book.id}
-              className="group flex flex-col rounded-xl border border-border bg-surface/40 p-3"
-            >
-              <CatalogBookCover book={book} className="mb-3 aspect-[2/3]" />
-              <div className="flex min-h-0 flex-1 flex-col gap-1">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="line-clamp-2 text-sm font-medium leading-snug text-foreground">
-                    {book.title}
-                  </p>
-                  <span
-                    className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] ${
-                      book.active
-                        ? "bg-emerald-900/50 text-emerald-200"
-                        : "bg-surface-raised text-muted"
-                    }`}
-                  >
-                    {book.active ? "Active" : "Hidden"}
-                  </span>
-                </div>
-                <p className="line-clamp-1 text-xs text-muted">
-                  {book.author ?? "Unknown author"}
-                </p>
-                <p className="text-[10px] text-muted">
-                  {book.totalPages} pp
-                  {book.eraName ? ` · ${book.eraName}` : ""}
-                  {(book.cardCount ?? 0) > 0 ? ` · ${book.cardCount} cards` : ""}
-                </p>
-              </div>
-              <div className="mt-3 flex gap-2 border-t border-border pt-3">
-                <button
-                  type="button"
-                  onClick={() => openEdit(book)}
-                  className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-border-strong px-2 py-1.5 text-xs text-foreground/80 hover:bg-surface-raised"
-                >
-                  <Pencil size={12} />
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirm(`Delete "${book.title}" from the catalog?`)) {
-                      deleteMutation.mutate(book.id);
-                    }
-                  }}
-                  className="rounded-md border border-red-900/50 p-1.5 text-red-400 hover:bg-red-950/40"
-                  aria-label={`Delete ${book.title}`}
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <div className="grid gap-3">
-          {filtered.map((book) => (
-            <article
-              key={book.id}
-              className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-surface/40 p-4"
-            >
-              <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded bg-surface-raised">
-                {book.coverUrl ? (
-                  <Image src={book.coverUrl} alt="" fill sizes="44px" className="object-cover" />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-subtle">
-                    <BookOpen size={16} />
-                  </div>
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-foreground">{book.title}</p>
-                <p className="text-sm text-muted">
-                  {book.author ?? "Unknown author"} · {book.totalPages} pp
-                  {book.eraName ? ` · ${book.eraName}` : ""}
-                  {(book.cardCount ?? 0) > 0 ? ` · ${book.cardCount} cards` : ""}
-                </p>
-              </div>
-              <span
-                className={`rounded px-2 py-0.5 text-xs ${book.active ? "bg-emerald-900/50 text-emerald-200" : "bg-surface-raised text-muted"}`}
-              >
-                {book.active ? "Active" : "Hidden"}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => openEdit(book)}
-                  className="rounded border border-border-strong p-1.5 text-muted hover:bg-surface-raised"
-                >
-                  <Pencil size={14} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirm(`Delete "${book.title}" from the catalog?`)) {
-                      deleteMutation.mutate(book.id);
-                    }
-                  }}
-                  className="rounded border border-red-900/50 p-1.5 text-red-400 hover:bg-red-950/40"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
+      {!isLoading && filtered.length > 0 && eras && (
+        <CatalogBooksEraSections
+          books={filtered}
+          eras={eras}
+          getBookKey={(book) => book.id}
+          renderBook={(book) => (
+            <AdminCatalogBookRow
+              book={book}
+              onEdit={openEdit}
+              onDelete={(id) => deleteMutation.mutate(id)}
+            />
+          )}
+        />
       )}
 
       {formOpen && (

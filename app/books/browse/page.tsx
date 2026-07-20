@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CatalogBooksEraSections } from "@/components/catalog-books-era-sections";
 import { PageHeader } from "@/components/page-header";
 import { ArrowLeft, BookOpen, Check, Loader2, Plus, Search } from "lucide-react";
 import type { Era } from "@/lib/types";
@@ -37,7 +38,6 @@ export default function BrowseCatalogPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
-  const [eraFilter, setEraFilter] = useState("");
 
   const { data: catalog, isLoading } = useQuery({
     queryKey: ["catalog-books"],
@@ -76,8 +76,7 @@ export default function BrowseCatalogPage() {
       !q ||
       book.title.toLowerCase().includes(q) ||
       (book.author?.toLowerCase().includes(q) ?? false);
-    const matchesEra = !eraFilter || String(book.eraId) === eraFilter;
-    return matchesQuery && matchesEra;
+    return matchesQuery;
   });
 
   return (
@@ -94,28 +93,14 @@ export default function BrowseCatalogPage() {
         icon={BookOpen}
       />
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search title or author…"
-            className="app-input w-full py-2 pl-9 pr-3"
-          />
-        </div>
-        <select
-          value={eraFilter}
-          onChange={(e) => setEraFilter(e.target.value)}
-          className="app-input py-2"
-        >
-          <option value="">All eras</option>
-          {eras?.map((era) => (
-            <option key={era.id} value={era.id}>
-              {era.name}
-            </option>
-          ))}
-        </select>
+      <div className="relative max-w-xl">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search title or author…"
+          className="app-input w-full py-2 pl-9 pr-3"
+        />
       </div>
 
       {isLoading && <p className="text-sm text-muted">Loading catalog…</p>}
@@ -136,52 +121,52 @@ export default function BrowseCatalogPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {filtered.map((book) => (
-          <article
-            key={book.id}
-            className="relative flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-surface/40 p-3"
-          >
-            <div className="relative z-0 mb-2 aspect-[2/3] w-full shrink-0 overflow-hidden rounded bg-surface-raised">
-              {book.coverUrl ? (
-                <Image src={book.coverUrl} alt={book.title} fill sizes="200px" className="object-cover" />
-              ) : (
-                <div className="flex h-full items-center justify-center text-subtle">
-                  <BookOpen size={28} />
-                </div>
-              )}
-            </div>
-            <p className="line-clamp-2 text-sm font-medium text-foreground">{book.title}</p>
-            {book.author && (
-              <p className="line-clamp-1 text-xs text-muted">{book.author}</p>
-            )}
-            {book.eraName && (
-              <p className="mt-1 text-[10px] text-muted">{book.eraName}</p>
-            )}
-            <p className="mt-1 text-[10px] text-muted">{book.totalPages} pages</p>
-            {book.inLibrary ? (
-              <span className="mt-auto inline-flex shrink-0 items-center gap-1 pt-3 text-xs text-emerald-400">
-                <Check size={14} />
-                In your library
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={() => addMutation.mutate(book.id)}
-                disabled={addMutation.isPending && addMutation.variables === book.id}
-                className="app-btn-primary relative z-10 mt-3 w-full shrink-0 py-2 text-xs disabled:cursor-not-allowed"
-              >
-                {addMutation.isPending && addMutation.variables === book.id ? (
-                  <Loader2 size={14} className="animate-spin" />
+      {!isLoading && filtered.length > 0 && eras && (
+        <CatalogBooksEraSections
+          books={filtered}
+          eras={eras}
+          getBookKey={(book) => book.id}
+          renderBook={(book) => (
+            <article className="flex flex-wrap items-center gap-4 px-4 py-3">
+              <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded bg-surface-raised">
+                {book.coverUrl ? (
+                  <Image src={book.coverUrl} alt="" fill sizes="44px" className="object-cover" />
                 ) : (
-                  <Plus size={14} />
+                  <div className="flex h-full items-center justify-center text-subtle">
+                    <BookOpen size={16} />
+                  </div>
                 )}
-                Add to library
-              </button>
-            )}
-          </article>
-        ))}
-      </div>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-foreground">{book.title}</p>
+                <p className="text-sm text-muted">
+                  {book.author ?? "Unknown author"} · {book.totalPages} pages
+                </p>
+              </div>
+              {book.inLibrary ? (
+                <span className="inline-flex shrink-0 items-center gap-1 text-xs text-emerald-400">
+                  <Check size={14} />
+                  In your library
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => addMutation.mutate(book.id)}
+                  disabled={addMutation.isPending && addMutation.variables === book.id}
+                  className="app-btn-primary inline-flex shrink-0 items-center gap-1 px-3 py-2 text-xs disabled:cursor-not-allowed"
+                >
+                  {addMutation.isPending && addMutation.variables === book.id ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Plus size={14} />
+                  )}
+                  Add to library
+                </button>
+              )}
+            </article>
+          )}
+        />
+      )}
     </div>
   );
 }

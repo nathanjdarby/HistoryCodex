@@ -17,8 +17,8 @@ const importSchema = z
     multiEra: z.boolean().optional(),
     dryRun: z.boolean().optional(),
     scanOnly: z.boolean().optional(),
-    duplicatePolicy: z.enum(["replace", "ignore"]).optional(),
-    duplicateDecisions: z.record(z.string(), z.enum(["replace", "ignore"])).optional(),
+    duplicatePolicy: z.enum(["replace", "ignore", "add_variant"]).optional(),
+    duplicateDecisions: z.record(z.string(), z.enum(["replace", "ignore", "add_variant"])).optional(),
   })
   .refine((data) => Boolean(data.eraSlug || data.bookId), {
     message: "Choose a catalog book or provide an era slug.",

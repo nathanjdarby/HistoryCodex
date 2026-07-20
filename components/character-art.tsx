@@ -41,6 +41,8 @@ export function CharacterArt({
     };
     const frameCss = imageFrameStyle(frame);
     const interactive = Boolean(onImagePointerDown);
+    // Admin import previews require the browser session cookie; the image optimizer cannot auth.
+    const useDirectImageLoad = imageUrl.startsWith("/api/admin/");
 
     return (
       <div
@@ -52,15 +54,26 @@ export function CharacterArt({
         onPointerUp={onImagePointerUp}
         onPointerCancel={onImagePointerUp}
       >
-        <Image
-          src={imageUrl}
-          alt=""
-          fill
-          sizes={`${Math.max(size, 120)}px`}
-          draggable={false}
-          className="object-cover"
-          style={frameCss}
-        />
+        {useDirectImageLoad ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imageUrl}
+            alt=""
+            draggable={false}
+            className="absolute inset-0 h-full w-full object-cover"
+            style={frameCss}
+          />
+        ) : (
+          <Image
+            src={imageUrl}
+            alt=""
+            fill
+            sizes={`${Math.max(size, 120)}px`}
+            draggable={false}
+            className="object-cover"
+            style={frameCss}
+          />
+        )}
       </div>
     );
   }
