@@ -1,11 +1,14 @@
-import { DEFAULT_BATTLE_RULES } from "@/lib/battle/constants";
+import { DEFAULT_BATTLE_RULES, applyCpGain } from "@/lib/battle/constants";
+import { applyDamageToUnit, healUnitDefense, syncUnitCurrentDefense } from "@/lib/battle/abilities";
+import { gainInfluence } from "@/lib/battle/influence";
 import { applyLocationToLane } from "@/lib/battle/locations";
-import { applyLaneTempBuff, removeDeadUnits, updateUnitInLane } from "@/lib/battle/phases/logistics";
+import { applyLaneTempBuff, updateUnitInLane } from "@/lib/battle/phases/logistics";
+import { removeDeadUnitsFromLane } from "@/lib/battle/unit-lifecycle";
+import { cardSnapshotFromUnit } from "@/lib/battle/abilities";
 import {
   appendLog,
-  drawCards,
+  drawCardsWithExhaustion,
   peekDeckTop,
-  putCardOnDeckTop,
   reorderDeckTop,
   shufflePlayerDeck,
 } from "@/lib/battle/rng";
@@ -36,7 +39,12 @@ export function eventNeedsLane(effect: AbilityEffect | null): boolean {
     effect === "heal_unit" ||
     effect === "add_influence" ||
     effect === "remove_influence" ||
-    effect === "replace_location"
+    effect === "replace_location" ||
+    effect === "epidemic" ||
+    effect === "reform" ||
+    effect === "forced_hand" ||
+    effect === "forced_discard" ||
+    effect === "exhaust_unit"
   );
 }
 
@@ -45,7 +53,12 @@ export function eventNeedsFriendlyTarget(effect: AbilityEffect | null): boolean 
 }
 
 export function eventNeedsEnemyTarget(effect: AbilityEffect | null): boolean {
-  return effect === "vs_higher_rarity_attack";
+  return (
+    effect === "vs_higher_rarity_attack" ||
+    effect === "forced_hand" ||
+    effect === "forced_discard" ||
+    effect === "exhaust_unit"
+  );
 }
 
 export function eventIsImmediate(effect: AbilityEffect | null): boolean {
@@ -103,9 +116,46 @@ export function applyEventEffect(
   const lane = state.lanes[laneIndex];
 
   if (effect === "vs_lower_rarity_attack") {
-    cp += value;
+    cp = applyCpGain(cp, value, rules);
     let next = finishEvent(state, player, card, cp, ps.eventsPlayedThisTurn + 1);
     next = appendLog(next, "event", `${player} plays ${card.name}: gains ${value} CP.`);
+    return next;
+  }
+
+  if (effect === "revolution") {
+    const cpGain = value || 50;
+    const reduction = card.abilityValue2 ?? 20;
+    cp = applyCpGain(cp, cpGain, rules);
+    let next = finishEvent(state, player, card, cp, ps.eventsPlayedThisTurn + 1);
+    next = setPlayerState(next, player, {
+      ...playerState(next, player),
+      deployCostReduction: playerState(next, player).deployCostReduction + reduction,
+      deployCostReductionUses: 1,
+    });
+    next = appendLog(next, "event", `${player} plays ${card.name}: +${cpGain} CP, next deploy −${reduction}.`);
+    return next;
+  }
+
+  if (effect === "trade_route") {
+    cp = applyCpGain(cp, value || 30, rules);
+    let next = finishEvent(state, player, card, cp, ps.eventsPlayedThisTurn + 1);
+    next = appendLog(next, "event", `${player} plays ${card.name}: trade yields ${value || 30} CP.`);
+    const draw = drawCardsWithExhaustion(next, player, 1, rules);
+    return draw.state;
+  }
+
+  if (effect === "treaty") {
+    let next = finishEvent(state, player, card, cp, ps.eventsPlayedThisTurn + 1);
+    const opponent = opponentOf(player);
+    next = setPlayerState(next, opponent, {
+      ...playerState(next, opponent),
+      attacksBlockedThisTurn: true,
+      opponentInfluenceBlocked: (card.abilityValue2 ?? 1) > 0,
+    });
+    const lanes = [...next.lanes];
+    if (lanes[laneIndex]) lanes[laneIndex] = { ...lanes[laneIndex]!, attacksBlocked: true };
+    next = { ...next, lanes };
+    next = appendLog(next, "event", `${player} plays ${card.name}: attacks and Influence restricted this turn.`);
     return next;
   }
 
@@ -190,14 +240,12 @@ export function applyEventEffect(
     const enemies = unitsInLane(lane, opponentOf(player));
     const target = enemies.find((u) => u.instanceId === action.targetInstanceId);
     if (!target) return null;
-    const lanes = [...state.lanes];
-    const updated = enemies.map((u) =>
-      u.instanceId === target.instanceId
-        ? { ...u, currentDefense: u.currentDefense - value }
-        : u,
+    let next = finishEvent(state, player, card, cp, ps.eventsPlayedThisTurn + 1);
+    const lanes = updateUnitInLane(next.lanes, laneIndex, target.instanceId, (u) =>
+      syncUnitCurrentDefense(applyDamageToUnit(u, value), lane.location),
     );
-    lanes[laneIndex] = setUnitsInLane(lane, opponentOf(player), updated.filter((u) => u.currentDefense > 0));
-    let next = finishEvent({ ...state, lanes }, player, card, cp, ps.eventsPlayedThisTurn + 1);
+    next = { ...next, lanes };
+    next = removeDeadUnitsFromLane(next, laneIndex);
     next = appendLog(next, "event", `${player} plays ${card.name}: ${target.name} takes ${value} damage.`);
     return next;
   }
@@ -206,21 +254,18 @@ export function applyEventEffect(
     const friendlies = unitsInLane(lane, player);
     const target = friendlies.find((u) => u.instanceId === action.targetInstanceId);
     if (!target) return null;
-    const lanes = updateUnitInLane(state.lanes, laneIndex, target.instanceId, (u) => ({
-      ...u,
-      currentDefense: Math.min(u.baseDefense + u.eraSynergyBonus, u.currentDefense + value),
-    }));
+    const lanes = updateUnitInLane(state.lanes, laneIndex, target.instanceId, (u) =>
+      syncUnitCurrentDefense(healUnitDefense(u, value, lane.location), lane.location),
+    );
     let next = finishEvent({ ...state, lanes }, player, card, cp, ps.eventsPlayedThisTurn + 1);
     next = appendLog(next, "event", `${player} plays ${card.name}: ${target.name} heals ${value} DEF.`);
     return next;
   }
 
   if (effect === "add_influence") {
-    const current = player === "player" ? lane.playerInfluence : lane.aiInfluence;
-    const lanes = [...state.lanes];
-    lanes[laneIndex] = setInfluenceForLane(lane, player, current + Math.max(1, value || 1));
-    let next = finishEvent({ ...state, lanes }, player, card, cp, ps.eventsPlayedThisTurn + 1);
-    next = appendLog(next, "event", `${player} plays ${card.name}: gains influence on ${lane.location.name}.`);
+    let next = finishEvent(state, player, card, cp, ps.eventsPlayedThisTurn + 1);
+    next = gainInfluence(next, player, laneIndex, Math.max(1, value || 1), rules, "event");
+    next = appendLog(next, "event", `${player} plays ${card.name}: gains Influence on ${lane.location!.name}.`);
     return next;
   }
 
@@ -270,13 +315,91 @@ export function applyEventEffect(
       eventsPlayedThisTurn: ps.eventsPlayedThisTurn + 1,
       discard: [...ps.discard, card],
     });
-    next = applyLocationToLane(next, player, laneIndex, locationCard);
-    if (!next) return null;
+    const withLocation = applyLocationToLane(next, player, laneIndex, locationCard);
+    if (!withLocation) return null;
+    next = withLocation;
     next = appendLog(
       next,
       "event",
       `${player} plays ${card.name}: ${lane.location?.name ?? "location"} replaced by ${locationCard.name} from hand.`,
     );
+    return next;
+  }
+
+  if (effect === "epidemic" && value) {
+    let next = finishEvent(state, player, card, cp, ps.eventsPlayedThisTurn + 1);
+    let lanes = [...next.lanes];
+    const sides: PlayerId[] = ["player", "ai"];
+    for (const side of sides) {
+      const units = unitsInLane(lane, side);
+      for (const unit of units) {
+        lanes = updateUnitInLane(lanes, laneIndex, unit.instanceId, (u) =>
+          syncUnitCurrentDefense(applyDamageToUnit(u, value), lane.location),
+        );
+      }
+    }
+    next = { ...next, lanes };
+    next = removeDeadUnitsFromLane(next, laneIndex);
+    next = appendLog(next, "event", `${player} plays ${card.name}: epidemic deals ${value} to all units.`);
+    return next;
+  }
+
+  if (effect === "reform") {
+    let next = finishEvent(state, player, card, cp, ps.eventsPlayedThisTurn + 1);
+    const opponent = opponentOf(player);
+    next = setPlayerState(next, opponent, {
+      ...playerState(next, opponent),
+      monarchAuraSuppressed: true,
+    });
+    const lanes = [...next.lanes];
+    const enemyUnits = unitsInLane(lane, opponent).map((u) => ({ ...u, auraSuppressed: true }));
+    lanes[laneIndex] = setUnitsInLane(lane, opponent, enemyUnits);
+    next = { ...next, lanes };
+    next = appendLog(next, "event", `${player} plays ${card.name}: enemy auras suppressed until end of turn.`);
+    return next;
+  }
+
+  if (effect === "forced_hand" && action.targetInstanceId) {
+    const target = unitsInLane(lane, opponentOf(player)).find((u) => u.instanceId === action.targetInstanceId);
+    if (!target) return null;
+    let next = finishEvent(state, player, card, cp, ps.eventsPlayedThisTurn + 1);
+    const lanes = [...next.lanes];
+    lanes[laneIndex] = setUnitsInLane(lane, opponentOf(player), unitsInLane(lane, opponentOf(player)).filter((u) => u.instanceId !== target.instanceId));
+    next = { ...next, lanes };
+    next = setPlayerState(next, opponentOf(player), {
+      ...playerState(next, opponentOf(player)),
+      hand: [...playerState(next, opponentOf(player)).hand, cardSnapshotFromUnit(target)],
+    });
+    next = appendLog(next, "event", `${player} plays ${card.name}: ${target.name} returned to hand.`);
+    return next;
+  }
+
+  if (effect === "forced_discard" && action.targetInstanceId) {
+    const target = unitsInLane(lane, opponentOf(player)).find((u) => u.instanceId === action.targetInstanceId);
+    if (!target) return null;
+    let next = finishEvent(state, player, card, cp, ps.eventsPlayedThisTurn + 1);
+    const lanes = [...next.lanes];
+    lanes[laneIndex] = setUnitsInLane(lane, opponentOf(player), unitsInLane(lane, opponentOf(player)).filter((u) => u.instanceId !== target.instanceId));
+    next = { ...next, lanes };
+    next = setPlayerState(next, opponentOf(player), {
+      ...playerState(next, opponentOf(player)),
+      discard: [...playerState(next, opponentOf(player)).discard, cardSnapshotFromUnit(target)],
+    });
+    next = appendLog(next, "event", `${player} plays ${card.name}: ${target.name} routed to discard.`);
+    return next;
+  }
+
+  if (effect === "exhaust_unit" && action.targetInstanceId) {
+    const target = unitsInLane(lane, opponentOf(player)).find((u) => u.instanceId === action.targetInstanceId);
+    if (!target) return null;
+    const lanes = updateUnitInLane(state.lanes, laneIndex, target.instanceId, (u) => ({
+      ...u,
+      isCommitted: true,
+      cannotAttack: true,
+      cannotEstablishInfluence: true,
+    }));
+    let next = finishEvent({ ...state, lanes }, player, card, cp, ps.eventsPlayedThisTurn + 1);
+    next = appendLog(next, "event", `${player} plays ${card.name}: ${target.name} is exhausted.`);
     return next;
   }
 
@@ -358,7 +481,7 @@ export function resolvePendingChoice(
       discard: spent ? [...ps.discard, discarded, spent] : [...ps.discard, discarded],
       eventsPlayedThisTurn: ps.eventsPlayedThisTurn + 1,
     });
-    next = drawCards(next, player, 2);
+    next = drawCardsWithExhaustion(next, player, 2, DEFAULT_BATTLE_RULES).state;
     next = { ...next, pendingChoice: null };
     next = appendLog(next, "event", `${player} discards ${discarded.name} and draws 2.`);
     return next;

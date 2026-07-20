@@ -40,10 +40,15 @@ const actionSchema = z.discriminatedUnion("type", [
     defenderInstanceId: z.string(),
   }),
   z.object({
-    type: z.literal("unification_move"),
+    type: z.literal("establish_influence"),
     laneIndex: z.number().int().min(0).max(0),
-    fromLaneIndex: z.number().int().min(0).max(0),
     unitInstanceId: z.string(),
+  }),
+  z.object({
+    type: z.literal("unification"),
+    laneIndex: z.number().int().min(0).max(0),
+    monarchInstanceId: z.string(),
+    targetInstanceId: z.string(),
   }),
   z.object({
     type: z.literal("resolve_choice"),
@@ -74,6 +79,11 @@ export type ClientMatchState = {
   winner: string | null;
   state: MatchState;
   legalActions: BattleAction[];
+  battleRules: {
+    influenceToCapture: number;
+    locationsToWin: number;
+    failedChronosDrawsToLose: number;
+  };
 };
 
 function parseState(json: string): MatchState {
@@ -210,6 +220,11 @@ export async function getMatchForClient(userId: number, matchId: number): Promis
     winner: row.winner,
     state: sanitizeForClient(state),
     legalActions,
+    battleRules: {
+      influenceToCapture: rules.influenceToCapture,
+      locationsToWin: rules.locationsToWin,
+      failedChronosDrawsToLose: rules.failedChronosDrawsToLose,
+    },
   };
 }
 

@@ -9,7 +9,7 @@ import {
   characters,
   eras,
 } from "@/db/schema";
-import { slugify } from "@/lib/api-utils";
+import { ApiError, slugify } from "@/lib/api-utils";
 import { computeDefaultBattleStats, computeDefaultLocationBuff } from "@/lib/battle";
 import {
   addCatalogBookCard,
@@ -17,6 +17,7 @@ import {
   setCatalogBookCards,
 } from "@/lib/server/catalog-book-cards";
 import { createCatalogBook, getCatalogBook } from "@/lib/server/catalog-books";
+import { convertFileToWebp } from "@/lib/server/image-webp";
 import type { Archetype, Rarity } from "@/lib/sprite/generateSprite";
 
 const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
@@ -54,6 +55,8 @@ export type CardImportOverride = {
   flavorText?: string | null;
   cost?: number;
   cardType?: (typeof CARD_TYPE_ENUM)[number];
+  /** Era slug for this card — used when importing into a multi-era book. */
+  eraSlug?: string;
 };
 
 export type ImportDuplicateDecision = "replace" | "ignore";
@@ -65,6 +68,8 @@ export type ImportCardPreview = {
   seed: string;
   sourcePath: string;
   status: "new" | "existing";
+  eraId: number;
+  eraSlug: string;
   existingCharacterId?: number;
   existingImageUrl?: string | null;
   matchedBy?: "seed" | "name";
@@ -76,6 +81,8 @@ export type ImportCatalogBookCardsOptions = {
   bookTitle?: string;
   bookId?: number;
   createBook?: boolean;
+  /** When true, the catalog book stays without a single era; each card resolves its own era. */
+  multiEra?: boolean;
   defaultRarity?: Rarity;
   mergeLinks?: boolean;
   dryRun?: boolean;
@@ -106,12 +113,14 @@ export type ImportCatalogBookCardsResult = {
 
 type ImportContext = {
   absDir: string;
-  era: typeof eras.$inferSelect;
+  defaultEra: typeof eras.$inferSelect | null;
+  multiEra: boolean;
   book: Awaited<ReturnType<typeof getCatalogBook>> | Awaited<ReturnType<typeof createCatalogBook>>;
   bookSlug: string;
   defaultRarity: Rarity;
   defaults: CardImportOverride;
   byName: Map<string, CardImportOverride>;
+  eraBySlug: Map<string, typeof eras.$inferSelect>;
   previews: ImportCardPreview[];
 };
 
@@ -165,18 +174,17 @@ function loadMetadataFile(dir: string): {
   return { defaults, byName };
 }
 
-function importImageFile(sourcePath: string) {
+async function importImageFile(sourcePath: string) {
   const ext = path.extname(sourcePath).toLowerCase();
   if (!IMAGE_EXTENSIONS.has(ext)) {
     throw new Error(`Unsupported image type: ${sourcePath}`);
   }
 
-  const normalizedExt = ext === ".jpeg" ? ".jpg" : ext;
-  const filename = `${randomUUID()}${normalizedExt}`;
+  const filename = `${randomUUID()}.webp`;
   const uploadDir = path.join(process.cwd(), "public", "uploads", "characters");
   const destination = path.join(uploadDir, filename);
   fs.mkdirSync(uploadDir, { recursive: true });
-  fs.copyFileSync(sourcePath, destination);
+  await convertFileToWebp(sourcePath, destination);
   return `/uploads/characters/${filename}`;
 }
 
@@ -254,15 +262,80 @@ type DiscoveredCard = {
   name: string;
   cardType: (typeof CARD_TYPE_ENUM)[number];
   sourcePath: string;
+  /** Era subfolder under the card-type folder, e.g. Characters/tudor-england/Anne Boleyn.png */
+  eraFolderHint?: string;
 };
 
-function discoverCards(dir: string) {
+function appendDiscoveredImage(params: {
+  discovered: DiscoveredCard[];
+  cardType: (typeof CARD_TYPE_ENUM)[number];
+  sourcePath: string;
+  eraFolderHint?: string;
+}) {
+  const ext = path.extname(params.sourcePath).toLowerCase();
+  if (!IMAGE_EXTENSIONS.has(ext)) return;
+  params.discovered.push({
+    name: cardNameFromFilename(path.basename(params.sourcePath)),
+    cardType: params.cardType,
+    sourcePath: params.sourcePath,
+    eraFolderHint: params.eraFolderHint,
+  });
+}
+
+function scanCardTypeDir(
+  typeDir: string,
+  cardType: (typeof CARD_TYPE_ENUM)[number],
+  discovered: DiscoveredCard[],
+) {
+  for (const entry of fs.readdirSync(typeDir, { withFileTypes: true })) {
+    if (entry.name.startsWith(".")) continue;
+
+    const entryPath = path.join(typeDir, entry.name);
+    if (entry.isFile()) {
+      appendDiscoveredImage({ discovered, cardType, sourcePath: entryPath });
+      continue;
+    }
+
+    if (!entry.isDirectory()) continue;
+
+    for (const file of fs.readdirSync(entryPath)) {
+      if (file.startsWith(".")) continue;
+      const sourcePath = path.join(entryPath, file);
+      if (!fs.statSync(sourcePath).isFile()) continue;
+      appendDiscoveredImage({
+        discovered,
+        cardType,
+        sourcePath,
+        eraFolderHint: entry.name,
+      });
+    }
+  }
+}
+
+function sortDiscoveredCards(discovered: DiscoveredCard[]) {
+  discovered.sort((a, b) => {
+    const typeDelta =
+      CARD_TYPE_IMPORT_ORDER.indexOf(a.cardType) - CARD_TYPE_IMPORT_ORDER.indexOf(b.cardType);
+    if (typeDelta !== 0) return typeDelta;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+/** Scan a book folder or a single card-type folder (e.g. Events/) for importable art. */
+export function discoverCardsInImportDir(dir: string) {
   const absDir = path.resolve(dir);
   if (!fs.existsSync(absDir) || !fs.statSync(absDir).isDirectory()) {
     throw new Error(`Import directory not found: ${absDir}`);
   }
 
   const discovered: DiscoveredCard[] = [];
+  const directCardType = parseCardTypeFolder(path.basename(absDir));
+
+  if (directCardType) {
+    scanCardTypeDir(absDir, directCardType, discovered);
+    sortDiscoveredCards(discovered);
+    return { absDir, discovered };
+  }
 
   for (const entry of fs.readdirSync(absDir, { withFileTypes: true })) {
     if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
@@ -273,30 +346,78 @@ function discoverCards(dir: string) {
       continue;
     }
 
-    const typeDir = path.join(absDir, entry.name);
-    for (const file of fs.readdirSync(typeDir)) {
-      if (file.startsWith(".")) continue;
-      const sourcePath = path.join(typeDir, file);
-      if (!fs.statSync(sourcePath).isFile()) continue;
-      const ext = path.extname(file).toLowerCase();
-      if (!IMAGE_EXTENSIONS.has(ext)) continue;
-
-      discovered.push({
-        name: cardNameFromFilename(file),
-        cardType,
-        sourcePath,
-      });
-    }
+    scanCardTypeDir(path.join(absDir, entry.name), cardType, discovered);
   }
 
-  discovered.sort((a, b) => {
-    const typeDelta =
-      CARD_TYPE_IMPORT_ORDER.indexOf(a.cardType) - CARD_TYPE_IMPORT_ORDER.indexOf(b.cardType);
-    if (typeDelta !== 0) return typeDelta;
-    return a.name.localeCompare(b.name);
-  });
-
+  sortDiscoveredCards(discovered);
   return { absDir, discovered };
+}
+
+function discoverCards(dir: string) {
+  return discoverCardsInImportDir(dir);
+}
+
+async function lookupEraBySlug(slug: string) {
+  const [row] = await db.select().from(eras).where(eq(eras.slug, slug));
+  return row ?? null;
+}
+
+function matchEraHint(
+  hint: string,
+  eraBySlug: Map<string, typeof eras.$inferSelect>,
+  allEras: typeof eras.$inferSelect[],
+) {
+  const trimmed = hint.trim();
+  const lower = trimmed.toLowerCase();
+  const slugMatch = eraBySlug.get(lower) ?? eraBySlug.get(slugify(trimmed));
+  if (slugMatch) return slugMatch;
+
+  return allEras.find((era) => era.name.toLowerCase() === lower) ?? null;
+}
+
+async function lookupEraByExistingCharacter(
+  name: string,
+  cardType: (typeof CARD_TYPE_ENUM)[number],
+) {
+  const rows = await db
+    .select({ era: eras })
+    .from(characters)
+    .innerJoin(eras, eq(characters.eraId, eras.id))
+    .where(
+      and(
+        eq(characters.cardType, cardType),
+        sql`lower(${characters.name}) = lower(${name})`,
+      ),
+    );
+
+  if (rows.length !== 1) return null;
+  return rows[0]!.era;
+}
+
+function resolveCardEraFromHints(params: {
+  cardName: string;
+  override: CardImportOverride;
+  defaults: CardImportOverride;
+  eraFolderHint?: string;
+  context: Pick<ImportContext, "defaultEra" | "multiEra" | "eraBySlug">;
+  allEras: typeof eras.$inferSelect[];
+}) {
+  const { cardName, override, defaults, eraFolderHint, context, allEras } = params;
+
+  const slug =
+    override.eraSlug ??
+    (eraFolderHint ? matchEraHint(eraFolderHint, context.eraBySlug, allEras)?.slug : undefined) ??
+    (context.multiEra ? defaults.eraSlug : undefined);
+
+  if (slug) {
+    const era = context.eraBySlug.get(slug);
+    if (!era) {
+      throw new ApiError(400, `Unknown era "${slug}" for card "${cardName}".`);
+    }
+    return era;
+  }
+  if (context.defaultEra) return context.defaultEra;
+  return null;
 }
 
 async function resolveImportTarget(options: ImportCatalogBookCardsOptions) {
@@ -306,6 +427,20 @@ async function resolveImportTarget(options: ImportCatalogBookCardsOptions) {
 
   if (options.bookId != null) {
     book = await getCatalogBook(options.bookId);
+
+    if (options.multiEra) {
+      let defaultEra: typeof eras.$inferSelect | null = null;
+      if (book.eraId != null) {
+        const [bookEra] = await db.select().from(eras).where(eq(eras.id, book.eraId));
+        if (!bookEra) throw new ApiError(400, "The target book's era could not be found.");
+        defaultEra = bookEra;
+      } else if (options.eraSlug) {
+        defaultEra = await lookupEraBySlug(options.eraSlug);
+        if (!defaultEra) throw new ApiError(400, `Era not found: ${options.eraSlug}`);
+      }
+
+      return { absDir, book, defaultEra, multiEra: true as const, title };
+    }
   } else {
     let eraForLookup: typeof eras.$inferSelect | undefined;
     if (options.eraSlug) {
@@ -326,31 +461,33 @@ async function resolveImportTarget(options: ImportCatalogBookCardsOptions) {
         const [only] = matches;
         book = { ...only!, eraName: null };
       } else if (matches.length > 1 && !options.eraSlug) {
-        throw new Error(
+        throw new ApiError(
+          400,
           `Multiple catalog books named "${title}" — pass --book-id or --era-slug to choose one.`,
         );
       }
     }
   }
 
-  let era: typeof eras.$inferSelect;
+  let defaultEra: typeof eras.$inferSelect | null;
   if (book?.eraId != null) {
     const [bookEra] = await db.select().from(eras).where(eq(eras.id, book.eraId));
-    if (!bookEra) throw new Error("The target book's era could not be found.");
-    era = bookEra;
+    if (!bookEra) throw new ApiError(400, "The target book's era could not be found.");
+    defaultEra = bookEra;
   } else if (options.eraSlug) {
-    const [selectedEra] = await db.select().from(eras).where(eq(eras.slug, options.eraSlug));
-    if (!selectedEra) throw new Error(`Era not found: ${options.eraSlug}`);
-    era = selectedEra;
+    defaultEra = await lookupEraBySlug(options.eraSlug);
+    if (!defaultEra) throw new ApiError(400, `Era not found: ${options.eraSlug}`);
   } else {
-    throw new Error(
+    throw new ApiError(
+      400,
       "Choose an era, or import into a catalog book that already has an era assigned.",
     );
   }
 
   if (!book) {
     if (!options.createBook) {
-      throw new Error(
+      throw new ApiError(
+        400,
         `Catalog book "${title}" not found. Re-run with --create-book, --book-id, or assign an era.`,
       );
     }
@@ -367,7 +504,8 @@ async function resolveImportTarget(options: ImportCatalogBookCardsOptions) {
         totalPages: 1,
         wordCount: null,
         wordsPerPage: null,
-        eraId: era.id,
+        eraId: defaultEra.id,
+        timelineYear: null,
         active: true,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -376,14 +514,14 @@ async function resolveImportTarget(options: ImportCatalogBookCardsOptions) {
     } else {
       book = await createCatalogBook({
         title,
-        eraId: era.id,
+        eraId: defaultEra.id,
         totalPages: 1,
         active: true,
       });
     }
   }
 
-  return { absDir, book, era, title };
+  return { absDir, book, defaultEra, multiEra: false as const, title };
 }
 
 async function ensureCharacterEra(characterId: number, eraId: number) {
@@ -424,14 +562,19 @@ async function findExistingCharacterForImport(params: {
   return null;
 }
 
-function emptyResult(
-  context: ImportContext,
-  eraSlug: string,
-): ImportCatalogBookCardsResult {
+function resultEraSlug(context: ImportContext) {
+  if (context.multiEra) {
+    const slugs = [...new Set(context.previews.map((preview) => preview.eraSlug))];
+    return slugs.length === 1 ? slugs[0]! : "multi-era";
+  }
+  return context.defaultEra?.slug ?? "unknown";
+}
+
+function emptyResult(context: ImportContext): ImportCatalogBookCardsResult {
   return {
     bookId: context.book.id,
     bookTitle: context.book.title,
-    eraSlug,
+    eraSlug: resultEraSlug(context),
     imported: 0,
     created: 0,
     updated: 0,
@@ -444,18 +587,41 @@ function emptyResult(
 async function buildImportContext(options: ImportCatalogBookCardsOptions): Promise<ImportContext> {
   const { absDir, discovered } = discoverCards(options.dir);
   const { defaults, byName } = loadMetadataFile(absDir);
-  const { book, era } = await resolveImportTarget(options);
+  const { book, defaultEra, multiEra } = await resolveImportTarget(options);
+  const allEras = await db.select().from(eras);
+  const eraBySlug = new Map(allEras.map((era) => [era.slug, era]));
 
   const bookSlug = slugify(book.title) || slugifyCardName(book.title) || "book";
   const defaultRarity = options.defaultRarity ?? defaults.rarity ?? "common";
   const previews: ImportCardPreview[] = [];
+  const eraContext = { defaultEra, multiEra, eraBySlug };
+  const missingEra: string[] = [];
 
   for (const card of discovered) {
     const override = { ...defaults, ...byName.get(card.name) };
     const cardType = override.cardType ?? card.cardType;
     const seed = cardSeed(bookSlug, cardType, card.name);
+
+    let cardEra =
+      resolveCardEraFromHints({
+        cardName: card.name,
+        override,
+        defaults,
+        eraFolderHint: card.eraFolderHint,
+        context: eraContext,
+        allEras,
+      }) ?? (await lookupEraByExistingCharacter(card.name, cardType));
+
+    if (!cardEra) {
+      if (multiEra) {
+        missingEra.push(card.name);
+        continue;
+      }
+      throw new ApiError(400, "Could not resolve era for import.");
+    }
+
     const match = await findExistingCharacterForImport({
-      eraId: era.id,
+      eraId: cardEra.id,
       name: card.name,
       cardType,
       seed,
@@ -468,20 +634,33 @@ async function buildImportContext(options: ImportCatalogBookCardsOptions): Promi
       seed,
       sourcePath: card.sourcePath,
       status: match ? "existing" : "new",
+      eraId: cardEra.id,
+      eraSlug: cardEra.slug,
       existingCharacterId: match?.character.id,
       existingImageUrl: match?.character.imageUrl ?? null,
       matchedBy: match?.matchedBy,
     });
   }
 
+  if (missingEra.length > 0) {
+    const sample = missingEra.slice(0, 8).join(", ");
+    const remainder = missingEra.length > 8 ? ` and ${missingEra.length - 8} more` : "";
+    throw new ApiError(
+      400,
+      `${missingEra.length} card${missingEra.length === 1 ? "" : "s"} still need an era (${sample}${remainder}). Sort into era subfolders (e.g. Characters/tudor-england/Anne Boleyn.png), add eraSlug in cards.json, match an existing codex card by name, or pick a default era in the form.`,
+    );
+  }
+
   return {
     absDir,
-    era,
+    defaultEra,
+    multiEra,
     book,
     bookSlug,
     defaultRarity,
     defaults,
     byName,
+    eraBySlug,
     previews,
   };
 }
@@ -494,7 +673,7 @@ export async function scanCatalogBookCardsImport(
   const newCards = context.previews.filter((card) => card.status === "new");
 
   return {
-    ...emptyResult(context, context.era.slug),
+    ...emptyResult(context),
     needsConfirmation: duplicates.length > 0,
     duplicates,
     newCards,
@@ -511,7 +690,7 @@ export async function importCatalogBookCardsFromDir(
   const context = await buildImportContext(options);
   const duplicates = context.previews.filter((card) => card.status === "existing");
   const newCards = context.previews.filter((card) => card.status === "new");
-  const result = emptyResult(context, context.era.slug);
+  const result = emptyResult(context);
 
   if (options.scanOnly) {
     return {
@@ -581,18 +760,21 @@ export async function importCatalogBookCardsFromDir(
 
   let book = context.book;
   if (book.id === -1) {
+    if (!context.defaultEra) {
+      throw new ApiError(400, "Choose an era before creating a new catalog book.");
+    }
     book = await createCatalogBook({
       title: book.title,
-      eraId: context.era.id,
+      eraId: context.defaultEra.id,
       totalPages: 1,
       active: true,
     });
-  } else if (book.eraId == null) {
+  } else if (book.eraId == null && context.defaultEra && !context.multiEra) {
     await db
       .update(catalogBooks)
-      .set({ eraId: context.era.id, updatedAt: new Date() })
+      .set({ eraId: context.defaultEra.id, updatedAt: new Date() })
       .where(eq(catalogBooks.id, book.id));
-    book = { ...book, eraId: context.era.id };
+    book = { ...book, eraId: context.defaultEra.id };
   }
 
   const importedCharacterIds: number[] = [];
@@ -601,11 +783,12 @@ export async function importCatalogBookCardsFromDir(
     const override = { ...context.defaults, ...context.byName.get(preview.name) };
     const cardType = override.cardType ?? preview.cardType;
     const seed = preview.seed;
+    const cardEraId = preview.eraId;
 
     if (preview.status === "existing" && preview.existingCharacterId != null) {
       const decision = duplicateDecisionFor(seed, options)!;
       if (decision === "ignore") {
-        await ensureCharacterEra(preview.existingCharacterId, context.era.id);
+        await ensureCharacterEra(preview.existingCharacterId, cardEraId);
         importedCharacterIds.push(preview.existingCharacterId);
         result.skipped++;
         result.cards.push({
@@ -617,9 +800,9 @@ export async function importCatalogBookCardsFromDir(
         continue;
       }
 
-      const imageUrl = importImageFile(preview.sourcePath);
+      const imageUrl = await importImageFile(preview.sourcePath);
       const values = buildCharacterValues({
-        eraId: context.era.id,
+        eraId: cardEraId,
         name: preview.name,
         seed,
         cardType,
@@ -640,9 +823,9 @@ export async function importCatalogBookCardsFromDir(
       continue;
     }
 
-    const imageUrl = importImageFile(preview.sourcePath);
+    const imageUrl = await importImageFile(preview.sourcePath);
     const values = buildCharacterValues({
-      eraId: context.era.id,
+      eraId: cardEraId,
       name: preview.name,
       seed,
       cardType,
@@ -671,19 +854,25 @@ export async function importCatalogBookCardsFromDir(
   }
 
   result.bookId = book.id;
-  result.eraSlug = context.era.slug;
+  result.eraSlug = resultEraSlug(context);
   return result;
 }
 
 export function describeImportFolderLayout() {
   return `Book folder/
   Characters/
-    Alfred the Great.png
+    Anne Boleyn.png
+    tudor-england/
+      Elizabeth I.png
   Units/
-    Housecarl.png
+    roman-empire/
+      Roman legions.png
   Locations/
-    Wessex.png
   Events/
     Battle of Hastings.png
-  cards.json   (optional metadata overrides)`;
+    tudor-england/
+      Field of the Cloth of Gold.png
+  cards.json   (optional — rarity, flavorText, eraSlug per card)
+
+You can also select a single card-type folder (e.g. Events/) if you are importing just those cards.`;
 }

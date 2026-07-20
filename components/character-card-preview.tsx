@@ -131,7 +131,7 @@ const DENSITY = {
     shell: "aspect-auto rounded-lg sm:rounded-xl",
     padding: "px-2 pb-2 pt-2 sm:px-2.5 sm:pb-2.5 sm:pt-2.5",
     headerVariant: "compact" as const,
-    headerNameClass: "font-semibold leading-tight text-neutral-100",
+    headerNameClass: "font-semibold leading-tight text-foreground",
     headerNameClamp: undefined as string | undefined,
     headerStarSize: 9,
     headerGap: "mb-1.5",
@@ -159,7 +159,7 @@ const DENSITY = {
     shell: "aspect-auto rounded-md sm:rounded-lg",
     padding: "px-1 pb-1 pt-1",
     headerVariant: "compact" as const,
-    headerNameClass: "font-semibold leading-tight text-neutral-100",
+    headerNameClass: "font-semibold leading-tight text-foreground",
     headerNameClamp: undefined as string | undefined,
     headerStarSize: 7,
     headerGap: "mb-0.5",
@@ -235,7 +235,7 @@ export function CharacterCardPreview({
 
   return (
     <div
-      className={`relative flex w-full flex-col overflow-hidden border-2 text-left ${shellClass} ${className}`}
+      className={`dark relative flex w-full flex-col overflow-hidden border-2 text-left ${shellClass} ${className}`}
       style={{
         borderColor: meta.color,
         boxShadow: density === "full" || density === "play" ? meta.glow : undefined,
@@ -306,7 +306,7 @@ export function CharacterCardPreview({
           {locked ? (
             <Lock
               size={density === "full" ? 32 : density === "play" || density === "compact" ? 20 : 16}
-              className="absolute inset-0 m-auto text-neutral-200 drop-shadow"
+              className="absolute inset-0 m-auto text-foreground drop-shadow"
             />
           ) : null}
         </div>
@@ -341,11 +341,11 @@ export function CharacterCardPreview({
               {layout.eraSingleRow ? (
                 <div className={`flex shrink-0 items-center justify-between gap-2 ${layout.eraPadding}`}>
                   <p
-                    className={`min-w-0 truncate font-semibold uppercase tracking-wide text-neutral-200 ${layout.eraTitle}`}
+                    className={`min-w-0 truncate font-semibold uppercase tracking-wide text-foreground ${layout.eraTitle}`}
                   >
                     {era.name}
                   </p>
-                  <span className={`shrink-0 font-mono text-neutral-500 ${layout.eraTitle}`}>{dexLabel}</span>
+                  <span className={`shrink-0 font-mono text-muted ${layout.eraTitle}`}>{dexLabel}</span>
                 </div>
               ) : (
                 <>
@@ -353,7 +353,7 @@ export function CharacterCardPreview({
                     className={`flex shrink-0 items-center justify-between gap-2 ${showFlavorSection ? "border-b border-white/10" : ""} ${layout.eraPadding}`}
                   >
                     <p
-                      className={`min-w-0 truncate font-semibold uppercase tracking-wide text-neutral-200 ${layout.eraTitle}`}
+                      className={`min-w-0 truncate font-semibold uppercase tracking-wide text-foreground ${layout.eraTitle}`}
                     >
                       {era.name}
                     </p>
@@ -369,11 +369,11 @@ export function CharacterCardPreview({
                           {ownership.owned ? (
                             <CheckCircle2 size={14} className="text-emerald-400" />
                           ) : (
-                            <Lock size={12} className="text-neutral-400" />
+                            <Lock size={12} className="text-muted" />
                           )}
                         </div>
                       ) : null}
-                      <span className="font-mono text-[10px] text-neutral-500">{dexLabel}</span>
+                      <span className="font-mono text-[10px] text-muted">{dexLabel}</span>
                     </div>
                   </div>
                   {showFlavorSection ? (

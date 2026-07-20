@@ -77,21 +77,21 @@ export default function AdminVerificationPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="flex items-center gap-2 text-2xl font-semibold text-neutral-100">
-          <ShieldAlert size={22} className="text-amber-500" />
+        <h1 className="flex items-center gap-2 text-2xl font-semibold text-foreground">
+          <ShieldAlert size={22} className="text-gold" />
           Verification queue
         </h1>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-sm text-muted">
           Review flagged reading sessions and approve or reject held point awards.
         </p>
       </div>
 
-      {isLoading && <p className="text-sm text-neutral-500">Loading queue…</p>}
+      {isLoading && <p className="text-sm text-muted">Loading queue…</p>}
 
       {!isLoading && (items?.length ?? 0) === 0 && (
-        <div className="rounded-xl border border-dashed border-neutral-800 px-6 py-10 text-center">
+        <div className="rounded-xl border border-dashed border-border px-6 py-10 text-center">
           <Check size={28} className="mx-auto text-emerald-600" />
-          <p className="mt-3 text-neutral-300">No pending reviews</p>
+          <p className="mt-3 text-foreground/80">No pending reviews</p>
         </div>
       )}
 
@@ -112,40 +112,40 @@ export default function AdminVerificationPage() {
           return (
             <article
               key={item.id}
-              className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4 sm:p-5"
+              className="rounded-xl border border-border bg-surface/40 p-4 sm:p-5"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="font-medium text-neutral-100">{item.userEmail}</p>
-                  <p className="mt-0.5 text-sm text-neutral-400">
+                  <p className="font-medium text-foreground">{item.userEmail}</p>
+                  <p className="mt-0.5 text-sm text-muted">
                     {item.bookTitle ?? "Unknown book"} · {reasonLabel(item.reason)}
                   </p>
                 </div>
-                <span className="rounded bg-amber-950/60 px-2 py-0.5 text-xs font-medium text-amber-200">
+                <span className="rounded bg-accent/20 px-2 py-0.5 text-xs font-medium text-gold-bright">
                   {allowed} pts held
                 </span>
               </div>
 
               <dl className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-                <div className="rounded-lg border border-neutral-800 bg-neutral-950/50 px-3 py-2">
-                  <dt className="text-[11px] uppercase text-neutral-500">Requested</dt>
-                  <dd className="mt-0.5 font-medium text-neutral-200">{requested} pts</dd>
+                <div className="rounded-lg border border-border bg-background/50 px-3 py-2">
+                  <dt className="text-[11px] uppercase text-muted">Requested</dt>
+                  <dd className="mt-0.5 font-medium text-foreground">{requested} pts</dd>
                 </div>
-                <div className="rounded-lg border border-neutral-800 bg-neutral-950/50 px-3 py-2">
-                  <dt className="text-[11px] uppercase text-neutral-500">Pages logged</dt>
-                  <dd className="mt-0.5 font-medium text-neutral-200">
+                <div className="rounded-lg border border-border bg-background/50 px-3 py-2">
+                  <dt className="text-[11px] uppercase text-muted">Pages logged</dt>
+                  <dd className="mt-0.5 font-medium text-foreground">
                     {item.sessionPagesLogged ?? "—"}
                   </dd>
                 </div>
-                <div className="rounded-lg border border-neutral-800 bg-neutral-950/50 px-3 py-2">
-                  <dt className="text-[11px] uppercase text-neutral-500">Active time</dt>
-                  <dd className="mt-0.5 font-medium text-neutral-200">
+                <div className="rounded-lg border border-border bg-background/50 px-3 py-2">
+                  <dt className="text-[11px] uppercase text-muted">Active time</dt>
+                  <dd className="mt-0.5 font-medium text-foreground">
                     {formatDuration(item.sessionActiveSeconds)}
                   </dd>
                 </div>
-                <div className="rounded-lg border border-neutral-800 bg-neutral-950/50 px-3 py-2">
-                  <dt className="text-[11px] uppercase text-neutral-500">Velocity</dt>
-                  <dd className="mt-0.5 font-medium text-neutral-200">
+                <div className="rounded-lg border border-border bg-background/50 px-3 py-2">
+                  <dt className="text-[11px] uppercase text-muted">Velocity</dt>
+                  <dd className="mt-0.5 font-medium text-foreground">
                     {pagesPerMin ? `${pagesPerMin} pg/min` : "—"}
                     {item.flagReason ? ` · ${item.flagReason}` : ""}
                   </dd>
@@ -153,7 +153,7 @@ export default function AdminVerificationPage() {
               </dl>
 
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                <p className="flex items-center gap-1.5 text-xs text-neutral-500">
+                <p className="flex items-center gap-1.5 text-xs text-muted">
                   <Clock size={12} />
                   {new Date(item.createdAt).toLocaleString()}
                 </p>

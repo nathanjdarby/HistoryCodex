@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:prod": "node scripts/migrate-production.mjs && next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -16,6 +17,9 @@
     "db:backfill-unit-card-types": "tsx db/backfill-unit-card-types.ts",
     "db:backfill-era-stats": "tsx db/backfill-era-stats.ts",
     "db:backfill-catalog-books": "tsx db/backfill-catalog-books.ts",
+    "db:backfill-history-of-britain-eras": "tsx db/backfill-history-of-britain-era-assignments.ts",
+    "db:organize-france-book": "tsx db/organize-france-book-from-staging.ts",
+    "db:organize-staging-era": "tsx db/organize-staging-era-cards.ts",
     "db:seed-wager-cards": "tsx db/seed-wager-cards.ts",
     "db:seed-plantagenets-cards": "tsx db/seed-plantagenets-cards.ts",
     "db:seed-catalog-book-card-balance": "tsx db/seed-all-card-balance.ts",
@@ -23,7 +27,7 @@
     "db:import-book-cards": "tsx db/import-catalog-book-cards.ts",
     "db:seed-play-test-deck": "tsx db/seed-play-test-deck.ts",
     "db:seed-alfred-wessex-starter-deck": "tsx db/seed-alfred-wessex-starter-deck.ts",
-    "test": "tsx --test lib/battle/__tests__/**/*.test.ts"
+    "test": "tsx --test lib/battle/__tests__/**/*.test.ts lib/server/__tests__/**/*.test.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.2",
@@ -35,6 +39,7 @@
     "next": "16.2.10",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "sharp": "^0.35.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {

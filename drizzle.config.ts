@@ -5,6 +5,6 @@ export default {
   out: "./db/migrations",
   dialect: "sqlite",
   dbCredentials: {
-    url: "./data/historycodex.db",
+    url: process.env.DATABASE_PATH ?? "./data/historycodex.db",
   },
 } satisfies Config;

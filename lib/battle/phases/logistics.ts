@@ -1,7 +1,6 @@
-import { DEFAULT_BATTLE_RULES } from "@/lib/battle/constants";
+import { DEFAULT_BATTLE_RULES, applyCpGain } from "@/lib/battle/constants";
 import {
   cardToBoardUnit,
-  eraSynergyBonus,
   hasUnificationAbility,
   adjacentLaneIndexes,
 } from "@/lib/battle/abilities";
@@ -17,7 +16,6 @@ import type {
   PlayerId,
 } from "@/lib/battle/types";
 import {
-  opponentOf,
   playerState,
   setPlayerState,
   setUnitsInLane,
@@ -53,13 +51,12 @@ export function deployUnitFromHand(
   let next = removed.state;
   let cp = ps.cp - effectiveCost;
   if (card.archetype === "merchant") {
-    cp += rules.merchantRefundCp;
+    cp = applyCpGain(cp, rules.merchantRefundCp, rules);
   }
 
-  const synergy = eraSynergyBonus(card, lane.location);
   const { state: idState, id } = nextInstanceId(next);
   next = idState;
-  const unit = cardToBoardUnit(card, player, id, next.turnNumber, synergy, lane.location);
+  const unit = cardToBoardUnit(card, player, id, next.turnNumber, lane.location);
 
   const lanes = [...next.lanes];
   const updatedLane = { ...lane };
@@ -73,13 +70,15 @@ export function deployUnitFromHand(
       ...ps,
       cp,
       deployCostReduction: 0,
+      deployCostReductionUses: 0,
     },
   );
 
+  const synergy = unit.locationDefBonus;
   next = appendLog(
     next,
     "deploy",
-    `${player} deploys ${card.name} to lane ${laneIndex + 1}${synergy ? ` (+${synergy} DEF era synergy)` : ""}.`,
+    `${player} deploys ${card.name}${synergy ? ` (+${synergy} DEF era synergy)` : ""}.`,
   );
 
   if (card.archetype === "merchant") {
@@ -87,11 +86,6 @@ export function deployUnitFromHand(
   }
 
   next = runDeployTriggers(next, player, unit, laneIndex);
-
-  if (hasUnificationAbility(card)) {
-    next = { ...next, phase: next.phase };
-  }
-
   return next;
 }
 
@@ -128,15 +122,6 @@ export function playEventFromHand(
   return applyEventEffect(removed.state, player, card, action, rules);
 }
 
-export function clearTempBonuses(state: MatchState): MatchState {
-  const lanes = state.lanes.map((lane) => ({
-    ...lane,
-    playerUnits: lane.playerUnits.map((u) => ({ ...u, tempAttackBonus: 0, tempDefenseBonus: 0 })),
-    aiUnits: lane.aiUnits.map((u) => ({ ...u, tempAttackBonus: 0, tempDefenseBonus: 0 })),
-  }));
-  return { ...state, lanes };
-}
-
 export function moveUnitBetweenLanes(
   state: MatchState,
   player: PlayerId,
@@ -163,12 +148,56 @@ export function moveUnitBetweenLanes(
   return appendLog(state, "unification", `${player} moves ${unit.name} to lane ${toLaneIndex + 1}.`, []);
 }
 
-export function removeDeadUnits(lane: Lane): Lane {
-  return {
-    ...lane,
-    playerUnits: lane.playerUnits.filter((u) => u.currentDefense > 0),
-    aiUnits: lane.aiUnits.filter((u) => u.currentDefense > 0),
-  };
+export function unificationOneLane(
+  state: MatchState,
+  player: PlayerId,
+  laneIndex: number,
+  monarchInstanceId: string,
+  targetInstanceId: string,
+  rules: BattleRules = DEFAULT_BATTLE_RULES,
+): MatchState | null {
+  const ps = playerState(state, player);
+  if (ps.hasUsedUnificationThisTurn) return null;
+
+  const lane = state.lanes[laneIndex];
+  if (!lane?.location) return null;
+
+  const units = unitsInLane(lane, player);
+  const monarch = units.find((u) => u.instanceId === monarchInstanceId);
+  const target = units.find((u) => u.instanceId === targetInstanceId);
+  if (!monarch || !target) return null;
+  if (!hasUnificationAbility({ abilityName: monarch.abilityName } as import("@/lib/battle/types").CardSnapshot)) {
+    return null;
+  }
+  if (target.instanceId === monarch.instanceId) return null;
+
+  const bonus = monarch.abilityValue ?? 10;
+  const updated = units.map((u) => {
+    if (u.instanceId !== targetInstanceId) return u;
+    return {
+      ...u,
+      summoningSickness: false,
+      isCommitted: false,
+      committedUntilTurn: null,
+      cannotAttack: false,
+      cannotEstablishInfluence: false,
+      tempAttackBonus: u.tempAttackBonus + bonus,
+    };
+  });
+
+  const lanes = [...state.lanes];
+  lanes[laneIndex] = setUnitsInLane(lane, player, updated);
+  let next = setPlayerState({ ...state, lanes }, player, {
+    ...ps,
+    hasUsedUnificationThisTurn: true,
+  });
+  next = appendLog(
+    next,
+    "unification",
+    `${monarch.name} unifies ${target.name}: ready and +${bonus} ATK until end of turn.`,
+  );
+  void rules;
+  return next;
 }
 
 export function updateUnitInLane(

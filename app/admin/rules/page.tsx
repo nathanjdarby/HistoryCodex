@@ -29,6 +29,13 @@ type GameRules = {
     merchantRefundCp: number;
     monarchAuraAttack: number;
     maxEventsPerTurn: number;
+    allowCpOverflow: boolean;
+    leaderInfluenceBonus: number;
+    leaderBonusStacks: boolean;
+    monarchAuraStacking: boolean;
+    scholarBonusDrawCap: number;
+    maxEstablishInfluencePerTurn: number;
+    failedChronosDrawsToLose: number;
   };
   updatedAt: string | null;
 };
@@ -57,6 +64,13 @@ type FormState = {
   battleMerchantRefundCp: string;
   battleMonarchAuraAttack: string;
   battleMaxEventsPerTurn: string;
+  battleAllowCpOverflow: boolean;
+  battleLeaderInfluenceBonus: string;
+  battleLeaderBonusStacks: boolean;
+  battleMonarchAuraStacking: boolean;
+  battleScholarBonusDrawCap: string;
+  battleMaxEstablishInfluencePerTurn: string;
+  battleFailedChronosDrawsToLose: string;
 };
 
 async function fetchRules(): Promise<GameRules> {
@@ -90,6 +104,13 @@ function rulesToForm(rules: GameRules): FormState {
     battleMerchantRefundCp: String(rules.battle.merchantRefundCp),
     battleMonarchAuraAttack: String(rules.battle.monarchAuraAttack),
     battleMaxEventsPerTurn: String(rules.battle.maxEventsPerTurn),
+    battleAllowCpOverflow: rules.battle.allowCpOverflow,
+    battleLeaderInfluenceBonus: String(rules.battle.leaderInfluenceBonus),
+    battleLeaderBonusStacks: rules.battle.leaderBonusStacks,
+    battleMonarchAuraStacking: rules.battle.monarchAuraStacking,
+    battleScholarBonusDrawCap: String(rules.battle.scholarBonusDrawCap),
+    battleMaxEstablishInfluencePerTurn: String(rules.battle.maxEstablishInfluencePerTurn),
+    battleFailedChronosDrawsToLose: String(rules.battle.failedChronosDrawsToLose),
   };
 }
 
@@ -143,6 +164,13 @@ function formToPayload(form: FormState) {
     battleMerchantRefundCp: Number(form.battleMerchantRefundCp),
     battleMonarchAuraAttack: Number(form.battleMonarchAuraAttack),
     battleMaxEventsPerTurn: Number(form.battleMaxEventsPerTurn),
+    battleAllowCpOverflow: form.battleAllowCpOverflow,
+    battleLeaderInfluenceBonus: Number(form.battleLeaderInfluenceBonus),
+    battleLeaderBonusStacks: form.battleLeaderBonusStacks,
+    battleMonarchAuraStacking: form.battleMonarchAuraStacking,
+    battleScholarBonusDrawCap: Number(form.battleScholarBonusDrawCap),
+    battleMaxEstablishInfluencePerTurn: Number(form.battleMaxEstablishInfluencePerTurn),
+    battleFailedChronosDrawsToLose: Number(form.battleFailedChronosDrawsToLose),
   };
 }
 
@@ -157,15 +185,15 @@ function Field({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="text-sm font-medium text-neutral-200">{label}</span>
-      {hint ? <span className="block text-xs text-neutral-500">{hint}</span> : null}
+      <span className="text-sm font-medium text-foreground">{label}</span>
+      {hint ? <span className="block text-xs text-muted">{hint}</span> : null}
       {children}
     </label>
   );
 }
 
 function inputClassName() {
-  return "w-full rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-amber-600";
+  return "w-full rounded-md border border-border-strong bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-accent";
 }
 
 export default function AdminRulesPage() {
@@ -222,7 +250,7 @@ export default function AdminRulesPage() {
   }
 
   if (isLoading || !form || !rules) {
-    return <p className="text-sm text-neutral-500">Loading rules…</p>;
+    return <p className="text-sm text-muted">Loading rules…</p>;
   }
 
   const milestoneCount = (() => {
@@ -240,15 +268,15 @@ export default function AdminRulesPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <Scale size={20} className="text-amber-500" />
-            <h1 className="text-2xl font-semibold text-neutral-100">Game Rules</h1>
+            <Scale size={20} className="text-gold" />
+            <h1 className="text-2xl font-semibold text-foreground">Game Rules</h1>
           </div>
-          <p className="mt-1 max-w-2xl text-sm text-neutral-500">
+          <p className="mt-1 max-w-2xl text-sm text-muted">
             Configure how players earn points while reading, session limits, anti-cheat thresholds,
             and pack pricing multipliers.
           </p>
           {rules.updatedAt ? (
-            <p className="mt-1 text-xs text-neutral-600">
+            <p className="mt-1 text-xs text-subtle">
               Last updated {new Date(rules.updatedAt).toLocaleString()}
             </p>
           ) : null}
@@ -262,7 +290,7 @@ export default function AdminRulesPage() {
               setError(null);
               setSavedMessage(null);
             }}
-            className="inline-flex items-center gap-1.5 rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-900"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border-strong px-3 py-2 text-sm text-foreground/80 hover:bg-surface"
           >
             <RotateCcw size={14} />
             Reset
@@ -271,7 +299,7 @@ export default function AdminRulesPage() {
             type="button"
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
-            className="inline-flex items-center gap-1.5 rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:opacity-60"
           >
             <Save size={14} />
             {saveMutation.isPending ? "Saving…" : "Save rules"}
@@ -291,10 +319,10 @@ export default function AdminRulesPage() {
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="space-y-4 rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
+        <section className="space-y-4 rounded-lg border border-border bg-surface/40 p-4">
           <div>
-            <h2 className="text-lg font-medium text-neutral-100">Reading milestones</h2>
-            <p className="text-sm text-neutral-500">
+            <h2 className="text-lg font-medium text-foreground">Reading milestones</h2>
+            <p className="text-sm text-muted">
               Points awarded when a book reaches each completion percentage. Applies to manual
               progress updates and finalized reading sessions.
             </p>
@@ -321,16 +349,16 @@ export default function AdminRulesPage() {
             />
           </Field>
 
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-muted">
             Max earn per book: up to {Number.isFinite(maxPerBook) ? maxPerBook : "—"} points (
             {milestoneCount} milestones × {form.pointsPerMilestone || 0} pts).
           </p>
         </section>
 
-        <section className="space-y-4 rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
+        <section className="space-y-4 rounded-lg border border-border bg-surface/40 p-4">
           <div>
-            <h2 className="text-lg font-medium text-neutral-100">Daily & weekly caps</h2>
-            <p className="text-sm text-neutral-500">
+            <h2 className="text-lg font-medium text-foreground">Daily & weekly caps</h2>
+            <p className="text-sm text-muted">
               Limits how many points a player can earn from reading per UTC day and week. Overflow
               from fast sessions is held for verification instead of being lost.
             </p>
@@ -358,10 +386,10 @@ export default function AdminRulesPage() {
           </div>
         </section>
 
-        <section className="space-y-4 rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
+        <section className="space-y-4 rounded-lg border border-border bg-surface/40 p-4">
           <div>
-            <h2 className="text-lg font-medium text-neutral-100">Reading velocity</h2>
-            <p className="text-sm text-neutral-500">
+            <h2 className="text-lg font-medium text-foreground">Reading velocity</h2>
+            <p className="text-sm text-muted">
               Sessions faster than these thresholds are flagged or earn diminished points. Below the
               soft limits, a velocity multiplier reduces awards proportionally.
             </p>
@@ -407,10 +435,10 @@ export default function AdminRulesPage() {
           </div>
         </section>
 
-        <section className="space-y-4 rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
+        <section className="space-y-4 rounded-lg border border-border bg-surface/40 p-4">
           <div>
-            <h2 className="text-lg font-medium text-neutral-100">Trust & progress guards</h2>
-            <p className="text-sm text-neutral-500">
+            <h2 className="text-lg font-medium text-foreground">Trust & progress guards</h2>
+            <p className="text-sm text-muted">
               Trust score controls whether session points are awarded instantly or held for admin
               review. Bulk page jumps without a session are blocked.
             </p>
@@ -468,10 +496,10 @@ export default function AdminRulesPage() {
           </div>
         </section>
 
-        <section className="space-y-4 rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 lg:col-span-2">
+        <section className="space-y-4 rounded-lg border border-border bg-surface/40 p-4 lg:col-span-2">
           <div>
-            <h2 className="text-lg font-medium text-neutral-100">Pack pricing</h2>
-            <p className="text-sm text-neutral-500">
+            <h2 className="text-lg font-medium text-foreground">Pack pricing</h2>
+            <p className="text-sm text-muted">
               Era-specific packs can be bought with general points at a markup. This does not award
               points — it affects spend pricing only.
             </p>
@@ -494,15 +522,15 @@ export default function AdminRulesPage() {
           </div>
         </section>
 
-        <section className="space-y-4 rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 lg:col-span-2">
+        <section className="space-y-4 rounded-lg border border-border bg-surface/40 p-4 lg:col-span-2">
           <div>
-            <h2 className="text-lg font-medium text-neutral-100">Chronos TCG battle</h2>
-            <p className="text-sm text-neutral-500">
+            <h2 className="text-lg font-medium text-foreground">Chronos TCG battle</h2>
+            <p className="text-sm text-muted">
               Tunables for the Play vs AI mode: CP track, deck size, influence capture, and archetype passives.
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Field label="CP track" hint="Comma-separated CP per turn (e.g. 50, 100, 150, 200, 300).">
+            <Field label="CP track" hint="Comma-separated CP per turn (e.g. 50, 100, 150, 225, 300, 450).">
               <input className={inputClassName()} value={form.battleCpTrack} onChange={(e) => updateField("battleCpTrack", e.target.value)} />
             </Field>
             <Field label="CP cap">
@@ -532,26 +560,62 @@ export default function AdminRulesPage() {
             <Field label="Max events per turn">
               <input type="number" className={inputClassName()} value={form.battleMaxEventsPerTurn} onChange={(e) => updateField("battleMaxEventsPerTurn", e.target.value)} />
             </Field>
+            <Field label="Leader influence bonus">
+              <input type="number" className={inputClassName()} value={form.battleLeaderInfluenceBonus} onChange={(e) => updateField("battleLeaderInfluenceBonus", e.target.value)} />
+            </Field>
+            <Field label="Scholar bonus draw cap">
+              <input type="number" className={inputClassName()} value={form.battleScholarBonusDrawCap} onChange={(e) => updateField("battleScholarBonusDrawCap", e.target.value)} />
+            </Field>
+            <Field label="Max establish Influence / turn">
+              <input type="number" className={inputClassName()} value={form.battleMaxEstablishInfluencePerTurn} onChange={(e) => updateField("battleMaxEstablishInfluencePerTurn", e.target.value)} />
+            </Field>
+            <Field label="Failed Chronos draws to lose" hint="Historical Exhaustion threshold.">
+              <input type="number" className={inputClassName()} value={form.battleFailedChronosDrawsToLose} onChange={(e) => updateField("battleFailedChronosDrawsToLose", e.target.value)} />
+            </Field>
+            <label className="flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                checked={form.battleAllowCpOverflow}
+                onChange={(e) => updateField("battleAllowCpOverflow", e.target.checked)}
+              />
+              Allow CP overflow (Mythic turn 6+)
+            </label>
+            <label className="flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                checked={form.battleLeaderBonusStacks}
+                onChange={(e) => updateField("battleLeaderBonusStacks", e.target.checked)}
+              />
+              Leader bonus stacks
+            </label>
+            <label className="flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                checked={form.battleMonarchAuraStacking}
+                onChange={(e) => updateField("battleMonarchAuraStacking", e.target.checked)}
+              />
+              Monarch aura stacking
+            </label>
           </div>
         </section>
 
-        <section className="space-y-3 rounded-lg border border-neutral-800 bg-neutral-950/60 p-4 lg:col-span-2">
-          <h2 className="text-lg font-medium text-neutral-100">Other earn paths (read-only)</h2>
-          <ul className="space-y-2 text-sm text-neutral-400">
+        <section className="space-y-3 rounded-lg border border-border bg-background/60 p-4 lg:col-span-2">
+          <h2 className="text-lg font-medium text-foreground">Other earn paths (read-only)</h2>
+          <ul className="space-y-2 text-sm text-muted">
             <li>
-              <span className="text-neutral-300">Verification approval</span> — credits the held
+              <span className="text-foreground/80">Verification approval</span> — credits the held
               session amount from the queue entry, not a fixed rule value.
             </li>
             <li>
-              <span className="text-neutral-300">Admin manual adjustment</span> — set a user&apos;s
+              <span className="text-foreground/80">Admin manual adjustment</span> — set a user&apos;s
               balance on the Users admin page.
             </li>
             <li>
-              <span className="text-neutral-300">Campaign milestones</span> — unlock nodes when
+              <span className="text-foreground/80">Campaign milestones</span> — unlock nodes when
               reading milestones are hit; no separate point grant.
             </li>
             <li>
-              <span className="text-neutral-300">Card unlock via points</span> — disabled for
+              <span className="text-foreground/80">Card unlock via points</span> — disabled for
               players (admin-only card grants).
             </li>
           </ul>

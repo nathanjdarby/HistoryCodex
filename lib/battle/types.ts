@@ -29,7 +29,15 @@ export type AbilityEffect =
   | "cost_reduction"
   | "block_influence_gain"
   | "replace_location"
-  | "draw_card";
+  | "draw_card"
+  | "epidemic"
+  | "treaty"
+  | "revolution"
+  | "trade_route"
+  | "reform"
+  | "forced_hand"
+  | "forced_discard"
+  | "exhaust_unit";
 
 export type CardSnapshot = {
   characterId: number;
@@ -55,6 +63,8 @@ export type CardSnapshot = {
   imageFocusY?: number;
   imageScale?: number;
   holographic?: boolean;
+  /** Optional secondary value for multi-part event effects. */
+  abilityValue2?: number | null;
 };
 
 export type BoardUnit = {
@@ -65,7 +75,9 @@ export type BoardUnit = {
   cardType: CardType;
   baseAttack: number;
   baseDefense: number;
+  /** Cached display value; use damageTaken + location for authoritative math. */
   currentDefense: number;
+  damageTaken: number;
   eraId: number;
   eraName: string;
   eraColorPrimary: string;
@@ -84,20 +96,32 @@ export type BoardUnit = {
   imageFocusY?: number;
   imageScale?: number;
   holographic?: boolean;
+  /** @deprecated Use dynamic location bonus via unit-stats helpers. */
   eraSynergyBonus: number;
+  locationDefBonus: number;
+  sailorDefBonus: number;
   tempAttackBonus: number;
   tempDefenseBonus: number;
   summoningSickness: boolean;
   deployedTurn: number;
   cannotAttack: boolean;
+  isCommitted: boolean;
+  committedUntilTurn: number | null;
+  cannotEstablishInfluence: boolean;
+  auraSuppressed: boolean;
 };
 
 export type Lane = {
   location: CardSnapshot | null;
+  /** Player who played the current active location. */
+  locationOwner: PlayerId | null;
   playerInfluence: number;
   aiInfluence: number;
   playerUnits: BoardUnit[];
   aiUnits: BoardUnit[];
+  /** Set when a capture was already resolved this turn on this lane. */
+  captureResolvedThisTurn: boolean;
+  attacksBlocked: boolean;
 };
 
 export type PlayerBattleState = {
@@ -107,9 +131,17 @@ export type PlayerBattleState = {
   hand: CardSnapshot[];
   discard: CardSnapshot[];
   capturedLocations: number;
+  capturedLocationHistory: CardSnapshot[];
   eventsPlayedThisTurn: number;
   deployCostReduction: number;
+  deployCostReductionUses: number;
   opponentInfluenceBlocked: boolean;
+  hasEstablishedInfluenceThisTurn: boolean;
+  hasUsedUnificationThisTurn: boolean;
+  deckExhausted: boolean;
+  failedChronosDraws: number;
+  attacksBlockedThisTurn: boolean;
+  monarchAuraSuppressed: boolean;
 };
 
 export type PendingChoiceKind =
@@ -151,6 +183,8 @@ export type MatchState = {
   winner: PlayerId | null;
   status: MatchStatus;
   pendingEvents: MatchEvent[];
+  /** @deprecated Opening phase removed; kept for saved-match compat. */
+  openingResolved?: boolean;
 };
 
 import type { DeckCompositionRules } from "@/lib/battle/deck-composition";
@@ -169,7 +203,14 @@ export type BattleRules = {
   deckComposition: DeckCompositionRules;
   merchantRefundCp: number;
   monarchAuraAttack: number;
+  monarchAuraStacking: boolean;
   maxEventsPerTurn: number;
+  allowCpOverflow: boolean;
+  leaderInfluenceBonus: number;
+  leaderBonusStacks: boolean;
+  scholarBonusDrawCap: number;
+  maxEstablishInfluencePerTurn: number;
+  failedChronosDrawsToLose: number;
 };
 
 export type DeployUnitAction = {
@@ -199,6 +240,17 @@ export type AttackAction = {
 };
 
 export type UnificationAction = {
+  type: "unification";
+  laneIndex: number;
+  monarchInstanceId: string;
+  targetInstanceId: string;
+  /** Legacy multi-lane movement. */
+  fromLaneIndex?: number;
+  unitInstanceId?: string;
+};
+
+/** @deprecated Use unification with monarchInstanceId/targetInstanceId. */
+export type UnificationMoveAction = {
   type: "unification_move";
   laneIndex: number;
   unitInstanceId: string;
@@ -209,6 +261,13 @@ export type PlayLocationAction = {
   type: "play_location";
   handIndex: number;
   laneIndex: number;
+  confirmed?: boolean;
+};
+
+export type EstablishInfluenceAction = {
+  type: "establish_influence";
+  laneIndex: number;
+  unitInstanceId: string;
 };
 
 export type RedrawOpeningHandAction = { type: "redraw_opening_hand" };
@@ -221,7 +280,9 @@ export type BattleAction =
   | ResolveChoiceAction
   | AttackAction
   | UnificationAction
+  | UnificationMoveAction
   | PlayLocationAction
+  | EstablishInfluenceAction
   | RedrawOpeningHandAction
   | EndPhaseAction;
 
@@ -271,8 +332,29 @@ export function defaultPlayerState(deck: CardSnapshot[]): PlayerBattleState {
     hand: [],
     discard: [],
     capturedLocations: 0,
+    capturedLocationHistory: [],
     eventsPlayedThisTurn: 0,
     deployCostReduction: 0,
+    deployCostReductionUses: 0,
     opponentInfluenceBlocked: false,
+    hasEstablishedInfluenceThisTurn: false,
+    hasUsedUnificationThisTurn: false,
+    deckExhausted: false,
+    failedChronosDraws: 0,
+    attacksBlockedThisTurn: false,
+    monarchAuraSuppressed: false,
+  };
+}
+
+export function createEmptyLane(): Lane {
+  return {
+    location: null,
+    locationOwner: null,
+    playerInfluence: 0,
+    aiInfluence: 0,
+    playerUnits: [],
+    aiUnits: [],
+    captureResolvedThisTurn: false,
+    attacksBlocked: false,
   };
 }

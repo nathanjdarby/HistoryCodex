@@ -129,7 +129,7 @@ export function CharacterCardModal({
             event.stopPropagation();
             onPrevious();
           }}
-          className="fixed left-2 top-1/2 z-[60] hidden -translate-y-1/2 items-center gap-1 rounded-full border border-white/10 bg-black/60 px-2.5 py-2 text-neutral-200 hover:bg-black/80 hover:text-white sm:flex md:px-3"
+          className="fixed left-2 top-1/2 z-[60] hidden -translate-y-1/2 items-center gap-1 rounded-full border border-white/10 bg-black/60 px-2.5 py-2 text-foreground hover:bg-black/80 hover:text-foreground sm:flex md:px-3"
           aria-label="Previous card"
         >
           <ChevronLeft size={20} />
@@ -144,7 +144,7 @@ export function CharacterCardModal({
             event.stopPropagation();
             onNext();
           }}
-          className="fixed right-2 top-1/2 z-[60] hidden -translate-y-1/2 items-center gap-1 rounded-full border border-white/10 bg-black/60 px-2.5 py-2 text-neutral-200 hover:bg-black/80 hover:text-white sm:flex md:px-3"
+          className="fixed right-2 top-1/2 z-[60] hidden -translate-y-1/2 items-center gap-1 rounded-full border border-white/10 bg-black/60 px-2.5 py-2 text-foreground hover:bg-black/80 hover:text-foreground sm:flex md:px-3"
           aria-label="Next card"
         >
           <span className="hidden text-sm md:inline">Next</span>
@@ -159,7 +159,7 @@ export function CharacterCardModal({
             event.stopPropagation();
             onPrevious();
           }}
-          className="fixed left-1.5 top-1/2 z-[60] -translate-y-1/2 rounded-full border border-white/10 bg-black/50 p-2 text-neutral-300 hover:text-neutral-100 sm:hidden"
+          className="fixed left-1.5 top-1/2 z-[60] -translate-y-1/2 rounded-full border border-white/10 bg-black/50 p-2 text-foreground/80 hover:text-foreground sm:hidden"
           aria-label="Previous card"
         >
           <ChevronLeft size={22} />
@@ -173,7 +173,7 @@ export function CharacterCardModal({
             event.stopPropagation();
             onNext();
           }}
-          className="fixed right-1.5 top-1/2 z-[60] -translate-y-1/2 rounded-full border border-white/10 bg-black/50 p-2 text-neutral-300 hover:text-neutral-100 sm:hidden"
+          className="fixed right-1.5 top-1/2 z-[60] -translate-y-1/2 rounded-full border border-white/10 bg-black/50 p-2 text-foreground/80 hover:text-foreground sm:hidden"
           aria-label="Next card"
         >
           <ChevronRight size={22} />
@@ -230,7 +230,7 @@ export function CharacterCardModal({
 
           <button
             onClick={onClose}
-            className="absolute right-2.5 top-2.5 z-20 rounded-full border border-white/10 bg-black/50 p-1.5 text-neutral-400 hover:text-neutral-100"
+            className="absolute right-2.5 top-2.5 z-20 rounded-full border border-white/10 bg-black/50 p-1.5 text-muted hover:text-foreground"
             aria-label="Close"
           >
             <X size={16} />
@@ -246,11 +246,11 @@ export function CharacterCardModal({
 
       {positionLabel && (
         <div className="pointer-events-none fixed inset-x-0 bottom-3 z-[60] flex flex-col items-center gap-1 sm:bottom-4">
-          <p className="rounded-full border border-white/10 bg-black/50 px-3 py-1 text-[11px] font-medium text-neutral-300">
+          <p className="rounded-full border border-white/10 bg-black/50 px-3 py-1 text-[11px] font-medium text-foreground/80">
             {positionLabel}
           </p>
           {canNavigate && (
-            <p className="hidden text-[10px] text-neutral-500 sm:block">
+            <p className="hidden text-[10px] text-muted sm:block">
               Arrow keys or scroll to browse
             </p>
           )}

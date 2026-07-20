@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HistoryCodex
 
-## Getting Started
+Read history books, collect cards, and battle through the ages.
 
-First, run the development server:
+## Local development
 
 ```bash
+npm install
+cp .env.example .env.local   # optional for local overrides
+npm run db:migrate           # or: node scripts/migrate-production.mjs
+npm run db:seed
+npm run db:seed-auth
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Default dev accounts (after `db:seed-auth`): `admin@example.com` / `user@example.com`, password `password`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Production deployment
 
-## Learn More
+See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for Docker, HTTPS, migrating local data, and server operations.
 
-To learn more about Next.js, take a look at the following resources:
+Quick Docker start:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+cp .env.example .env   # set AUTH_SECRET
+docker compose up -d --build
+docker compose --profile setup run --rm setup   # first-time seed only
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
+| Script | Purpose |
+|--------|---------|
+| `npm run dev` | Development server |
+| `npm run build` | Production build |
+| `npm run start` | Run production build |
+| `npm run db:migrate` | Apply schema migrations (drizzle-kit) |
+| `node scripts/migrate-production.mjs` | Apply migrations (production / Docker) |
+| `npm run db:seed` | Seed eras and sample content |
+| `npm run db:import-book-cards` | CLI catalog book card import |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js 16 (App Router)
+- SQLite + Drizzle ORM
+- TanStack Query, Tailwind CSS 4

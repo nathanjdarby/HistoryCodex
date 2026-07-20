@@ -94,7 +94,7 @@ export function BattleChoiceModal({ choice, onConfirm, onClose }: Props) {
               const card = choice.revealedCards[cardIndex]!;
               return (
                 <div key={`${card.characterId}-${cardIndex}`} className="w-[8rem] sm:w-[9rem]">
-                  <p className="mb-1 text-center text-[10px] text-amber-300">
+                  <p className="mb-1 text-center text-[10px] text-gold-bright">
                     {position === 0 ? "Top" : `#${position + 1}`}
                   </p>
                   <BattleDeckCard card={cardSnapshotToFace(card)} />
@@ -151,7 +151,7 @@ export function BattleChoiceModal({ choice, onConfirm, onClose }: Props) {
           type="button"
           disabled={!canConfirm}
           onClick={handleConfirm}
-          className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-50"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:opacity-50"
         >
           Confirm
         </button>

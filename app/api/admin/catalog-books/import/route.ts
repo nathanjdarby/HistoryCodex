@@ -14,6 +14,7 @@ const importSchema = z
     createBook: z.boolean().optional(),
     defaultRarity: z.enum(RARITY_ENUM).optional(),
     mergeLinks: z.boolean().optional(),
+    multiEra: z.boolean().optional(),
     dryRun: z.boolean().optional(),
     scanOnly: z.boolean().optional(),
     duplicatePolicy: z.enum(["replace", "ignore"]).optional(),

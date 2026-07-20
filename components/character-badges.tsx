@@ -38,19 +38,19 @@ export function StarRating({ rarity, size = 10 }: { rarity: RarityTier; size?: n
 
 const CARD_HEADER_CLASS = {
   compact: {
-    dex: "text-[10px] text-neutral-500",
-    name: "text-xs font-semibold text-neutral-100",
+    dex: "text-[10px] text-muted",
+    name: "text-xs font-semibold text-foreground",
     star: 10,
     gap: "gap-1.5",
   },
   default: {
-    dex: "text-xs text-neutral-400",
-    name: "text-sm font-semibold text-neutral-100",
+    dex: "text-xs text-muted",
+    name: "text-sm font-semibold text-foreground",
     star: 11,
     gap: "gap-2",
   },
   prominent: {
-    dex: "text-sm text-neutral-300",
+    dex: "text-sm text-foreground/80",
     name: "text-lg font-semibold text-amber-100",
     star: 15,
     gap: "gap-2.5",
@@ -155,7 +155,7 @@ export function CopyCountBadge({
 
   return (
     <span
-      className={`inline-flex min-w-[1.5rem] items-center justify-center rounded-full border border-white/15 bg-black/60 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-amber-100 backdrop-blur-sm ${className}`}
+      className={`inline-flex min-w-[1.5rem] items-center justify-center rounded-full border border-border bg-surface/95 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-gold backdrop-blur-sm ${className}`}
       title={`${quantity} copies owned`}
     >
       ×{quantity}
@@ -181,14 +181,14 @@ export function CharacterCardCorner({
     <div className={`absolute bottom-3 right-3 z-10 flex flex-col items-end gap-1.5 ${className}`}>
       {showOwnershipStatus && (
         <div
-          className="rounded-full border border-white/10 bg-black/50 p-1.5 backdrop-blur-sm"
+          className="rounded-full border border-border bg-surface/95 p-1.5 shadow-sm backdrop-blur-sm"
           aria-label={owned ? "Unlocked" : "Locked"}
           title={owned ? "Unlocked" : "Locked"}
         >
           {owned ? (
-            <CheckCircle2 size={variant === "prominent" ? 20 : 16} className="text-emerald-400" />
+            <CheckCircle2 size={variant === "prominent" ? 20 : 16} className="text-emerald-700 dark:text-emerald-400" />
           ) : (
-            <Lock size={variant === "prominent" ? 18 : 14} className="text-neutral-400" />
+            <Lock size={variant === "prominent" ? 18 : 14} className="text-muted" />
           )}
         </div>
       )}
@@ -224,9 +224,9 @@ export function RarityPill({
       className={`${CARD_PILL_CLASS[size]} border uppercase`}
       style={{
         color,
-        backgroundColor: "rgba(10, 10, 10, 0.9)",
+        backgroundColor: `${color}22`,
         borderColor: `${color}aa`,
-        boxShadow: `inset 0 0 12px ${color}33`,
+        boxShadow: `inset 0 0 12px ${color}18`,
       }}
     >
       {label}
@@ -251,8 +251,8 @@ export function CharacterCardPowerBadge({
         boxShadow: `0 0 14px ${color}40`,
       }}
     >
-      <span className="text-[8px] uppercase tracking-wide text-neutral-400">PWR</span>
-      <span className="text-xs font-semibold text-neutral-100">{cost}</span>
+      <span className="text-[8px] uppercase tracking-wide text-muted">PWR</span>
+      <span className="text-xs font-semibold text-foreground">{cost}</span>
     </div>
   );
 }
@@ -280,10 +280,10 @@ export function CharacterCardArchetypeBadge({
       title={label}
       aria-label={label}
     >
-      <Icon size={18} className="text-neutral-200" />
+      <Icon size={18} className="text-foreground" />
       <span
         role="tooltip"
-        className="pointer-events-none absolute right-full top-1/2 z-20 mr-2 -translate-y-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/90 px-2 py-1 text-[10px] font-medium text-neutral-100 opacity-0 shadow-lg transition-opacity duration-150 group-hover/archetype:opacity-100"
+        className="pointer-events-none absolute right-full top-1/2 z-20 mr-2 -translate-y-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/90 px-2 py-1 text-[10px] font-medium text-foreground opacity-0 shadow-lg transition-opacity duration-150 group-hover/archetype:opacity-100"
       >
         {label}
       </span>
@@ -315,7 +315,7 @@ export function CharacterCardCombatStatBadge({
       aria-label={`${label} ${value}`}
     >
       <Icon size={14} style={{ color }} />
-      <span className="text-xs font-semibold text-neutral-100">{value}</span>
+      <span className="text-xs font-semibold text-foreground">{value}</span>
     </div>
   );
 }
@@ -373,7 +373,7 @@ export function CharacterCardPowerGauge({
 }) {
   return (
     <div
-      className={`flex shrink-0 flex-col justify-center rounded-md border border-white/10 bg-black/85 px-1.5 py-1 ${
+      className={`flex shrink-0 flex-col justify-center rounded-md border border-border bg-surface/95 px-1.5 py-1 ${
         compact ? "w-16" : "w-24"
       } ${className}`}
     >
@@ -382,11 +382,11 @@ export function CharacterCardPowerGauge({
           compact ? "text-[9px]" : "text-[10px]"
         }`}
       >
-        <span className="text-neutral-400">PWR</span>
-        <span className="font-semibold text-neutral-100">{cost}</span>
+        <span className="text-muted">PWR</span>
+        <span className="font-semibold text-foreground">{cost}</span>
       </div>
       <div
-        className={`mt-0.5 w-full overflow-hidden rounded-full bg-neutral-950 ring-1 ring-white/10 ${
+        className={`mt-0.5 w-full overflow-hidden rounded-full bg-surface-raised ring-1 ring-border/80 ${
           compact ? "h-2" : "h-2.5"
         }`}
       >
@@ -411,7 +411,7 @@ export function ArchetypeBadge({
   if (!archetype) return null;
   const Icon = ARCHETYPE_ICON[archetype as (typeof ARCHETYPE_OPTIONS)[number]];
   return (
-    <span className={`${CARD_PILL_CLASS[size]} bg-neutral-800/80 text-neutral-300 ${className}`}>
+    <span className={`${CARD_PILL_CLASS[size]} bg-surface-raised/80 text-foreground/80 ${className}`}>
       <Icon size={CARD_PILL_ICON[size]} />
       {ARCHETYPE_LABEL[archetype]}
     </span>
@@ -427,7 +427,7 @@ export function AbilityChip({
 }) {
   if (!name) return null;
   return (
-    <span className={`${CARD_PILL_CLASS[size]} bg-amber-950/60 text-amber-300`}>
+    <span className={`${CARD_PILL_CLASS[size]} bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300`}>
       <Zap size={CARD_PILL_ICON[size]} />
       {name}
     </span>
@@ -482,7 +482,7 @@ export function AbilityDescription({
           }`}
         >
           <p
-            className={`shrink-0 font-semibold uppercase tracking-wide text-neutral-200 ${
+            className={`shrink-0 font-semibold uppercase tracking-wide text-foreground ${
               play
                 ? "flex w-12 items-center justify-center border-r border-white/10 px-1 py-1 text-[7px] sm:text-[8px]"
                 : compact
@@ -493,7 +493,7 @@ export function AbilityDescription({
             {cardAbilityPanelLabel(cardType)}
           </p>
           <p
-            className={`leading-snug text-neutral-300 ${
+            className={`leading-snug text-foreground/80 ${
               play
                 ? "line-clamp-2 flex flex-1 items-center px-1.5 py-1 text-[7px] sm:text-[8px]"
                 : compact
@@ -510,8 +510,8 @@ export function AbilityDescription({
 
   const tone =
     variant === "compact"
-      ? "text-[10px] leading-snug text-amber-200/90"
-      : "text-xs leading-snug text-neutral-300 sm:text-sm";
+      ? "text-[10px] leading-snug text-muted"
+      : "text-xs leading-snug text-foreground/80 sm:text-sm";
 
   return (
     <p className={`text-left ${tone} ${lineClamp} ${className}`}>
@@ -536,8 +536,8 @@ export function FlavorText({
     lines === 1 ? "line-clamp-1" : lines === 3 ? "line-clamp-3" : "line-clamp-2";
   const tone =
     variant === "card"
-      ? "text-sm italic leading-relaxed text-neutral-300"
-      : "text-[10px] italic leading-snug text-neutral-500";
+      ? "text-sm italic leading-relaxed text-foreground/80"
+      : "text-[10px] italic leading-snug text-muted";
   return (
     <p className={`px-1 text-left ${tone} ${lineClamp} ${className}`}>
       &ldquo;{text.trim()}&rdquo;
@@ -547,7 +547,7 @@ export function FlavorText({
 
 export function LocationBadge({ size = "default" }: { size?: CardPillSize }) {
   return (
-    <span className={`${CARD_PILL_CLASS[size]} bg-emerald-950/60 text-emerald-300`}>
+    <span className={`${CARD_PILL_CLASS[size]} bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300`}>
       <MapPin size={CARD_PILL_ICON[size]} />
       Location
     </span>
@@ -556,7 +556,7 @@ export function LocationBadge({ size = "default" }: { size?: CardPillSize }) {
 
 export function UnitBadge({ size = "default" }: { size?: CardPillSize }) {
   return (
-    <span className={`${CARD_PILL_CLASS[size]} bg-sky-950/60 text-sky-300`}>
+    <span className={`${CARD_PILL_CLASS[size]} bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300`}>
       <Flag size={CARD_PILL_ICON[size]} />
       Unit
     </span>
@@ -565,7 +565,7 @@ export function UnitBadge({ size = "default" }: { size?: CardPillSize }) {
 
 export function EventBadge({ size = "default" }: { size?: CardPillSize }) {
   return (
-    <span className={`${CARD_PILL_CLASS[size]} bg-rose-950/60 text-rose-300`}>
+    <span className={`${CARD_PILL_CLASS[size]} bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300`}>
       <Swords size={CARD_PILL_ICON[size]} />
       Event
     </span>
@@ -614,7 +614,7 @@ export function AttackDefenseRow({
   return (
     <div className={`flex w-full justify-center ${className}`}>
       <div
-        className={`flex items-center justify-center rounded-lg border border-white/10 bg-black/85 font-mono uppercase text-neutral-100 ${styles.gap} ${styles.text} ${styles.pad} ${
+        className={`flex items-center justify-center rounded-lg border border-white/10 bg-black/85 font-mono uppercase text-foreground ${styles.gap} ${styles.text} ${styles.pad} ${
           fill ? "h-full w-full" : "inline-flex"
         }`}
       >

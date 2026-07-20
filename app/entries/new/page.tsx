@@ -67,8 +67,8 @@ function NewEntryForm() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-amber-100">New timeline entry</h1>
-        <p className="text-sm text-neutral-400">
+        <h1 className="text-2xl font-semibold text-foreground">New timeline entry</h1>
+        <p className="text-sm text-muted">
           Log an event, a person, or a free-form note — anything worth cross-referencing later.
         </p>
       </div>
@@ -78,14 +78,14 @@ function NewEntryForm() {
           e.preventDefault();
           createMutation.mutate();
         }}
-        className="grid grid-cols-1 gap-3 rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 sm:grid-cols-2"
+        className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-surface/40 p-4 sm:grid-cols-2"
       >
         <label className="flex flex-col gap-1 text-sm">
           Kind
           <select
             value={form.kind}
             onChange={(e) => setForm({ ...form, kind: e.target.value as typeof form.kind })}
-            className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+            className="rounded border border-border-strong bg-background px-2 py-1.5"
           >
             {kindOptions.map((k) => (
               <option key={k.value} value={k.value}>
@@ -99,7 +99,7 @@ function NewEntryForm() {
           <select
             value={form.eraId}
             onChange={(e) => setForm({ ...form, eraId: e.target.value })}
-            className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+            className="rounded border border-border-strong bg-background px-2 py-1.5"
           >
             <option value="">— None —</option>
             {eras?.map((era) => (
@@ -116,7 +116,7 @@ function NewEntryForm() {
             required
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
-            className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+            className="rounded border border-border-strong bg-background px-2 py-1.5"
           />
         </label>
 
@@ -128,7 +128,7 @@ function NewEntryForm() {
             value={form.summary}
             onChange={(e) => setForm({ ...form, summary: e.target.value })}
             placeholder="One line for the timeline card"
-            className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+            className="rounded border border-border-strong bg-background px-2 py-1.5"
           />
         </label>
         <label className="col-span-full flex flex-col gap-1 text-sm">
@@ -138,7 +138,7 @@ function NewEntryForm() {
             onChange={(e) => setForm({ ...form, content: e.target.value })}
             rows={6}
             placeholder="Notes, quotes, context... this is your personal wiki page for the entry."
-            className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+            className="rounded border border-border-strong bg-background px-2 py-1.5"
           />
         </label>
         <label className="col-span-full flex flex-col gap-1 text-sm">
@@ -146,7 +146,7 @@ function NewEntryForm() {
           <input
             value={form.imageUrl}
             onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-            className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+            className="rounded border border-border-strong bg-background px-2 py-1.5"
           />
         </label>
 
@@ -156,7 +156,7 @@ function NewEntryForm() {
           <button
             type="submit"
             disabled={createMutation.isPending}
-            className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-50"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:opacity-50"
           >
             {createMutation.isPending ? "Saving..." : "Create entry"}
           </button>
@@ -168,7 +168,7 @@ function NewEntryForm() {
 
 export default function NewEntryPage() {
   return (
-    <Suspense fallback={<p className="text-neutral-500">Loading...</p>}>
+    <Suspense fallback={<p className="text-muted">Loading...</p>}>
       <NewEntryForm />
     </Suspense>
   );

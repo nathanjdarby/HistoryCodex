@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Download, Plus, Save, Trash2 } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { Download, Layers, Plus, Save, Trash2 } from "lucide-react";
 import type { Character } from "@/lib/types";
 import { DEFAULT_BATTLE_RULES } from "@/lib/battle/constants";
 import {
@@ -189,18 +190,20 @@ export default function DeckBuilderPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Link href="/play" className="text-sm text-neutral-500 hover:text-neutral-300">
-            ← Back to Play
-          </Link>
-          <h1 className="text-2xl font-semibold text-neutral-100">Deck Builder</h1>
-          <p className="text-sm text-neutral-500">
-            Build a balanced 40-card deck using the baseline blueprint below.
+      <PageHeader
+        eyebrow="Chronos"
+        title="Deck Builder"
+        description="Build a balanced 40-card deck using the baseline blueprint below."
+        icon={Layers}
+        actions={
+          <p className="app-points-pill text-sm">
+            Total {totalCards}/{DECK_SIZE}
           </p>
-        </div>
-        <p className="text-sm text-neutral-500">Total {totalCards}/{DECK_SIZE}</p>
-      </div>
+        }
+      />
+      <Link href="/play" className="app-link -mt-4 inline-block text-sm">
+        ← Back to Play
+      </Link>
 
       <DeckCompositionBlueprint typeCounts={typeCounts} />
 
@@ -211,10 +214,10 @@ export default function DeckBuilderPage() {
       ) : null}
 
       {(starterDecks ?? []).length > 0 ? (
-        <section className="space-y-3 rounded-lg border border-amber-900/40 bg-amber-950/10 p-4">
+        <section className="space-y-3 rounded-lg border border-accent/35 bg-accent/10 p-4">
           <div>
-            <h2 className="text-lg font-medium text-amber-100">Starter decks</h2>
-            <p className="text-sm text-amber-200/70">
+            <h2 className="text-lg font-medium text-foreground">Starter decks</h2>
+            <p className="text-sm text-gold-bright/70">
               Free pre-built decks — adds the cards you need to your collection and saves a ready-to-play list.
             </p>
           </div>
@@ -222,17 +225,17 @@ export default function DeckBuilderPage() {
             {(starterDecks ?? []).map((starter) => (
               <div
                 key={starter.id}
-                className="flex flex-col justify-between gap-3 rounded-lg border border-amber-900/30 bg-neutral-950/40 p-4"
+                className="flex flex-col justify-between gap-3 rounded-lg border border-accent/30 bg-background/40 p-4"
               >
                 <div>
-                  <p className="font-medium text-neutral-100">{starter.name}</p>
+                  <p className="font-medium text-foreground">{starter.name}</p>
                   {starter.eraName ? (
-                    <p className="text-xs text-neutral-500">{starter.eraName}</p>
+                    <p className="text-xs text-muted">{starter.eraName}</p>
                   ) : null}
                   {starter.description ? (
-                    <p className="mt-2 text-sm text-neutral-400">{starter.description}</p>
+                    <p className="mt-2 text-sm text-muted">{starter.description}</p>
                   ) : null}
-                  <p className="mt-2 text-xs text-neutral-500">
+                  <p className="mt-2 text-xs text-muted">
                     {starter.totalCards}/40 cards{starter.valid ? " · ready to play" : " · invalid"}
                   </p>
                 </div>
@@ -240,7 +243,7 @@ export default function DeckBuilderPage() {
                   type="button"
                   disabled={!starter.valid || adoptMutation.isPending}
                   onClick={() => adoptMutation.mutate(starter.id)}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-60"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:opacity-60"
                 >
                   <Download size={14} />
                   {adoptMutation.isPending ? "Adding…" : "Add to my decks"}
@@ -252,7 +255,7 @@ export default function DeckBuilderPage() {
       ) : null}
 
       {ownedCards.length === 0 ? (
-        <div className="rounded-md border border-amber-900/50 bg-amber-950/20 px-4 py-3 text-sm text-amber-100">
+        <div className="rounded-md border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-foreground">
           You don&apos;t own any playable cards yet. Add a starter deck above, or open packs on the{" "}
           <Link href="/packs" className="underline">
             Packs
@@ -262,13 +265,13 @@ export default function DeckBuilderPage() {
       ) : null}
 
       {clientValidationErrors.length > 0 && totalCards > 0 ? (
-        <div className="rounded-md border border-amber-900/50 bg-amber-950/20 px-3 py-2 text-sm text-amber-200">
+        <div className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-gold-bright">
           {clientValidationErrors[0]}
         </div>
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[240px_1fr]">
-        <aside className="space-y-2 rounded-lg border border-neutral-800 bg-neutral-900/40 p-3">
+        <aside className="space-y-2 rounded-lg border border-border bg-surface/40 p-3">
           <button
             type="button"
             onClick={() => {
@@ -276,7 +279,7 @@ export default function DeckBuilderPage() {
               setName("My Chronos Deck");
               setQuantities(new Map());
             }}
-            className="flex w-full items-center gap-2 rounded-md border border-neutral-700 px-3 py-2 text-sm hover:bg-neutral-900"
+            className="flex w-full items-center gap-2 rounded-md border border-border-strong px-3 py-2 text-sm hover:bg-surface"
           >
             <Plus size={14} /> New deck
           </button>
@@ -286,18 +289,18 @@ export default function DeckBuilderPage() {
                 type="button"
                 onClick={() => loadDeck(deck)}
                 className={`flex-1 rounded-md px-3 py-2 text-left text-sm ${
-                  activeDeckId === deck.id ? "bg-neutral-800 text-neutral-100" : "text-neutral-400 hover:bg-neutral-900"
+                  activeDeckId === deck.id ? "bg-surface-raised text-foreground" : "text-muted hover:bg-surface"
                 }`}
               >
                 {deck.name}
-                <span className="block text-xs text-neutral-500">
+                <span className="block text-xs text-muted">
                   {deck.totalCards}/40 {deck.valid ? "✓" : "invalid"}
                 </span>
               </button>
               <button
                 type="button"
                 onClick={() => deleteMutation.mutate(deck.id)}
-                className="rounded p-2 text-neutral-500 hover:bg-neutral-900 hover:text-red-400"
+                className="rounded p-2 text-muted hover:bg-surface hover:text-red-400"
               >
                 <Trash2 size={14} />
               </button>
@@ -308,9 +311,9 @@ export default function DeckBuilderPage() {
         <div className="space-y-4">
           <div className="flex flex-wrap items-end gap-3">
             <label className="block flex-1 space-y-1">
-              <span className="text-sm text-neutral-300">Deck name</span>
+              <span className="text-sm text-foreground/80">Deck name</span>
               <input
-                className="w-full rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+                className="w-full rounded-md border border-border-strong bg-background px-3 py-2 text-sm"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -319,7 +322,7 @@ export default function DeckBuilderPage() {
               type="button"
               disabled={saveMutation.isPending || quantities.size === 0 || !name.trim()}
               onClick={() => saveMutation.mutate()}
-              className="inline-flex items-center gap-1.5 rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:opacity-60"
             >
               <Save size={14} />
               Save deck
@@ -328,7 +331,7 @@ export default function DeckBuilderPage() {
               <button
                 type="button"
                 onClick={autoFillDeck}
-                className="rounded-md border border-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-900"
+                className="rounded-md border border-border-strong px-4 py-2 text-sm text-foreground hover:bg-surface"
               >
                 Auto-fill from collection
               </button>
@@ -336,7 +339,7 @@ export default function DeckBuilderPage() {
           </div>
 
           {!deckReady ? (
-            <div className="rounded-md border border-neutral-800 bg-neutral-950/40 px-3 py-2 text-sm text-neutral-400">
+            <div className="rounded-md border border-border bg-background/40 px-3 py-2 text-sm text-muted">
               {totalCards === 0
                 ? "Add cards to your deck, or use Auto-fill if you have enough copies in your collection."
                 : "Fill each card type to its target range (40 cards total). You can still save a draft."}
@@ -350,21 +353,21 @@ export default function DeckBuilderPage() {
           {PICKER_CARD_TYPES.map((cardType) => (
             <section key={cardType} className="space-y-3">
               <div>
-                <h2 className="text-lg font-medium text-neutral-100">
+                <h2 className="text-lg font-medium text-foreground">
                   {CARD_TYPE_LABELS_PLURAL[cardType]}
                   {typeCounts[cardType] > 0 ? (
-                    <span className="text-base font-normal text-neutral-500">
+                    <span className="text-base font-normal text-muted">
                       {" "}
                       · {typeCounts[cardType]} selected
                     </span>
                   ) : null}
                 </h2>
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-muted">
                   Choose from your owned {CARD_TYPE_LABELS_PLURAL[cardType].toLowerCase()}.
                 </p>
               </div>
               {ownedByType[cardType].length === 0 ? (
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-muted">
                   You don&apos;t own any {CARD_TYPE_LABELS_PLURAL[cardType].toLowerCase()} yet.
                 </p>
               ) : (
@@ -404,15 +407,15 @@ function DeckCardPicker({
   onAdjust: (delta: number) => void;
 }) {
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-950/50 p-3">
+    <div className="rounded-lg border border-border bg-background/50 p-3">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="font-medium text-neutral-100">{card.name}</p>
-          <p className="text-xs capitalize text-neutral-500">{card.cardType}</p>
+          <p className="font-medium text-foreground">{card.name}</p>
+          <p className="text-xs capitalize text-muted">{card.cardType}</p>
         </div>
-        <span className="text-xs text-neutral-500">Own {maxOwned}</span>
+        <span className="text-xs text-muted">Own {maxOwned}</span>
       </div>
-      <div className="mt-2 flex flex-wrap gap-2 text-xs text-neutral-400">
+      <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted">
         <span>{card.cost} CP</span>
         {card.cardType !== "event" && card.cardType !== "location" ? (
           <span>
@@ -421,19 +424,19 @@ function DeckCardPicker({
         ) : null}
       </div>
       <div className="mt-3 flex items-center justify-between">
-        <span className="text-sm text-neutral-300">In deck: {qty}</span>
+        <span className="text-sm text-foreground/80">In deck: {qty}</span>
         <div className="flex gap-1">
           <button
             type="button"
             onClick={() => onAdjust(-1)}
-            className="rounded border border-neutral-700 px-2 py-1 text-sm"
+            className="rounded border border-border-strong px-2 py-1 text-sm"
           >
             −
           </button>
           <button
             type="button"
             onClick={() => onAdjust(1)}
-            className="rounded border border-neutral-700 px-2 py-1 text-sm"
+            className="rounded border border-border-strong px-2 py-1 text-sm"
           >
             +
           </button>

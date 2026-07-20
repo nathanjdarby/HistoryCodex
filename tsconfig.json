@@ -30,5 +30,11 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "db/seed*.ts",
+    "db/backfill-*.ts",
+    "db/import-catalog-book-cards.ts",
+    "db/organize-*.ts"
+  ]
 }

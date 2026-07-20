@@ -63,8 +63,8 @@ export default function AdminOverviewPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-neutral-100">Admin</h1>
-        <p className="text-sm text-neutral-500">
+        <h1 className="text-2xl font-semibold text-foreground">Admin</h1>
+        <p className="text-sm text-muted">
           Manage users, books, cards, booster packs, and uploaded artwork.
         </p>
       </div>
@@ -72,86 +72,86 @@ export default function AdminOverviewPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Link
           href="/admin/users"
-          className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 hover:border-neutral-700"
+          className="rounded-lg border border-border bg-surface/40 p-4 hover:border-border-strong"
         >
-          <div className="flex items-center gap-2 text-neutral-400">
+          <div className="flex items-center gap-2 text-muted">
             <UserCog size={16} />
             <span className="text-sm">Users</span>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-neutral-100">
+          <p className="mt-2 text-2xl font-semibold text-foreground">
             {adminUsers?.length ?? "—"}
           </p>
-          <p className="mt-1 text-xs text-neutral-500">accounts & player progress</p>
+          <p className="mt-1 text-xs text-muted">accounts & player progress</p>
         </Link>
 
         <Link
           href="/admin/verification"
-          className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 hover:border-neutral-700"
+          className="rounded-lg border border-border bg-surface/40 p-4 hover:border-border-strong"
         >
-          <div className="flex items-center gap-2 text-neutral-400">
+          <div className="flex items-center gap-2 text-muted">
             <ShieldAlert size={16} />
             <span className="text-sm">Verification</span>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-neutral-100">Queue</p>
-          <p className="mt-1 text-xs text-neutral-500">review flagged reading sessions</p>
+          <p className="mt-2 text-2xl font-semibold text-foreground">Queue</p>
+          <p className="mt-1 text-xs text-muted">review flagged reading sessions</p>
         </Link>
       </div>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-neutral-500">Cards</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">Cards</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href="/admin/characters"
-          className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 hover:border-neutral-700"
+          className="rounded-lg border border-border bg-surface/40 p-4 hover:border-border-strong"
         >
-          <div className="flex items-center gap-2 text-neutral-400">
+          <div className="flex items-center gap-2 text-muted">
             <Users2 size={16} />
             <span className="text-sm">Characters</span>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-neutral-100">
+          <p className="mt-2 text-2xl font-semibold text-foreground">
             {characterCount || "—"}
           </p>
-          <p className="mt-1 text-xs text-neutral-500">
+          <p className="mt-1 text-xs text-muted">
             {characterCustomArt} with custom art
           </p>
         </Link>
 
         <Link
           href="/admin/units"
-          className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 hover:border-neutral-700"
+          className="rounded-lg border border-border bg-surface/40 p-4 hover:border-border-strong"
         >
-          <div className="flex items-center gap-2 text-neutral-400">
+          <div className="flex items-center gap-2 text-muted">
             <Flag size={16} />
             <span className="text-sm">Units</span>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-neutral-100">{unitCount || "—"}</p>
-          <p className="mt-1 text-xs text-neutral-500">{unitCustomArt} with custom art</p>
+          <p className="mt-2 text-2xl font-semibold text-foreground">{unitCount || "—"}</p>
+          <p className="mt-1 text-xs text-muted">{unitCustomArt} with custom art</p>
         </Link>
 
         <Link
           href="/admin/locations"
-          className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 hover:border-neutral-700"
+          className="rounded-lg border border-border bg-surface/40 p-4 hover:border-border-strong"
         >
-          <div className="flex items-center gap-2 text-neutral-400">
+          <div className="flex items-center gap-2 text-muted">
             <MapPin size={16} />
             <span className="text-sm">Locations</span>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-neutral-100">
+          <p className="mt-2 text-2xl font-semibold text-foreground">
             {locationCount || "—"}
           </p>
-          <p className="mt-1 text-xs text-neutral-500">{locationCustomArt} with custom art</p>
+          <p className="mt-1 text-xs text-muted">{locationCustomArt} with custom art</p>
         </Link>
 
         <Link
           href="/admin/events"
-          className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 hover:border-neutral-700"
+          className="rounded-lg border border-border bg-surface/40 p-4 hover:border-border-strong"
         >
-          <div className="flex items-center gap-2 text-neutral-400">
+          <div className="flex items-center gap-2 text-muted">
             <Swords size={16} />
             <span className="text-sm">Events</span>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-neutral-100">{eventCount || "—"}</p>
-          <p className="mt-1 text-xs text-neutral-500">{eventCustomArt} with custom art</p>
+          <p className="mt-2 text-2xl font-semibold text-foreground">{eventCount || "—"}</p>
+          <p className="mt-1 text-xs text-muted">{eventCustomArt} with custom art</p>
         </Link>
         </div>
       </section>
@@ -159,32 +159,32 @@ export default function AdminOverviewPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Link
           href="/admin/packs"
-          className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 hover:border-neutral-700"
+          className="rounded-lg border border-border bg-surface/40 p-4 hover:border-border-strong"
         >
-          <div className="flex items-center gap-2 text-neutral-400">
+          <div className="flex items-center gap-2 text-muted">
             <Gift size={16} />
             <span className="text-sm">Booster Packs</span>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-neutral-100">
+          <p className="mt-2 text-2xl font-semibold text-foreground">
             {packConfigs?.length ?? "—"}
           </p>
-          <p className="mt-1 text-xs text-neutral-500">
+          <p className="mt-1 text-xs text-muted">
             {activePacks} active · {inactivePacks} inactive
           </p>
         </Link>
 
         <Link
           href="/admin/artwork"
-          className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 hover:border-neutral-700"
+          className="rounded-lg border border-border bg-surface/40 p-4 hover:border-border-strong"
         >
-          <div className="flex items-center gap-2 text-neutral-400">
+          <div className="flex items-center gap-2 text-muted">
             <ImageIcon size={16} />
             <span className="text-sm">Artwork</span>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-neutral-100">
+          <p className="mt-2 text-2xl font-semibold text-foreground">
             {artwork?.files.length ?? "—"}
           </p>
-          <p className="mt-1 text-xs text-neutral-500">
+          <p className="mt-1 text-xs text-muted">
             {artwork ? `${artwork.unusedCount} unused` : "uploaded files"}
           </p>
         </Link>

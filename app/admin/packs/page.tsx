@@ -216,12 +216,12 @@ export default function AdminPacksPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-neutral-100">Booster Packs</h1>
-          <p className="text-sm text-neutral-500">{packConfigs?.length ?? 0} pack products</p>
+          <h1 className="text-xl font-semibold text-foreground">Booster Packs</h1>
+          <p className="text-sm text-muted">{packConfigs?.length ?? 0} pack products</p>
         </div>
         <button
           onClick={openCreateForm}
-          className="flex items-center gap-1.5 rounded-md bg-amber-700 px-3 py-1.5 text-sm font-medium text-amber-50 hover:bg-amber-600"
+          className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground hover:brightness-110"
         >
           <Plus size={15} />
           New pack
@@ -229,31 +229,31 @@ export default function AdminPacksPage() {
       </div>
 
       {error && !formOpen && <p className="text-sm text-red-400">{error}</p>}
-      {isLoading && <p className="text-sm text-neutral-500">Loading...</p>}
+      {isLoading && <p className="text-sm text-muted">Loading...</p>}
 
-      <div className="overflow-x-auto rounded-lg border border-neutral-800">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-neutral-800 bg-neutral-900/60">
+          <thead className="border-b border-border bg-surface/60">
             <tr>
-              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted">
                 Art
               </th>
-              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted">
                 Name
               </th>
-              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted">
                 Scope
               </th>
-              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted">
                 Price
               </th>
-              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted">
                 Cards
               </th>
-              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted">
                 Weights (C/U/R/E/L/M)
               </th>
-              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-neutral-500">
+              <th className="px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted">
                 Active
               </th>
               <th className="px-3 py-2"></th>
@@ -261,9 +261,9 @@ export default function AdminPacksPage() {
           </thead>
           <tbody>
             {packConfigs?.map((config) => (
-              <tr key={config.id} className="border-b border-neutral-900 hover:bg-neutral-900/40">
+              <tr key={config.id} className="border-b border-border hover:bg-surface/40">
                 <td className="px-3 py-2">
-                  <div className="relative aspect-[4/7] w-10 overflow-hidden rounded border border-neutral-800 bg-neutral-950">
+                  <div className="relative aspect-[4/7] w-10 overflow-hidden rounded border border-border bg-background">
                     {config.imageUrl ? (
                       <Image
                         src={config.imageUrl}
@@ -273,29 +273,29 @@ export default function AdminPacksPage() {
                         className="object-cover"
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center text-[10px] text-neutral-600">
+                      <div className="flex h-full items-center justify-center text-[10px] text-subtle">
                         —
                       </div>
                     )}
                   </div>
                 </td>
                 <td className="px-3 py-2">
-                  <p className="font-medium text-neutral-200">{config.name}</p>
+                  <p className="font-medium text-foreground">{config.name}</p>
                   {config.description && (
-                    <p className="text-xs text-neutral-500">{config.description}</p>
+                    <p className="text-xs text-muted">{config.description}</p>
                   )}
                 </td>
-                <td className="px-3 py-2 text-neutral-400">
+                <td className="px-3 py-2 text-muted">
                   {eraName(config.eraId)}
                   {config.cardType && (
-                    <span className="ml-1 capitalize text-neutral-500">
+                    <span className="ml-1 capitalize text-muted">
                       · {config.cardType}s
                     </span>
                   )}
                 </td>
-                <td className="px-3 py-2 font-mono text-neutral-300">{config.price} pts</td>
-                <td className="px-3 py-2 font-mono text-neutral-300">{config.cardsPerPack}</td>
-                <td className="px-3 py-2 font-mono text-xs text-neutral-400">
+                <td className="px-3 py-2 font-mono text-foreground/80">{config.price} pts</td>
+                <td className="px-3 py-2 font-mono text-foreground/80">{config.cardsPerPack}</td>
+                <td className="px-3 py-2 font-mono text-xs text-muted">
                   {config.weightCommon}/{config.weightUncommon}/{config.weightRare}/
                   {config.weightEpic}/{config.weightLegendary}/{config.weightMythic}
                 </td>
@@ -308,7 +308,7 @@ export default function AdminPacksPage() {
                     className={`rounded px-2 py-0.5 text-xs font-medium ${
                       config.active
                         ? "bg-emerald-900/50 text-emerald-300 hover:bg-emerald-900/70"
-                        : "bg-neutral-800 text-neutral-500 hover:bg-neutral-700"
+                        : "bg-surface-raised text-muted hover:bg-surface-raised"
                     }`}
                   >
                     {config.active ? "Active" : "Inactive"}
@@ -318,14 +318,14 @@ export default function AdminPacksPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => openEditForm(config)}
-                      className="text-neutral-500 hover:text-amber-300"
+                      className="text-muted hover:text-gold-bright"
                       aria-label={`Edit ${config.name}`}
                     >
                       <Pencil size={14} />
                     </button>
                     <button
                       onClick={() => promptDelete(config)}
-                      className="text-neutral-500 hover:text-red-400"
+                      className="text-muted hover:text-red-400"
                       aria-label={`Delete ${config.name}`}
                     >
                       <Trash2 size={14} />
@@ -337,7 +337,7 @@ export default function AdminPacksPage() {
           </tbody>
         </table>
         {packConfigs?.length === 0 && !isLoading && (
-          <p className="p-4 text-sm text-neutral-500">No packs yet.</p>
+          <p className="p-4 text-sm text-muted">No packs yet.</p>
         )}
       </div>
 
@@ -352,27 +352,27 @@ export default function AdminPacksPage() {
               e.preventDefault();
               saveMutation.mutate();
             }}
-            className="w-full max-w-lg rounded-lg border border-neutral-800 bg-neutral-900/90 p-4"
+            className="w-full max-w-lg rounded-lg border border-border bg-surface/90 p-4"
           >
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-medium text-neutral-200">
+              <h2 className="text-sm font-medium text-foreground">
                 {editingId ? "Edit pack" : "New pack"}
               </h2>
               <button
                 type="button"
                 onClick={closeForm}
-                className="text-neutral-500 hover:text-neutral-200"
+                className="text-muted hover:text-foreground"
               >
                 <X size={16} />
               </button>
             </div>
 
             <div className="mb-4 flex flex-col items-center gap-3 sm:flex-row sm:items-start">
-              <div className="relative aspect-[4/7] w-28 shrink-0 overflow-hidden rounded-lg border border-neutral-700 bg-neutral-950">
+              <div className="relative aspect-[4/7] w-28 shrink-0 overflow-hidden rounded-lg border border-border-strong bg-background">
                 {form.imageUrl ? (
                   <Image src={form.imageUrl} alt="" fill sizes="112px" className="object-cover" />
                 ) : (
-                  <div className="flex h-full items-center justify-center px-2 text-center text-[10px] text-neutral-600">
+                  <div className="flex h-full items-center justify-center px-2 text-center text-[10px] text-subtle">
                     4:7 pack art
                   </div>
                 )}
@@ -392,7 +392,7 @@ export default function AdminPacksPage() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
-                  className="flex items-center justify-center gap-1.5 rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 hover:bg-neutral-800 disabled:opacity-50"
+                  className="flex items-center justify-center gap-1.5 rounded-md border border-border-strong px-3 py-1.5 text-sm text-foreground hover:bg-surface-raised disabled:opacity-50"
                 >
                   <Upload size={14} />
                   {uploading ? "Uploading..." : "Upload pack art"}
@@ -401,12 +401,12 @@ export default function AdminPacksPage() {
                   <button
                     type="button"
                     onClick={() => setForm((f) => ({ ...f, imageUrl: null }))}
-                    className="text-xs text-neutral-500 hover:text-red-400"
+                    className="text-xs text-muted hover:text-red-400"
                   >
                     Remove artwork
                   </button>
                 )}
-                <p className="text-xs text-neutral-500">Recommended aspect ratio: 4:7</p>
+                <p className="text-xs text-muted">Recommended aspect ratio: 4:7</p>
               </div>
             </div>
 
@@ -417,7 +417,7 @@ export default function AdminPacksPage() {
                   required
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
               <label className="col-span-full flex flex-col gap-1 text-sm">
@@ -425,7 +425,7 @@ export default function AdminPacksPage() {
                 <input
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
@@ -437,7 +437,7 @@ export default function AdminPacksPage() {
                   max={20}
                   value={form.cardsPerPack}
                   onChange={(e) => setForm({ ...form, cardsPerPack: e.target.value })}
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
@@ -448,7 +448,7 @@ export default function AdminPacksPage() {
                   min={1}
                   value={form.price}
                   onChange={(e) => setForm({ ...form, price: e.target.value })}
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
@@ -456,7 +456,7 @@ export default function AdminPacksPage() {
                 <select
                   value={form.eraId}
                   onChange={(e) => setForm({ ...form, eraId: e.target.value })}
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 >
                   <option value="">Any era</option>
                   {eras?.map((era) => (
@@ -473,7 +473,7 @@ export default function AdminPacksPage() {
                   onChange={(e) =>
                     setForm({ ...form, cardType: e.target.value as PackFormState["cardType"] })
                   }
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 >
                   <option value="">Any type</option>
                   <option value="character">{CARD_TYPE_LABELS_PLURAL.character}</option>
@@ -483,8 +483,8 @@ export default function AdminPacksPage() {
                 </select>
               </label>
 
-              <div className="col-span-full border-t border-neutral-800 pt-3">
-                <h3 className="text-sm font-medium text-neutral-200">
+              <div className="col-span-full border-t border-border pt-3">
+                <h3 className="text-sm font-medium text-foreground">
                   Rarity weights (relative, don&rsquo;t need to sum to 100)
                 </h3>
               </div>
@@ -497,7 +497,7 @@ export default function AdminPacksPage() {
                   min={0}
                   value={form.weightCommon}
                   onChange={(e) => setForm({ ...form, weightCommon: e.target.value })}
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
@@ -508,7 +508,7 @@ export default function AdminPacksPage() {
                   min={0}
                   value={form.weightUncommon}
                   onChange={(e) => setForm({ ...form, weightUncommon: e.target.value })}
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
@@ -519,7 +519,7 @@ export default function AdminPacksPage() {
                   min={0}
                   value={form.weightRare}
                   onChange={(e) => setForm({ ...form, weightRare: e.target.value })}
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
@@ -530,7 +530,7 @@ export default function AdminPacksPage() {
                   min={0}
                   value={form.weightEpic}
                   onChange={(e) => setForm({ ...form, weightEpic: e.target.value })}
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
@@ -541,7 +541,7 @@ export default function AdminPacksPage() {
                   min={0}
                   value={form.weightLegendary}
                   onChange={(e) => setForm({ ...form, weightLegendary: e.target.value })}
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
@@ -552,16 +552,16 @@ export default function AdminPacksPage() {
                   min={0}
                   value={form.weightMythic}
                   onChange={(e) => setForm({ ...form, weightMythic: e.target.value })}
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
 
-              <label className="col-span-full flex items-center gap-2 border-t border-neutral-800 pt-3 text-sm">
+              <label className="col-span-full flex items-center gap-2 border-t border-border pt-3 text-sm">
                 <input
                   type="checkbox"
                   checked={form.active}
                   onChange={(e) => setForm({ ...form, active: e.target.checked })}
-                  className="rounded border-neutral-700"
+                  className="rounded border-border-strong"
                 />
                 Active (visible to open on /packs)
               </label>
@@ -572,14 +572,14 @@ export default function AdminPacksPage() {
                 <button
                   type="button"
                   onClick={closeForm}
-                  className="rounded-md px-3 py-1.5 text-sm text-neutral-400 hover:text-neutral-200"
+                  className="rounded-md px-3 py-1.5 text-sm text-muted hover:text-foreground"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saveMutation.isPending}
-                  className="rounded-md bg-amber-700 px-3 py-1.5 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-50"
+                  className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:opacity-50"
                 >
                   {saveMutation.isPending ? "Saving..." : editingId ? "Save changes" : "Create pack"}
                 </button>

@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { MainShell } from "@/components/main-shell";
 import { NavHeader } from "@/components/nav-header";
+import { ThemeScript } from "@/components/theme-script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,8 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HistoryCodex",
-  description: "A gamified companion for reading history books.",
+  title: "HistoryCodex — Read, collect, and play through history",
+  description:
+    "Turn history books into a living adventure. Track reading, collect characters and places, and battle through the ages.",
 };
 
 export default function RootLayout({
@@ -28,11 +31,15 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100">
+      <head>
+        <ThemeScript />
+      </head>
+      <body className="min-h-full flex flex-col bg-background text-foreground">
         <Providers>
           <NavHeader />
-          <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6">{children}</main>
+          <MainShell>{children}</MainShell>
         </Providers>
       </body>
     </html>

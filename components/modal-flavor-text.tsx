@@ -67,14 +67,14 @@ export function ModalFlavorText({ text }: { text: string | null | undefined }) {
       >
         <p
           ref={paragraphRef}
-          className={`text-xs italic leading-snug text-neutral-300 sm:text-sm sm:leading-relaxed ${
+          className={`text-xs italic leading-snug text-foreground/80 sm:text-sm sm:leading-relaxed ${
             expanded ? "" : "line-clamp-2"
           }`}
         >
           &ldquo;{trimmed}&rdquo;
         </p>
         {canToggle && (
-          <span className="mt-1 block text-[10px] not-italic text-neutral-500">
+          <span className="mt-1 block text-[10px] not-italic text-muted">
             {expanded ? "Show less" : "Show full quote"}
           </span>
         )}

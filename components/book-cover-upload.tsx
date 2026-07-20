@@ -55,7 +55,7 @@ export function BookCoverUpload({
 
   return (
     <div className={compact ? "flex items-start gap-3" : "space-y-2"}>
-      <div className={`relative shrink-0 overflow-hidden rounded bg-neutral-800 ${previewClassName}`}>
+      <div className={`relative shrink-0 overflow-hidden rounded bg-surface-raised ${previewClassName}`}>
         {showCover ? (
           // Plain img: Open Library URLs redirect to archive.org, which breaks next/image optimization.
           <img
@@ -65,7 +65,7 @@ export function BookCoverUpload({
             onError={() => setCoverFailed(true)}
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-neutral-600">
+          <div className="flex h-full items-center justify-center text-subtle">
             <BookOpen size={compact ? 36 : 28} />
           </div>
         )}
@@ -77,7 +77,7 @@ export function BookCoverUpload({
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={uploading}
-            className="flex items-center gap-1.5 rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 hover:bg-neutral-800 disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-md border border-border-strong px-3 py-1.5 text-sm text-foreground hover:bg-surface-raised disabled:opacity-50"
           >
             <ImageUp size={14} />
             {uploading ? "Uploading…" : coverUrl ? "Replace cover" : "Upload custom cover"}
@@ -87,13 +87,13 @@ export function BookCoverUpload({
               type="button"
               onClick={() => onCoverUrlChange(null)}
               disabled={uploading}
-              className="rounded-md px-2 py-1.5 text-sm text-neutral-500 hover:text-neutral-300 disabled:opacity-50"
+              className="rounded-md px-2 py-1.5 text-sm text-muted hover:text-foreground/80 disabled:opacity-50"
             >
               Remove
             </button>
           )}
         </div>
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-muted">
           PNG, JPEG, GIF, or WebP · max 5MB. Use this if the Open Library cover isn&apos;t right.
         </p>
         {error && <p className="text-sm text-red-400">{error}</p>}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, FolderInput, FolderOpen, Upload } from "lucide-react";
@@ -31,6 +31,7 @@ type ImportFormState = {
   bookTitle: string;
   createBook: boolean;
   mergeLinks: boolean;
+  multiEra: boolean;
 };
 
 async function fetchEras(): Promise<Era[]> {
@@ -62,6 +63,7 @@ function ImportBookCardsPageInner() {
     bookTitle: "",
     createBook: true,
     mergeLinks: false,
+    multiEra: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,10 +83,15 @@ function ImportBookCardsPageInner() {
     [catalogBooks, form.bookId],
   );
 
-  const eraLockedToBook = selectedBook?.eraId != null;
+  const eraLockedToBook = selectedBook?.eraId != null && !form.multiEra;
 
   useEffect(() => {
-    if (!selectedBook?.eraId || !eras) return;
+    if (!selectedBook) return;
+    if (!selectedBook.eraId) {
+      setForm((current) => ({ ...current, multiEra: true, createBook: false }));
+      return;
+    }
+    if (!eras) return;
     const era = eras.find((entry) => entry.id === selectedBook.eraId);
     if (!era) return;
     setForm((current) => ({
@@ -95,7 +102,13 @@ function ImportBookCardsPageInner() {
     }));
   }, [selectedBook, eras]);
 
-  const canRun = Boolean(form.dir.trim() && (form.bookId || form.eraSlug) && !stagingFolder);
+  const hasTarget = Boolean(form.bookId) || Boolean(form.eraSlug);
+  const canRun = Boolean(
+    form.dir.trim() &&
+      hasTarget &&
+      !stagingFolder &&
+      (form.multiEra || selectedBook?.eraId != null || Boolean(form.eraSlug)),
+  );
 
   function buildPayload(params?: {
     dryRun?: boolean;
@@ -108,6 +121,7 @@ function ImportBookCardsPageInner() {
       bookTitle: form.bookId ? undefined : form.bookTitle.trim() || undefined,
       createBook: form.bookId ? false : form.createBook,
       mergeLinks: form.mergeLinks,
+      multiEra: form.multiEra,
       dryRun: params?.dryRun ?? false,
       duplicateDecisions: params?.decisions,
     };
@@ -117,6 +131,15 @@ function ImportBookCardsPageInner() {
     dryRun?: boolean;
     decisions?: Record<string, ImportDuplicateDecision>;
   }) {
+    if (!form.multiEra && form.bookId && selectedBook && !selectedBook.eraId && !form.eraSlug) {
+      setError("Select an era for this catalog book, or enable multi-era import.");
+      return;
+    }
+    if (!hasTarget) {
+      setError("Choose a catalog book or era before importing.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     if (!params?.decisions) {
@@ -222,7 +245,7 @@ function ImportBookCardsPageInner() {
     <div className="space-y-6">
       <Link
         href="/admin/books"
-        className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-300"
+        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground/80"
       >
         <ArrowLeft size={15} />
         Back to Books
@@ -230,18 +253,18 @@ function ImportBookCardsPageInner() {
 
       <div>
         <div className="flex items-center gap-2">
-          <FolderInput size={20} className="text-amber-500" />
-          <h1 className="text-2xl font-semibold text-neutral-100">Import book cards</h1>
+          <FolderInput size={20} className="text-gold" />
+          <h1 className="text-2xl font-semibold text-foreground">Import book cards</h1>
         </div>
-        <p className="mt-1 max-w-3xl text-sm text-neutral-500">
+        <p className="mt-1 max-w-3xl text-sm text-muted">
           Import into a catalog book that already has an era and all cards will use that era
           automatically.
         </p>
       </div>
 
-      <section className="grid gap-4 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5 sm:grid-cols-2">
+      <section className="grid gap-4 rounded-xl border border-border bg-surface/40 p-5 sm:grid-cols-2">
         <label className="block space-y-1 sm:col-span-2">
-          <span className="text-sm text-neutral-300">Book folder</span>
+          <span className="text-sm text-foreground/80">Book folder</span>
           <div className="flex gap-2">
             <input
               value={form.dir}
@@ -250,13 +273,13 @@ function ImportBookCardsPageInner() {
                 setForm((current) => ({ ...current, dir: e.target.value }));
               }}
               placeholder="Choose a folder or paste a server path"
-              className="min-w-0 flex-1 rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className="min-w-0 flex-1 rounded-md border border-border-strong bg-background px-3 py-2 text-sm"
             />
             <button
               type="button"
               onClick={() => void chooseImportFolder()}
               disabled={stagingFolder || loading}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-200 hover:bg-neutral-900 disabled:opacity-50"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border-strong px-3 py-2 text-sm text-foreground hover:bg-surface disabled:opacity-50"
             >
               <FolderOpen size={15} />
               {stagingFolder ? "Uploading…" : "Choose folder"}
@@ -275,17 +298,18 @@ function ImportBookCardsPageInner() {
               Selected {selectedFolderLabel}. Files are staged on the server for import.
             </span>
           ) : (
-            <span className="block text-xs text-neutral-500">
-              Pick the book folder containing Characters, Units, Locations, and Events subfolders.
+            <span className="block text-xs text-muted">
+              Pick the book folder containing Characters, Units, Locations, and Events subfolders —
+              or select a single card-type folder (e.g. Events) to import just those cards.
             </span>
           )}
           {stagingProgress ? (
-            <span className="block text-xs text-amber-300/90">{stagingProgress}</span>
+            <span className="block text-xs text-gold-bright/90">{stagingProgress}</span>
           ) : null}
         </label>
 
         <label className="block space-y-1 sm:col-span-2">
-          <span className="text-sm text-neutral-300">Catalog book</span>
+          <span className="text-sm text-foreground/80">Catalog book</span>
           <select
             value={form.bookId}
             onChange={(e) =>
@@ -296,7 +320,7 @@ function ImportBookCardsPageInner() {
                 createBook: e.target.value ? false : current.createBook,
               }))
             }
-            className="w-full rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+            className="w-full rounded-md border border-border-strong bg-background px-3 py-2 text-sm"
           >
             <option value="">Choose a book or create from folder name…</option>
             {(catalogBooks ?? []).map((book) => (
@@ -309,12 +333,14 @@ function ImportBookCardsPageInner() {
         </label>
 
         <label className="block space-y-1">
-          <span className="text-sm text-neutral-300">Era</span>
+          <span className="text-sm text-foreground/80">
+            {form.multiEra ? "Default era (optional)" : "Era"}
+          </span>
           <select
             value={form.eraSlug}
             disabled={eraLockedToBook}
             onChange={(e) => setForm((current) => ({ ...current, eraSlug: e.target.value }))}
-            className="w-full rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm disabled:opacity-60"
+            className="w-full rounded-md border border-border-strong bg-background px-3 py-2 text-sm disabled:opacity-60"
           >
             <option value="">Select era…</option>
             {(eras ?? []).map((era) => (
@@ -327,21 +353,45 @@ function ImportBookCardsPageInner() {
             <span className="block text-xs text-emerald-400/90">
               Using {selectedBook?.eraName} from the selected book.
             </span>
+          ) : form.multiEra ? (
+            <span className="block text-xs text-muted">
+              Fallback for untagged cards. You can also use era subfolders (
+              <code className="text-foreground/80">Characters/tudor-england/Anne Boleyn.png</code> or{" "}
+              <code className="text-foreground/80">Events/Battle of Hastings.png</code>
+              ), <code className="text-foreground/80">eraSlug</code> in cards.json, or match existing
+              codex cards by name.
+            </span>
           ) : null}
         </label>
 
+        <label className="flex items-center gap-2 text-sm text-foreground/80 sm:col-span-2">
+          <input
+            type="checkbox"
+            checked={form.multiEra}
+            disabled={Boolean(form.bookId && selectedBook?.eraId != null)}
+            onChange={(e) =>
+              setForm((current) => ({
+                ...current,
+                multiEra: e.target.checked,
+                eraSlug: e.target.checked ? current.eraSlug : current.eraSlug,
+              }))
+            }
+          />
+          Multi-era book (spans multiple historical periods)
+        </label>
+
         <label className="block space-y-1">
-          <span className="text-sm text-neutral-300">Book title override</span>
+          <span className="text-sm text-foreground/80">Book title override</span>
           <input
             value={form.bookTitle}
             disabled={Boolean(form.bookId)}
             onChange={(e) => setForm((current) => ({ ...current, bookTitle: e.target.value }))}
             placeholder="Defaults to folder name"
-            className="w-full rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm disabled:opacity-60"
+            className="w-full rounded-md border border-border-strong bg-background px-3 py-2 text-sm disabled:opacity-60"
           />
         </label>
 
-        <label className="flex items-center gap-2 text-sm text-neutral-300">
+        <label className="flex items-center gap-2 text-sm text-foreground/80">
           <input
             type="checkbox"
             checked={form.createBook}
@@ -351,7 +401,7 @@ function ImportBookCardsPageInner() {
           Create catalog book if missing
         </label>
 
-        <label className="flex items-center gap-2 text-sm text-neutral-300">
+        <label className="flex items-center gap-2 text-sm text-foreground/80">
           <input
             type="checkbox"
             checked={form.mergeLinks}
@@ -362,11 +412,11 @@ function ImportBookCardsPageInner() {
       </section>
 
       {pendingDuplicates.length > 0 ? (
-        <section className="space-y-4 rounded-xl border border-amber-900/40 bg-amber-950/10 p-5">
+        <section className="space-y-4 rounded-xl border border-accent/35 bg-accent/10 p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-lg font-medium text-amber-100">Existing cards found</h2>
-              <p className="mt-1 text-sm text-neutral-400">
+              <h2 className="text-lg font-medium text-foreground">Existing cards found</h2>
+              <p className="mt-1 text-sm text-muted">
                 {pendingDuplicates.length} duplicate
                 {pendingDuplicates.length === 1 ? "" : "s"} and {pendingNewCards.length} new card
                 {pendingNewCards.length === 1 ? "" : "s"} ready to import.
@@ -376,14 +426,14 @@ function ImportBookCardsPageInner() {
               <button
                 type="button"
                 onClick={() => setDecisionForAll("replace")}
-                className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 hover:bg-neutral-900"
+                className="rounded-md border border-border-strong px-3 py-1.5 text-sm text-foreground hover:bg-surface"
               >
                 Replace all
               </button>
               <button
                 type="button"
                 onClick={() => setDecisionForAll("ignore")}
-                className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 hover:bg-neutral-900"
+                className="rounded-md border border-border-strong px-3 py-1.5 text-sm text-foreground hover:bg-surface"
               >
                 Ignore all
               </button>
@@ -396,11 +446,11 @@ function ImportBookCardsPageInner() {
               return (
                 <div
                   key={card.seed}
-                  className="flex flex-col gap-3 rounded-lg border border-neutral-800 bg-neutral-950/50 p-4 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 rounded-lg border border-border bg-background/50 p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
-                    <p className="font-medium text-neutral-100">{card.name}</p>
-                    <p className="text-sm capitalize text-neutral-500">
+                    <p className="font-medium text-foreground">{card.name}</p>
+                    <p className="text-sm capitalize text-muted">
                       {card.cardType}
                       {card.matchedBy === "name" ? " · matched by name on platform" : ""}
                     </p>
@@ -411,8 +461,8 @@ function ImportBookCardsPageInner() {
                       onClick={() => setDecisionForCard(card.seed, "replace")}
                       className={`rounded-md px-3 py-1.5 text-sm ${
                         decision === "replace"
-                          ? "bg-amber-700 text-amber-50"
-                          : "border border-neutral-700 text-neutral-300 hover:bg-neutral-900"
+                          ? "bg-accent text-accent-foreground"
+                          : "border border-border-strong text-foreground/80 hover:bg-surface"
                       }`}
                     >
                       Replace
@@ -422,8 +472,8 @@ function ImportBookCardsPageInner() {
                       onClick={() => setDecisionForCard(card.seed, "ignore")}
                       className={`rounded-md px-3 py-1.5 text-sm ${
                         decision === "ignore"
-                          ? "bg-neutral-700 text-neutral-100"
-                          : "border border-neutral-700 text-neutral-300 hover:bg-neutral-900"
+                          ? "bg-surface-raised text-foreground"
+                          : "border border-border-strong text-foreground/80 hover:bg-surface"
                       }`}
                     >
                       Ignore
@@ -438,7 +488,7 @@ function ImportBookCardsPageInner() {
             type="button"
             disabled={loading}
             onClick={() => void runImport({ decisions: duplicateDecisions })}
-            className="inline-flex items-center gap-2 rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:opacity-50"
           >
             <Upload size={15} />
             {loading ? "Importing…" : "Continue import"}
@@ -465,7 +515,7 @@ function ImportBookCardsPageInner() {
           type="button"
           disabled={loading || !canRun}
           onClick={() => void runImport({ dryRun: true })}
-          className="rounded-md border border-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-900 disabled:opacity-50"
+          className="rounded-md border border-border-strong px-4 py-2 text-sm text-foreground hover:bg-surface disabled:opacity-50"
         >
           {loading ? "Running…" : "Preview scan"}
         </button>
@@ -473,7 +523,7 @@ function ImportBookCardsPageInner() {
           type="button"
           disabled={loading || !canRun || pendingDuplicates.length > 0}
           onClick={() => void runImport()}
-          className="inline-flex items-center gap-2 rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:opacity-50"
         >
           <Upload size={15} />
           {loading ? "Running…" : "Run import"}
@@ -484,5 +534,9 @@ function ImportBookCardsPageInner() {
 }
 
 export default function ImportBookCardsPage() {
-  return <ImportBookCardsPageInner />;
+  return (
+    <Suspense fallback={<p className="text-muted">Loading import…</p>}>
+      <ImportBookCardsPageInner />
+    </Suspense>
+  );
 }

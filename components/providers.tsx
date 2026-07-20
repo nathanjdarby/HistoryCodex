@@ -2,6 +2,8 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
+import { NavChromeProvider } from "@/lib/client/nav-chrome";
+import { ThemeProvider } from "@/lib/client/theme";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -16,5 +18,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
       }),
   );
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <NavChromeProvider>{children}</NavChromeProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
 }

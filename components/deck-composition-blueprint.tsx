@@ -2,9 +2,9 @@ import { CARD_TYPE_LABELS_PLURAL, type CardType } from "@/lib/card-types";
 import { compositionProgress } from "@/lib/client/deck-builder";
 
 function statusClass(inRange: boolean, count: number, min: number) {
-  if (count === 0) return "text-neutral-500";
+  if (count === 0) return "text-muted";
   if (inRange) return "text-emerald-300";
-  if (count < min) return "text-amber-300";
+  if (count < min) return "text-gold-bright";
   return "text-red-300";
 }
 
@@ -30,9 +30,9 @@ export function DeckCompositionBlueprint({
   }
 
   return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-950/50 p-4">
-      <h3 className="text-sm font-medium text-neutral-100">Baseline blueprint (40 cards)</h3>
-      <p className="mt-1 text-xs text-neutral-500">
+    <div className="rounded-lg border border-border bg-background/50 p-4">
+      <h3 className="text-sm font-medium text-foreground">Baseline blueprint (40 cards)</h3>
+      <p className="mt-1 text-xs text-muted">
         Units are your frontline (~50%), events provide tactics (~22%), locations buff the field (~18%),
         and characters are high-impact heroes (~10%).
       </p>
@@ -42,11 +42,11 @@ export function DeckCompositionBlueprint({
           return (
             <div
               key={cardType}
-              className="flex items-center justify-between gap-3 rounded-md border border-neutral-800/80 bg-neutral-900/40 px-3 py-2"
+              className="flex items-center justify-between gap-3 rounded-md border border-border/80 bg-surface/40 px-3 py-2"
             >
               <div>
-                <p className="text-sm text-neutral-200">{CARD_TYPE_LABELS_PLURAL[cardType]}</p>
-                <p className="text-[11px] text-neutral-500">
+                <p className="text-sm text-foreground">{CARD_TYPE_LABELS_PLURAL[cardType]}</p>
+                <p className="text-[11px] text-muted">
                   Target {range.min}–{range.max} · ~{pct}%
                 </p>
               </div>

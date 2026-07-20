@@ -3,12 +3,21 @@ import { count, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import {
+  antiCheatEvents,
   books,
+  matches,
   pointsLedger,
+  readingSessions,
   USER_ROLE_ENUM,
+  userCampaignProgress,
   userCharacters,
+  userDeckCards,
+  userDecks,
+  userEraStats,
+  userPointCaps,
   users,
   userStats,
+  verificationQueue,
 } from "@/db/schema";
 import { ApiError } from "@/lib/api-utils";
 import { deleteBook } from "@/lib/server/books";
@@ -213,6 +222,22 @@ export async function updateUserForAdmin(
 }
 
 async function clearUserGameState(userId: number) {
+  // Verification rows reference ledger/session ids — remove before points or books.
+  await db.delete(verificationQueue).where(eq(verificationQueue.userId, userId));
+  await db.delete(antiCheatEvents).where(eq(antiCheatEvents.userId, userId));
+
+  await db.delete(matches).where(eq(matches.userId, userId));
+
+  const deckRows = await db
+    .select({ id: userDecks.id })
+    .from(userDecks)
+    .where(eq(userDecks.userId, userId));
+  if (deckRows.length > 0) {
+    const deckIds = deckRows.map((row) => row.id);
+    await db.delete(userDeckCards).where(inArray(userDeckCards.deckId, deckIds));
+    await db.delete(userDecks).where(eq(userDecks.userId, userId));
+  }
+
   const userBooks = await db.select({ id: books.id }).from(books).where(eq(books.userId, userId));
   for (const book of userBooks) {
     await deleteBook(book.id);
@@ -220,6 +245,11 @@ async function clearUserGameState(userId: number) {
 
   await db.delete(userCharacters).where(eq(userCharacters.userId, userId));
   await db.delete(pointsLedger).where(eq(pointsLedger.userId, userId));
+  await db.delete(readingSessions).where(eq(readingSessions.userId, userId));
+
+  await db.delete(userEraStats).where(eq(userEraStats.userId, userId));
+  await db.delete(userCampaignProgress).where(eq(userCampaignProgress.userId, userId));
+  await db.delete(userPointCaps).where(eq(userPointCaps.userId, userId));
 
   await getUserStats(userId);
   await db

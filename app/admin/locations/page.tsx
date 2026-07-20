@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, ImageOff, LayoutGrid, List, Pencil, Plus, Trash2 } from "lucide-react";
 import type { Character, Era } from "@/lib/types";
 import { AdminCardGallery } from "@/components/admin-card-gallery";
+import { AdminCardSearchInput } from "@/components/admin-card-search-input";
 import { CharacterArt } from "@/components/character-art";
 import { CharacterCardModal } from "@/components/character-card-modal";
 import { CharacterForm } from "@/components/character-form";
@@ -13,9 +14,10 @@ import { describeLocationBuff } from "@/lib/battle";
 import { imageFrameFromCharacter } from "@/lib/image-frame";
 import { RARITY_META, RARITY_ORDER } from "@/lib/rarity";
 import { fetchEras } from "@/lib/client/eras";
+import { adminCardResultLabel, matchesAdminCardSearch } from "@/lib/client/admin-card-search";
 import { useCardModalNavigation } from "@/lib/client/use-card-modal-navigation";
 
-type CharacterWithEra = Character & { era: Era; owned: boolean; unlockedAt: string | null };
+type CharacterWithEra = Character & { era: Era; owned: boolean; unlockedAt?: string | null };
 
 async function fetchCharacters(): Promise<CharacterWithEra[]> {
   const res = await fetch("/api/characters");
@@ -44,7 +46,7 @@ function SortHeader({
     <button
       onClick={() => onToggle(sortKeyName)}
       className={`flex items-center gap-1 whitespace-nowrap text-xs font-medium uppercase tracking-wide ${
-        active ? "text-neutral-200" : "text-neutral-500 hover:text-neutral-300"
+        active ? "text-foreground" : "text-muted hover:text-foreground/80"
       }`}
     >
       {label}
@@ -62,6 +64,7 @@ export default function AdminLocationsPage() {
   });
 
   const [eraFilter, setEraFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [rarityFilter, setRarityFilter] = useState("");
   const [ownedFilter, setOwnedFilter] = useState<"all" | "owned" | "locked">("all");
   const [imageFilter, setImageFilter] = useState<"all" | "custom" | "generated">("all");
@@ -129,6 +132,7 @@ export default function AdminLocationsPage() {
 
   const filtered = useMemo(() => {
     const rows = locationRows.filter((c) => {
+      if (!matchesAdminCardSearch(c, searchQuery)) return false;
       if (eraFilter && String(c.eraId) !== eraFilter) return false;
       if (rarityFilter && c.rarity !== rarityFilter) return false;
       if (ownedFilter === "owned" && !c.owned) return false;
@@ -155,7 +159,7 @@ export default function AdminLocationsPage() {
           return 0;
       }
     });
-  }, [locationRows, eraFilter, rarityFilter, ownedFilter, imageFilter, sortKey, sortDir]);
+  }, [locationRows, searchQuery, eraFilter, rarityFilter, ownedFilter, imageFilter, sortKey, sortDir]);
 
   const { viewing, onPrevious, onNext, positionLabel } = useCardModalNavigation(
     filtered,
@@ -171,12 +175,12 @@ export default function AdminLocationsPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-neutral-100">Locations</h1>
-          <p className="text-sm text-neutral-500">{locationRows.length} total</p>
+          <h1 className="text-xl font-semibold text-foreground">Locations</h1>
+          <p className="text-sm text-muted">{adminCardResultLabel(filtered.length, locationRows.length)}</p>
         </div>
         <button
           onClick={openCreateForm}
-          className="flex items-center gap-1.5 rounded-md bg-amber-700 px-3 py-1.5 text-sm font-medium text-amber-50 hover:bg-amber-600"
+          className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground hover:brightness-110"
         >
           <Plus size={15} />
           New location
@@ -184,10 +188,11 @@ export default function AdminLocationsPage() {
       </div>
 
       <div className="flex flex-wrap gap-2">
+        <AdminCardSearchInput value={searchQuery} onChange={setSearchQuery} />
         <select
           value={eraFilter}
           onChange={(e) => setEraFilter(e.target.value)}
-          className="rounded border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm"
+          className="rounded border border-border-strong bg-surface px-2 py-1.5 text-sm text-foreground"
         >
           <option value="">All eras</option>
           {eras?.map((era) => (
@@ -199,7 +204,7 @@ export default function AdminLocationsPage() {
         <select
           value={rarityFilter}
           onChange={(e) => setRarityFilter(e.target.value)}
-          className="rounded border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm"
+          className="rounded border border-border-strong bg-surface px-2 py-1.5 text-sm text-foreground"
         >
           <option value="">All rarities</option>
           {RARITY_ORDER.map((r) => (
@@ -208,38 +213,38 @@ export default function AdminLocationsPage() {
             </option>
           ))}
         </select>
-        <div className="flex rounded-md border border-neutral-700 bg-neutral-900 p-0.5 text-sm">
+        <div className="flex rounded-md border border-border-strong bg-surface p-0.5 text-sm">
           {(["all", "owned", "locked"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setOwnedFilter(f)}
               className={`rounded px-2 py-1 capitalize ${
-                ownedFilter === f ? "bg-neutral-700 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"
+                ownedFilter === f ? "bg-surface-raised text-foreground" : "text-muted hover:text-foreground"
               }`}
             >
               {f}
             </button>
           ))}
         </div>
-        <div className="flex rounded-md border border-neutral-700 bg-neutral-900 p-0.5 text-sm">
+        <div className="flex rounded-md border border-border-strong bg-surface p-0.5 text-sm">
           {(["all", "custom", "generated"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setImageFilter(f)}
               className={`rounded px-2 py-1 capitalize ${
-                imageFilter === f ? "bg-neutral-700 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"
+                imageFilter === f ? "bg-surface-raised text-foreground" : "text-muted hover:text-foreground"
               }`}
             >
               {f}
             </button>
           ))}
         </div>
-        <div className="flex rounded-md border border-neutral-700 bg-neutral-900 p-0.5 text-sm">
+        <div className="flex rounded-md border border-border-strong bg-surface p-0.5 text-sm">
           <button
             type="button"
             onClick={() => setViewMode("table")}
             className={`rounded p-1.5 ${
-              viewMode === "table" ? "bg-neutral-700 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"
+              viewMode === "table" ? "bg-surface-raised text-foreground" : "text-muted hover:text-foreground"
             }`}
             aria-label="Table view"
             title="Table view"
@@ -250,7 +255,7 @@ export default function AdminLocationsPage() {
             type="button"
             onClick={() => setViewMode("gallery")}
             className={`rounded p-1.5 ${
-              viewMode === "gallery" ? "bg-neutral-700 text-neutral-100" : "text-neutral-400 hover:text-neutral-200"
+              viewMode === "gallery" ? "bg-surface-raised text-foreground" : "text-muted hover:text-foreground"
             }`}
             aria-label="Gallery view"
             title="Gallery view"
@@ -260,13 +265,13 @@ export default function AdminLocationsPage() {
         </div>
       </div>
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
-      {isLoading && <p className="text-sm text-neutral-500">Loading...</p>}
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {isLoading && <p className="text-sm text-muted">Loading...</p>}
 
       {viewMode === "table" ? (
-      <div className="overflow-x-auto rounded-lg border border-neutral-800">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-neutral-800 bg-neutral-900/60">
+          <thead className="border-b border-border bg-surface-hover/60">
             <tr>
               <th className="px-3 py-2"></th>
               <th className="px-3 py-2">
@@ -281,9 +286,9 @@ export default function AdminLocationsPage() {
               <th className="px-3 py-2">
                 <SortHeader label="Cost" sortKeyName="cost" activeKey={sortKey} activeDir={sortDir} onToggle={toggleSort} />
               </th>
-              <th className="px-3 py-2 text-neutral-500">Buff</th>
-              <th className="px-3 py-2 text-neutral-500">Holo</th>
-              <th className="px-3 py-2 text-neutral-500">Owned</th>
+              <th className="px-3 py-2 text-muted">Buff</th>
+              <th className="px-3 py-2 text-muted">Holo</th>
+              <th className="px-3 py-2 text-muted">Owned</th>
               <th className="px-3 py-2"></th>
             </tr>
           </thead>
@@ -291,12 +296,12 @@ export default function AdminLocationsPage() {
             {filtered.map((c) => {
               const meta = RARITY_META[c.rarity];
               return (
-                <tr key={c.id} className="border-b border-neutral-900 hover:bg-neutral-900/40">
+                <tr key={c.id} className="border-b border-border hover:bg-surface-hover/50">
                   <td className="px-3 py-2">
                     <button
                       type="button"
                       onClick={() => openPreview(c)}
-                      className="relative block h-9 w-9 overflow-hidden rounded border border-neutral-800 bg-black/30 hover:border-amber-700/60"
+                      className="relative block h-9 w-9 overflow-hidden rounded border border-border bg-surface-raised hover:border-accent/50"
                       aria-label={`View ${c.name}`}
                     >
                       <CharacterArt
@@ -314,12 +319,12 @@ export default function AdminLocationsPage() {
                     <button
                       type="button"
                       onClick={() => openPreview(c)}
-                      className="block w-full text-left font-medium text-neutral-200 hover:text-amber-200"
+                      className="block w-full text-left font-medium text-foreground hover:text-gold-bright"
                     >
                       {c.name}
                     </button>
                   </td>
-                  <td className="px-3 py-2 text-neutral-400">{c.era.name}</td>
+                  <td className="px-3 py-2 text-muted">{c.era.name}</td>
                   <td className="px-3 py-2">
                     <span
                       className="rounded px-1.5 py-0.5 text-xs font-medium uppercase"
@@ -328,23 +333,23 @@ export default function AdminLocationsPage() {
                       {c.rarity}
                     </span>
                   </td>
-                  <td className="px-3 py-2 font-mono text-neutral-300">{c.cost}</td>
-                  <td className="px-3 py-2 text-neutral-400">
+                  <td className="px-3 py-2 font-mono text-foreground/80">{c.cost}</td>
+                  <td className="px-3 py-2 text-muted">
                     {describeLocationBuff(c.abilityEffect, c.abilityValue, c.era.name) ?? (
-                      <span className="text-neutral-600">—</span>
+                      <span className="text-subtle">—</span>
                     )}
                   </td>
                   <td className="px-3 py-2">{c.holographic && <HoloBadge />}</td>
                   <td className="px-3 py-2">
                     {c.owned ? (
-                      <span className="text-xs font-medium text-emerald-400">Yes</span>
+                      <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Yes</span>
                     ) : (
-                      <span className="text-xs text-neutral-600">No</span>
+                      <span className="text-xs text-subtle">No</span>
                     )}
                     {!c.imageUrl && (
                       <ImageOff
                         size={12}
-                        className="ml-1 inline text-neutral-700"
+                        className="ml-1 inline text-subtle"
                         aria-label="Generated sprite"
                       />
                     )}
@@ -353,14 +358,14 @@ export default function AdminLocationsPage() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => openEditForm(c)}
-                        className="text-neutral-500 hover:text-amber-300"
+                        className="text-muted hover:text-gold-bright"
                         aria-label={`Edit ${c.name}`}
                       >
                         <Pencil size={14} />
                       </button>
                       <button
                         onClick={() => promptDelete(c)}
-                        className="text-neutral-500 hover:text-red-400"
+                        className="text-muted hover:text-red-600 dark:hover:text-red-400"
                         aria-label={`Delete ${c.name}`}
                       >
                         <Trash2 size={14} />
@@ -373,7 +378,7 @@ export default function AdminLocationsPage() {
           </tbody>
         </table>
         {filtered.length === 0 && !isLoading && (
-          <p className="p-4 text-sm text-neutral-500">No locations match these filters.</p>
+          <p className="p-4 text-sm text-muted">No locations match your search and filters.</p>
         )}
       </div>
       ) : (
@@ -385,7 +390,7 @@ export default function AdminLocationsPage() {
             onDelete={promptDelete}
           />
           {filtered.length === 0 && !isLoading && (
-            <p className="text-sm text-neutral-500">No locations match these filters.</p>
+            <p className="text-sm text-muted">No locations match your search and filters.</p>
           )}
         </>
       )}

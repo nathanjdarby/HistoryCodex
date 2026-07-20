@@ -22,6 +22,8 @@ import {
   CARD_TYPE_LABELS_PLURAL,
   type CardType,
 } from "@/lib/card-types";
+import { AdminCardSearchInput } from "@/components/admin-card-search-input";
+import { matchesAdminCardSearch } from "@/lib/client/admin-card-search";
 
 const DECK_SIZE = DEFAULT_BATTLE_RULES.deckSize;
 const PICKER_CARD_TYPES: CardType[] = ["unit", "event", "location", "character"];
@@ -30,9 +32,13 @@ function filterCatalogCards(
   characters: CharacterWithEra[] | undefined,
   cardType: CardType,
   eraFilterId: number | null,
+  searchQuery: string,
 ) {
   return (characters ?? []).filter(
-    (c) => c.cardType === cardType && (eraFilterId == null || c.eraId === eraFilterId),
+    (c) =>
+      c.cardType === cardType &&
+      (eraFilterId == null || c.eraId === eraFilterId) &&
+      matchesAdminCardSearch(c, searchQuery),
   );
 }
 
@@ -146,6 +152,7 @@ export default function AdminDexPage() {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<number | null>(null);
+  const [cardSearchQuery, setCardSearchQuery] = useState("");
 
   const eraFilterId = form.eraId ? Number(form.eraId) : null;
 
@@ -154,10 +161,10 @@ export default function AdminDexPage() {
       Object.fromEntries(
         PICKER_CARD_TYPES.map((cardType) => [
           cardType,
-          filterCatalogCards(characters, cardType, eraFilterId),
+          filterCatalogCards(characters, cardType, eraFilterId, cardSearchQuery),
         ]),
       ) as Record<CardType, CharacterWithEra[]>,
-    [characters, eraFilterId],
+    [characters, eraFilterId, cardSearchQuery],
   );
 
   const typeCounts = useMemo(
@@ -321,14 +328,14 @@ export default function AdminDexPage() {
   return (
     <div className="space-y-6">
       <div>
-        <div className="flex items-center gap-2 text-neutral-400">
-          <Layers size={18} className="text-amber-500" />
-          <h1 className="text-2xl font-semibold text-neutral-100">DEX — Platform Decks</h1>
+        <div className="flex items-center gap-2 text-muted">
+          <Layers size={18} className="text-gold" />
+          <h1 className="text-2xl font-semibold text-foreground">DEX — Platform Decks</h1>
         </div>
-        <p className="mt-1 max-w-2xl text-sm text-neutral-500">
-          Build pre-made 40-card decks for the platform. Use <strong className="text-neutral-300">Starter</strong>{" "}
+        <p className="mt-1 max-w-2xl text-sm text-muted">
+          Build pre-made 40-card decks for the platform. Use <strong className="text-foreground/80">Starter</strong>{" "}
           decks for new-player onboarding (free pick on first login). Use{" "}
-          <strong className="text-neutral-300">Themed</strong> decks for point shop purchases.
+          <strong className="text-foreground/80">Themed</strong> decks for point shop purchases.
         </p>
       </div>
 
@@ -339,13 +346,13 @@ export default function AdminDexPage() {
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
-        <aside className="space-y-3 rounded-lg border border-neutral-800 bg-neutral-900/40 p-3">
+        <aside className="space-y-3 rounded-lg border border-border bg-surface/40 p-3">
           <div className="space-y-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Starter decks</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">Starter decks</p>
             <button
               type="button"
               onClick={() => startNewDeck("starter")}
-              className="flex w-full items-center gap-2 rounded-md border border-dashed border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-900"
+              className="flex w-full items-center gap-2 rounded-md border border-dashed border-border-strong px-3 py-2 text-sm text-foreground/80 hover:bg-surface"
             >
               <Plus size={14} /> New starter
             </button>
@@ -360,12 +367,12 @@ export default function AdminDexPage() {
             ))}
           </div>
 
-          <div className="border-t border-neutral-800 pt-3 space-y-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Themed decks</p>
+          <div className="border-t border-border pt-3 space-y-1">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">Themed decks</p>
             <button
               type="button"
               onClick={() => startNewDeck("themed")}
-              className="flex w-full items-center gap-2 rounded-md border border-dashed border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-900"
+              className="flex w-full items-center gap-2 rounded-md border border-dashed border-border-strong px-3 py-2 text-sm text-foreground/80 hover:bg-surface"
             >
               <Plus size={14} /> New themed
             </button>
@@ -380,33 +387,33 @@ export default function AdminDexPage() {
             ))}
           </div>
 
-          {isLoading ? <p className="text-xs text-neutral-500">Loading…</p> : null}
+          {isLoading ? <p className="text-xs text-muted">Loading…</p> : null}
         </aside>
 
         <div className="space-y-4">
-          <div className="grid gap-3 rounded-lg border border-neutral-800 bg-neutral-900/40 p-4 sm:grid-cols-2">
+          <div className="grid gap-3 rounded-lg border border-border bg-surface/40 p-4 sm:grid-cols-2">
             <label className="block space-y-1 sm:col-span-2">
-              <span className="text-sm text-neutral-300">Deck name</span>
+              <span className="text-sm text-foreground/80">Deck name</span>
               <input
-                className="w-full rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+                className="w-full rounded-md border border-border-strong bg-background px-3 py-2 text-sm"
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               />
             </label>
             <label className="block space-y-1 sm:col-span-2">
-              <span className="text-sm text-neutral-300">Description</span>
+              <span className="text-sm text-foreground/80">Description</span>
               <textarea
                 rows={2}
-                className="w-full rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+                className="w-full rounded-md border border-border-strong bg-background px-3 py-2 text-sm"
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 placeholder="Shown when players pick or buy this deck"
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-sm text-neutral-300">Kind</span>
+              <span className="text-sm text-foreground/80">Kind</span>
               <select
-                className="w-full rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+                className="w-full rounded-md border border-border-strong bg-background px-3 py-2 text-sm"
                 value={form.deckKind}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -421,9 +428,9 @@ export default function AdminDexPage() {
               </select>
             </label>
             <label className="block space-y-1">
-              <span className="text-sm text-neutral-300">Era theme</span>
+              <span className="text-sm text-foreground/80">Era theme</span>
               <select
-                className="w-full rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+                className="w-full rounded-md border border-border-strong bg-background px-3 py-2 text-sm"
                 value={form.eraId}
                 onChange={(e) => setForm((f) => ({ ...f, eraId: e.target.value }))}
               >
@@ -436,30 +443,30 @@ export default function AdminDexPage() {
               </select>
             </label>
             <label className="block space-y-1">
-              <span className="text-sm text-neutral-300">Price (points)</span>
+              <span className="text-sm text-foreground/80">Price (points)</span>
               <input
                 type="number"
                 min={0}
                 disabled={form.deckKind === "starter"}
-                className="w-full rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm disabled:opacity-50"
+                className="w-full rounded-md border border-border-strong bg-background px-3 py-2 text-sm disabled:opacity-50"
                 value={form.price}
                 onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-sm text-neutral-300">Sort order</span>
+              <span className="text-sm text-foreground/80">Sort order</span>
               <input
                 type="number"
                 min={0}
-                className="w-full rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+                className="w-full rounded-md border border-border-strong bg-background px-3 py-2 text-sm"
                 value={form.sortOrder}
                 onChange={(e) => setForm((f) => ({ ...f, sortOrder: e.target.value }))}
               />
             </label>
             <label className="block space-y-1 sm:col-span-2">
-              <span className="text-sm text-neutral-300">Cover image URL</span>
+              <span className="text-sm text-foreground/80">Cover image URL</span>
               <input
-                className="w-full rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+                className="w-full rounded-md border border-border-strong bg-background px-3 py-2 text-sm"
                 value={form.imageUrl}
                 onChange={(e) => setForm((f) => ({ ...f, imageUrl: e.target.value }))}
                 placeholder="Optional preview image for shop / picker"
@@ -471,19 +478,25 @@ export default function AdminDexPage() {
                 checked={form.active}
                 onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))}
               />
-              <span className="text-sm text-neutral-300">Active on platform</span>
+              <span className="text-sm text-foreground/80">Active on platform</span>
             </label>
           </div>
 
           <DeckCompositionBlueprint typeCounts={typeCounts} />
 
+          <AdminCardSearchInput
+            value={cardSearchQuery}
+            onChange={setCardSearchQuery}
+            placeholder="Search catalog cards…"
+          />
+
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-neutral-500">Total {totalCards}/{DECK_SIZE}</p>
+            <p className="text-sm text-muted">Total {totalCards}/{DECK_SIZE}</p>
             <button
               type="button"
               disabled={saveMutation.isPending || !form.name.trim()}
               onClick={() => saveMutation.mutate()}
-              className="inline-flex items-center gap-1.5 rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:opacity-60"
             >
               <Save size={14} />
               Save deck
@@ -491,7 +504,7 @@ export default function AdminDexPage() {
           </div>
 
           {validationErrors.length > 0 ? (
-            <div className="rounded-md border border-amber-900/50 bg-amber-950/20 px-3 py-2 text-sm text-amber-200">
+            <div className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-gold-bright">
               {validationErrors[0]}
             </div>
           ) : totalCards === DECK_SIZE ? (
@@ -499,16 +512,16 @@ export default function AdminDexPage() {
               Deck composition is valid ({DECK_SIZE}/{DECK_SIZE}).
             </div>
           ) : (
-            <div className="rounded-md border border-neutral-800 bg-neutral-950/40 px-3 py-2 text-sm text-neutral-400">
+            <div className="rounded-md border border-border bg-background/40 px-3 py-2 text-sm text-muted">
               Fill each card type to its target range (40 cards total, max 3 copies each).
             </div>
           )}
 
           {totalCards > 0 ? (
-            <section className="space-y-4 rounded-lg border border-neutral-800 bg-neutral-900/30 p-4">
+            <section className="space-y-4 rounded-lg border border-border bg-surface/30 p-4">
               <div>
-                <h2 className="text-lg font-medium text-neutral-100">Deck preview</h2>
-                <p className="text-sm text-neutral-500">
+                <h2 className="text-lg font-medium text-foreground">Deck preview</h2>
+                <p className="text-sm text-muted">
                   {totalCards} card{totalCards === 1 ? "" : "s"} in this list — click a card to inspect.
                 </p>
               </div>
@@ -517,9 +530,9 @@ export default function AdminDexPage() {
                 if (cards.length === 0) return null;
                 return (
                   <div key={cardType} className="space-y-2">
-                    <h3 className="text-sm font-medium text-neutral-300">
+                    <h3 className="text-sm font-medium text-foreground/80">
                       {CARD_TYPE_LABELS_PLURAL[cardType]}{" "}
-                      <span className="font-normal text-neutral-500">({cards.length})</span>
+                      <span className="font-normal text-muted">({cards.length})</span>
                     </h3>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                       {cards.map((card, index) => (
@@ -539,10 +552,10 @@ export default function AdminDexPage() {
           {PICKER_CARD_TYPES.map((cardType) => (
             <section key={cardType} className="space-y-3">
               <div>
-                <h2 className="text-lg font-medium text-neutral-100">
+                <h2 className="text-lg font-medium text-foreground">
                   {CARD_TYPE_LABELS_PLURAL[cardType]}
                 </h2>
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-muted">
                   {cardType === "unit"
                     ? "Frontline infantry — the core of your deck (~50%)."
                     : cardType === "event"
@@ -554,7 +567,7 @@ export default function AdminDexPage() {
                   Target{" "}
                   {DEFAULT_DECK_COMPOSITION[cardType].min}–{DEFAULT_DECK_COMPOSITION[cardType].max} cards.
                   {typeCounts[cardType] > 0 ? (
-                    <span className="text-neutral-400"> · {typeCounts[cardType]} selected</span>
+                    <span className="text-muted"> · {typeCounts[cardType]} selected</span>
                   ) : null}
                 </p>
               </div>
@@ -563,7 +576,7 @@ export default function AdminDexPage() {
                 quantities={quantities}
                 onAdjust={adjustQty}
                 onInspect={setViewingId}
-                emptyMessage={`No ${CARD_TYPE_LABELS_PLURAL[cardType].toLowerCase()} match the selected era.`}
+                emptyMessage={`No ${CARD_TYPE_LABELS_PLURAL[cardType].toLowerCase()} match your search${eraFilterId != null ? " and era filter" : ""}.`}
               />
             </section>
           ))}
@@ -576,21 +589,21 @@ export default function AdminDexPage() {
           onClose={() => setViewingId(null)}
           footer={
             <div className="flex items-center justify-between gap-3">
-              <span className="text-sm text-neutral-400">
+              <span className="text-sm text-muted">
                 In deck: {quantities.get(viewingCard.id) ?? 0}
               </span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => adjustQty(viewingCard.id, -1, viewingCard.cardType)}
-                  className="inline-flex items-center gap-1 rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 hover:bg-neutral-800"
+                  className="inline-flex items-center gap-1 rounded-md border border-border-strong px-3 py-1.5 text-sm text-foreground hover:bg-surface-raised"
                 >
                   <Minus size={14} /> Remove
                 </button>
                 <button
                   type="button"
                   onClick={() => adjustQty(viewingCard.id, 1, viewingCard.cardType)}
-                  className="inline-flex items-center gap-1 rounded-md bg-amber-700 px-3 py-1.5 text-sm font-medium text-amber-50 hover:bg-amber-600"
+                  className="inline-flex items-center gap-1 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground hover:brightness-110"
                 >
                   <Plus size={14} /> Add copy
                 </button>
@@ -620,21 +633,21 @@ function DeckListItem({
         type="button"
         onClick={onSelect}
         className={`flex flex-1 items-center gap-2 rounded-md px-2 py-2 text-left text-sm ${
-          active ? "bg-neutral-800 text-neutral-100" : "text-neutral-400 hover:bg-neutral-900"
+          active ? "bg-surface-raised text-foreground" : "text-muted hover:bg-surface"
         }`}
       >
         {deck.imageUrl ? (
-          <span className="relative h-8 w-6 shrink-0 overflow-hidden rounded bg-neutral-800">
+          <span className="relative h-8 w-6 shrink-0 overflow-hidden rounded bg-surface-raised">
             <Image src={deck.imageUrl} alt="" fill sizes="24px" className="object-cover" />
           </span>
         ) : (
-          <span className="flex h-8 w-6 shrink-0 items-center justify-center rounded bg-neutral-800 text-neutral-600">
+          <span className="flex h-8 w-6 shrink-0 items-center justify-center rounded bg-surface-raised text-subtle">
             <Layers size={12} />
           </span>
         )}
         <span className="min-w-0 flex-1">
           <span className="block truncate">{deck.name}</span>
-          <span className="block text-xs text-neutral-500">
+          <span className="block text-xs text-muted">
             {deck.totalCards}/40 {deck.active ? "" : "· inactive"}
             {deck.deckKind === "themed" && deck.price > 0 ? ` · ${deck.price} pts` : ""}
           </span>
@@ -643,7 +656,7 @@ function DeckListItem({
       <button
         type="button"
         onClick={onDelete}
-        className="rounded p-2 text-neutral-500 hover:bg-neutral-900 hover:text-red-400"
+        className="rounded p-2 text-muted hover:bg-surface hover:text-red-400"
         aria-label={`Delete ${deck.name}`}
       >
         <Trash2 size={14} />
@@ -666,7 +679,7 @@ function CardGrid({
   emptyMessage: string;
 }) {
   if (cards.length === 0) {
-    return <p className="text-sm text-neutral-500">{emptyMessage}</p>;
+    return <p className="text-sm text-muted">{emptyMessage}</p>;
   }
 
   return (
@@ -686,16 +699,16 @@ function CardGrid({
                 type="button"
                 onClick={() => onAdjust(card.id, -1, card.cardType)}
                 disabled={qty === 0}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-neutral-700 text-neutral-200 hover:bg-neutral-800 disabled:opacity-40"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border-strong text-foreground hover:bg-surface-raised disabled:opacity-40"
                 aria-label={`Remove ${card.name} from deck`}
               >
                 <Minus size={14} />
               </button>
-              <span className="min-w-[1.5rem] text-center text-sm text-neutral-300">{qty}</span>
+              <span className="min-w-[1.5rem] text-center text-sm text-foreground/80">{qty}</span>
               <button
                 type="button"
                 onClick={() => onAdjust(card.id, 1, card.cardType)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-neutral-700 text-neutral-200 hover:bg-neutral-800"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border-strong text-foreground hover:bg-surface-raised"
                 aria-label={`Add ${card.name} to deck`}
               >
                 <Plus size={14} />

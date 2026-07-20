@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.data
+data
+public/uploads
+.env*
+!.env.example
+*.md
+.claude
+.cursor
+coverage
+npm-debug.log*
+.DS_Store

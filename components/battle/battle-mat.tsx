@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState, type DragEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Bot, Layers, Plus, Trash2 } from "lucide-react";
+import { Bot, Layers, MapPin, Plus, Trash2 } from "lucide-react";
 import { BattleCard } from "@/components/battle/battle-card";
 import { BattleCardBack } from "@/components/battle/battle-card-back";
 import { BattlePileModal } from "@/components/battle/battle-pile-modal";
@@ -14,10 +14,11 @@ import {
   readHandDragIndex,
 } from "@/components/battle/battle-drag";
 import { boardUnitToFace, cardSnapshotToFace, type BattleCardFace } from "@/components/battle/battle-card-face";
-import { CharacterArt } from "@/components/character-art";
-import { clampImageFrame } from "@/lib/image-frame";
+import { PixelSprite } from "@/components/pixel-sprite";
+import { clampImageFrame, imageFrameStyle } from "@/lib/image-frame";
 import type { Archetype } from "@/lib/sprite/generateSprite";
 import type { BattleAction, BoardUnit, CardSnapshot, Lane, MatchState, Phase } from "@/lib/battle/types";
+import { hasUnificationAbility } from "@/lib/battle/abilities";
 
 /** Every lane row reserves exactly this many slots — filled or empty — so the
  * row's width (and the mat's overall proportions) never depends on how many
@@ -35,6 +36,8 @@ type Props = {
   capturedLocations: number;
   aiCapturedLocations: number;
   locationsToWin: number;
+  influenceToCapture: number;
+  locationDeckCount: number;
   activePlayer: string;
   isPlayerTurn: boolean;
   playerHand: CardSnapshot[];
@@ -45,11 +48,15 @@ type Props = {
   selectedHandIndex: number | null;
   legalActions: BattleAction[];
   selectedAttackerId: string | null;
+  selectedMonarchId: string | null;
   onSelectHand: (index: number | null) => void;
   onSelectAttacker: (instanceId: string | null) => void;
+  onSelectMonarch: (instanceId: string | null) => void;
   onDeployLane: (laneIndex: number) => void;
   onPlayHandCard: (handIndex: number, laneIndex: number, targetInstanceId?: string) => void;
   onAttack: (laneIndex: number, attackerInstanceId: string, defenderInstanceId: string) => void;
+  onEstablishInfluence: (laneIndex: number, unitInstanceId: string) => void;
+  onUnification: (laneIndex: number, monarchInstanceId: string, targetInstanceId: string) => void;
   onInspect: (card: BattleCardFace) => void;
   onEndPhase: () => void;
   canPlaySelected: boolean;
@@ -78,6 +85,47 @@ function attackActionsFor(
   );
 }
 
+function canEstablishInfluence(
+  legalActions: BattleAction[],
+  laneIndex: number,
+  unitInstanceId: string,
+) {
+  return legalActions.some(
+    (action) =>
+      action.type === "establish_influence" &&
+      action.laneIndex === laneIndex &&
+      action.unitInstanceId === unitInstanceId,
+  );
+}
+
+function canUnifyTarget(
+  legalActions: BattleAction[],
+  laneIndex: number,
+  monarchInstanceId: string,
+  targetInstanceId: string,
+) {
+  return legalActions.some(
+    (action) =>
+      action.type === "unification" &&
+      action.laneIndex === laneIndex &&
+      action.monarchInstanceId === monarchInstanceId &&
+      action.targetInstanceId === targetInstanceId,
+  );
+}
+
+function canSelectAsMonarch(
+  legalActions: BattleAction[],
+  laneIndex: number,
+  monarchInstanceId: string,
+) {
+  return legalActions.some(
+    (action) =>
+      action.type === "unification" &&
+      action.laneIndex === laneIndex &&
+      action.monarchInstanceId === monarchInstanceId,
+  );
+}
+
 export function BattleMat({
   matchLabel,
   statusBadge,
@@ -89,6 +137,8 @@ export function BattleMat({
   capturedLocations,
   aiCapturedLocations,
   locationsToWin,
+  influenceToCapture,
+  locationDeckCount,
   activePlayer,
   isPlayerTurn,
   playerHand,
@@ -99,11 +149,15 @@ export function BattleMat({
   selectedHandIndex,
   legalActions,
   selectedAttackerId,
+  selectedMonarchId,
   onSelectHand,
   onSelectAttacker,
+  onSelectMonarch,
   onDeployLane,
   onPlayHandCard,
   onAttack,
+  onEstablishInfluence,
+  onUnification,
   onInspect,
   onEndPhase,
   canPlaySelected,
@@ -112,7 +166,15 @@ export function BattleMat({
   const [pileView, setPileView] = useState<"deck" | "discard" | null>(null);
   const [draggingHandIndex, setDraggingHandIndex] = useState<number | null>(null);
   const [dragOverZone, setDragOverZone] = useState<string | null>(null);
+  const [locationHoverRect, setLocationHoverRect] = useState<DOMRect | null>(null);
+  const locationCardRef = useRef<HTMLDivElement>(null);
+  const fieldHoverEnabled = draggingHandIndex == null;
   const lane = lanes[0];
+
+  useEffect(() => {
+    if (!fieldHoverEnabled) setLocationHoverRect(null);
+  }, [fieldHoverEnabled]);
+
   const laneIndex = 0;
   const activeDragIndex = draggingHandIndex ?? selectedHandIndex;
   const canDeploy =
@@ -122,13 +184,8 @@ export function BattleMat({
     handIndexIsDraggable(legalActions, activeDragIndex);
   const laneAcceptsHandDrop =
     activeDragIndex != null && handCardCanDropOnLane(legalActions, activeDragIndex, laneIndex);
-  const locationAcceptsHandDrop =
-    activeDragIndex != null &&
-    phase === "logistics" &&
-    handCardCanDropOnLane(legalActions, activeDragIndex, laneIndex) &&
-    playerHand[activeDragIndex]?.cardType === "location";
   const inCampaign = isPlayerTurn && phase === "campaign";
-  const influenceToCapture = 3;
+  const inLogistics = isPlayerTurn && phase === "logistics";
 
   function clearDragState() {
     setDraggingHandIndex(null);
@@ -165,11 +222,11 @@ export function BattleMat({
           instead of growing past the viewport on tall hands/boards.
           overflow-y-auto is a safety net for extreme viewports, not the
           normal path. */}
-      <div className="battle-mat-fullbleed battle-mat relative flex h-[calc(100vh-3.5rem)] flex-col overflow-y-auto">
+      <div className="battle-mat-fullbleed battle-mat relative flex h-[calc(100vh-var(--app-chrome-offset))] flex-col overflow-y-auto">
         {lane.location ? <LocationBackdrop location={lane.location} /> : null}
-        <div className="battle-mat-texture pointer-events-none absolute inset-0" />
+        <div className="battle-mat-texture pointer-events-none absolute inset-0 z-[1]" />
 
-        <div className="relative z-[1] flex min-h-0 flex-1 flex-col">
+        <div className="relative z-[2] flex min-h-0 flex-1 flex-col">
           {/* Top strip — match info / enemy status | phase + turn | your resources */}
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 border-b border-amber-950/40 px-4 py-2 sm:px-6">
             <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -190,7 +247,7 @@ export function BattleMat({
                 <span
                   key={p}
                   className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                    p === phase ? "bg-amber-700 text-amber-50" : "bg-neutral-900/80 text-neutral-500"
+                    p === phase ? "bg-accent text-accent-foreground" : "bg-neutral-900/80 text-neutral-500"
                   }`}
                 >
                   {PHASE_LABEL[p]}
@@ -226,7 +283,15 @@ export function BattleMat({
 
           {/* Battlefield — fixed 5-slot rows so proportions hold regardless of
               how many units are actually deployed. */}
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 overflow-x-auto px-3 py-2 sm:gap-3 sm:py-4">
+          <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center gap-2 overflow-x-auto px-3 py-2 sm:gap-3 sm:py-4">
+            {/* Shared location deck — both players' Location cards, pooled
+                and shuffled once at setup, auto-feeding the lane as each
+                current one is captured. Parked on the left, vertically
+                centered on the battlefield, out of the way of play. */}
+            <div className="absolute left-2 top-1/2 z-[1] -translate-y-1/2 sm:left-4">
+              <LocationDeckPile count={locationDeckCount} />
+            </div>
+
             <SlotRow
               label="Enemy"
               labelClass="text-red-300/70"
@@ -236,10 +301,15 @@ export function BattleMat({
               legalActions={legalActions}
               draggingHandIndex={draggingHandIndex}
               selectedAttackerId={selectedAttackerId}
+              selectedMonarchId={selectedMonarchId}
               inCampaign={inCampaign}
+              inLogistics={inLogistics}
               onInspect={onInspect}
               onSelectAttacker={onSelectAttacker}
+              onSelectMonarch={onSelectMonarch}
               onAttack={onAttack}
+              onEstablishInfluence={onEstablishInfluence}
+              onUnification={onUnification}
               onHandDrop={handleHandDrop}
               onDragOverZone={setDragOverZone}
               dragOverZone={dragOverZone}
@@ -250,37 +320,28 @@ export function BattleMat({
                 echoing a physical mat's centerline. */}
             <div className="relative flex w-full items-center justify-center py-1">
               <div className="battle-lane-divider absolute inset-x-6 top-1/2 -z-10 -translate-y-1/2 sm:inset-x-12" />
-              <div
-                onDragOver={(event) => {
-                  if (!locationAcceptsHandDrop) return;
-                  allowDrop(event);
-                  setDragOverZone("location");
-                }}
-                onDragLeave={() => {
-                  if (dragOverZone === "location") setDragOverZone(null);
-                }}
-                onDrop={(event) => handleHandDrop(event)}
-                className={`flex flex-wrap items-center justify-center gap-3 rounded-2xl border bg-[#0c0a08]/95 px-3 py-2 shadow-xl sm:gap-4 sm:px-5 sm:py-3 ${
-                  locationAcceptsHandDrop && dragOverZone === "location"
-                    ? "border-amber-400 ring-2 ring-amber-400/60"
-                    : "border-amber-900/40"
-                }`}
-              >
+              <div className="flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-accent/35 bg-[#0c0a08]/95 px-3 py-2 shadow-xl sm:gap-4 sm:px-5 sm:py-3">
                 {lane.location ? (
-                  <BattleCard
-                    card={cardSnapshotToFace(lane.location)}
-                    size="board"
-                    showCost={false}
-                    showCombat={false}
-                    onClick={() => onInspect(cardSnapshotToFace(lane.location!))}
-                    className="transition-transform hover:-translate-y-0.5"
-                  />
+                  <div
+                    ref={locationCardRef}
+                    onMouseEnter={() => {
+                      if (!fieldHoverEnabled) return;
+                      setLocationHoverRect(locationCardRef.current?.getBoundingClientRect() ?? null);
+                    }}
+                    onMouseLeave={() => setLocationHoverRect(null)}
+                  >
+                    <BattleCard
+                      card={cardSnapshotToFace(lane.location)}
+                      size="board"
+                      showCost={false}
+                      showCombat={false}
+                      onClick={() => onInspect(cardSnapshotToFace(lane.location!))}
+                      className={locationHoverRect ? "ring-2 ring-amber-400/70" : ""}
+                    />
+                  </div>
                 ) : (
                   <div className="battle-play-card flex flex-col items-center justify-center rounded-lg border border-dashed border-neutral-700 bg-neutral-950/50 p-1 text-center">
-                    <p className="text-[8px] text-neutral-500">No location</p>
-                    {locationAcceptsHandDrop ? (
-                      <p className="mt-1 text-[7px] text-amber-200/80">Drop location</p>
-                    ) : null}
+                    <p className="text-[8px] text-neutral-500">Location deck empty</p>
                   </div>
                 )}
 
@@ -290,16 +351,11 @@ export function BattleMat({
                     ai={lane.aiInfluence}
                     toCapture={influenceToCapture}
                   />
-                  {locationAcceptsHandDrop ? (
-                    <p className="text-center text-[8px] text-amber-200/80">
-                      Drop to {lane.location ? "override" : "claim"} the lane
-                    </p>
-                  ) : null}
                   {canDeploy && lane.location && !laneAcceptsHandDrop ? (
                     <button
                       type="button"
                       onClick={() => onDeployLane(laneIndex)}
-                      className="w-full rounded border border-dashed border-amber-600/50 bg-amber-950/20 px-2 py-0.5 text-[9px] text-amber-200 hover:bg-amber-950/40"
+                      className="w-full rounded border border-dashed border-accent/40 bg-accent/10 px-2 py-0.5 text-[9px] text-gold-bright hover:bg-accent/10"
                     >
                       Deploy here
                     </button>
@@ -351,10 +407,15 @@ export function BattleMat({
                 legalActions={legalActions}
                 draggingHandIndex={draggingHandIndex}
                 selectedAttackerId={selectedAttackerId}
+                selectedMonarchId={selectedMonarchId}
                 inCampaign={inCampaign}
+                inLogistics={inLogistics}
                 onInspect={onInspect}
                 onSelectAttacker={onSelectAttacker}
+                onSelectMonarch={onSelectMonarch}
                 onAttack={onAttack}
+                onEstablishInfluence={onEstablishInfluence}
+                onUnification={onUnification}
                 onHandDrop={handleHandDrop}
                 onDragOverZone={setDragOverZone}
                 dragOverZone={dragOverZone}
@@ -362,14 +423,30 @@ export function BattleMat({
               />
             </div>
 
-            {inCampaign || draggingHandIndex != null ? (
+            {inCampaign || inLogistics || draggingHandIndex != null ? (
               <p className="truncate text-center text-[10px] text-neutral-500">
                 {draggingHandIndex != null && phase === "logistics"
                   ? "Release on the lane to play the card"
                   : null}
-                {draggingHandIndex != null && phase === "logistics" && inCampaign ? " · " : null}
+                {draggingHandIndex != null && phase === "logistics" && (inCampaign || inLogistics)
+                  ? " · "
+                  : null}
+                {inLogistics && selectedMonarchId
+                  ? "Tap a friendly unit to unify"
+                  : inLogistics
+                    ? "Tap a ready unit to establish Influence, or a Monarch to unify"
+                    : null}
+                {inLogistics && inCampaign ? " · " : null}
                 {inCampaign ? "Tap your unit, then a highlighted enemy" : null}
               </p>
+            ) : null}
+
+            {fieldHoverEnabled && locationHoverRect && lane.location ? (
+              <CardHoverPreview
+                face={cardSnapshotToFace(lane.location)}
+                anchorRect={locationHoverRect}
+                placement="below"
+              />
             ) : null}
           </div>
 
@@ -442,25 +519,50 @@ function LocationBackdrop({ location }: { location: CardSnapshot }) {
           focusY: location.imageFocusY,
           scale: location.imageScale,
         });
+  const frameStyle = imageFrame ? imageFrameStyle(imageFrame) : undefined;
+  const era = {
+    colorPrimary: location.eraColorPrimary,
+    colorSecondary: location.eraColorSecondary,
+  };
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {/* Scaled up slightly so the blur's soft edge falls outside the
-          visible box instead of leaving a faint halo along the border. */}
-      <div className="absolute inset-0 scale-110 opacity-[0.14] grayscale-[0.4] blur-[3px]">
-        <CharacterArt
-          seed={location.seed}
-          imageUrl={location.imageUrl}
-          imageFrame={imageFrame}
-          era={{ colorPrimary: location.eraColorPrimary, colorSecondary: location.eraColorSecondary }}
-          rarity={location.rarity}
-          archetype={location.archetype as Archetype | null}
-          className="h-full w-full rounded-none"
-        />
+    <div
+      key={location.characterId}
+      className="battle-location-backdrop pointer-events-none absolute inset-0 z-0 overflow-hidden"
+      aria-hidden
+    >
+      <div className="battle-location-backdrop-art absolute inset-0">
+        {location.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={location.imageUrl}
+            alt=""
+            className="h-full w-full object-cover"
+            style={frameStyle}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center overflow-hidden">
+            <div className="scale-[3.5] sm:scale-[4]">
+              <PixelSprite
+                seed={location.seed}
+                era={era}
+                rarity={location.rarity}
+                archetype={location.archetype as Archetype | null}
+                size={320}
+              />
+            </div>
+          </div>
+        )}
       </div>
-      {/* Dark scrim — keeps foreground contrast constant regardless of how
-          bright or busy the location art itself happens to be. */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0c0a08] via-[#0c0a08]/75 to-[#0c0a08]" />
+
+      <div
+        className="absolute inset-0 opacity-40 mix-blend-multiply"
+        style={{
+          background: `linear-gradient(145deg, ${era.colorPrimary}bb 0%, ${era.colorSecondary}88 55%, #0c0a08 100%)`,
+        }}
+      />
+
+      <div className="battle-location-backdrop-scrim absolute inset-0" />
     </div>
   );
 }
@@ -499,7 +601,7 @@ function CpGauge({ cp, cap }: { cp: number; cap: number }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="whitespace-nowrap font-mono text-[11px] text-amber-300">{cp} CP</span>
+      <span className="whitespace-nowrap font-mono text-[11px] text-gold-bright">{cp} CP</span>
     </div>
   );
 }
@@ -546,10 +648,15 @@ function SlotRow({
   legalActions,
   draggingHandIndex,
   selectedAttackerId,
+  selectedMonarchId,
   inCampaign,
+  inLogistics,
   onInspect,
   onSelectAttacker,
+  onSelectMonarch,
   onAttack,
+  onEstablishInfluence,
+  onUnification,
   onHandDrop,
   onDragOverZone,
   dragOverZone,
@@ -563,15 +670,41 @@ function SlotRow({
   legalActions: BattleAction[];
   draggingHandIndex: number | null;
   selectedAttackerId: string | null;
+  selectedMonarchId: string | null;
   inCampaign: boolean;
+  inLogistics: boolean;
   onInspect: (card: BattleCardFace) => void;
   onSelectAttacker: (id: string | null) => void;
+  onSelectMonarch: (id: string | null) => void;
   onAttack: (laneIndex: number, attackerId: string, defenderId: string) => void;
+  onEstablishInfluence: (laneIndex: number, unitInstanceId: string) => void;
+  onUnification: (laneIndex: number, monarchInstanceId: string, targetInstanceId: string) => void;
   onHandDrop: (event: DragEvent, targetInstanceId?: string) => void;
   onDragOverZone: (zone: string | null) => void;
   dragOverZone: string | null;
   dropHintActive?: boolean;
 }) {
+  const [hoveredUnitId, setHoveredUnitId] = useState<string | null>(null);
+  const [hoveredRect, setHoveredRect] = useState<DOMRect | null>(null);
+  const unitRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const fieldHoverEnabled = draggingHandIndex == null;
+  const hoverPlacement = side === "ai" ? "below" : "above";
+
+  useEffect(() => {
+    if (!fieldHoverEnabled) clearUnitHover();
+  }, [fieldHoverEnabled]);
+
+  function clearUnitHover() {
+    setHoveredUnitId(null);
+    setHoveredRect(null);
+  }
+
+  function handleUnitEnter(instanceId: string) {
+    if (!fieldHoverEnabled) return;
+    setHoveredUnitId(instanceId);
+    setHoveredRect(unitRefs.current.get(instanceId)?.getBoundingClientRect() ?? null);
+  }
+
   function renderUnit(unit: BoardUnit) {
     const face = boardUnitToFace(unit);
     const legalAttacks =
@@ -596,14 +729,39 @@ function SlotRow({
       handCardCanDropOnTarget(legalActions, draggingHandIndex, laneIndex, unit.instanceId);
     const targetZoneId = `enemy-${unit.instanceId}`;
 
+    const canEstablish =
+      side === "player" &&
+      inLogistics &&
+      canEstablishInfluence(legalActions, laneIndex, unit.instanceId);
+    const isMonarchSelected = selectedMonarchId === unit.instanceId;
+    const canBeMonarch =
+      side === "player" &&
+      inLogistics &&
+      hasUnificationAbility({ abilityName: unit.abilityName } as CardSnapshot) &&
+      canSelectAsMonarch(legalActions, laneIndex, unit.instanceId);
+    const isUnifyTarget =
+      side === "player" &&
+      inLogistics &&
+      selectedMonarchId != null &&
+      canUnifyTarget(legalActions, laneIndex, selectedMonarchId, unit.instanceId);
+    const isCommitted = side === "player" && unit.isCommitted;
+
     let state: import("@/components/battle/battle-card").BattleCardState = "default";
     if (isSelected) state = "attacker";
-    else if (isTarget || isEventTarget) state = "target";
-    else if (canAttack && legalAttacks.length > 0) state = "playable";
+    else if (isMonarchSelected) state = "selected";
+    else if (isTarget || isEventTarget || isUnifyTarget) state = "target";
+    else if ((canAttack && legalAttacks.length > 0) || canEstablish || canBeMonarch) state = "playable";
+
+    const isHovered = fieldHoverEnabled && hoveredUnitId === unit.instanceId;
 
     return (
       <div
         key={unit.instanceId}
+        ref={(el) => {
+          if (el) unitRefs.current.set(unit.instanceId, el);
+          else unitRefs.current.delete(unit.instanceId);
+        }}
+        onMouseEnter={() => handleUnitEnter(unit.instanceId)}
         onDragOver={(event) => {
           if (!isEventTarget) return;
           event.preventDefault();
@@ -617,7 +775,7 @@ function SlotRow({
           if (!isEventTarget) return;
           onHandDrop(event, unit.instanceId);
         }}
-        className={`shrink-0 ${
+        className={`shrink-0 ${side === "ai" ? "[transform:rotate(180deg)]" : ""} ${
           isEventTarget && dragOverZone === targetZoneId ? "rounded-lg ring-2 ring-red-400/70" : ""
         }`}
       >
@@ -625,15 +783,30 @@ function SlotRow({
           card={face}
           size="board"
           state={state}
-          resting={side === "player" && unit.summoningSickness}
+          resting={side === "player" && (unit.summoningSickness || isCommitted)}
           showCost={false}
+          className={isHovered ? "ring-2 ring-amber-400/70" : ""}
           onClick={() => {
             if (isTarget && selectedAttackerId) {
               onAttack(laneIndex, selectedAttackerId, unit.instanceId);
               return;
             }
+            if (isUnifyTarget && selectedMonarchId) {
+              onUnification(laneIndex, selectedMonarchId, unit.instanceId);
+              return;
+            }
             if (canAttack && legalAttacks.length > 0) {
               onSelectAttacker(isSelected ? null : unit.instanceId);
+              onSelectMonarch(null);
+              return;
+            }
+            if (canBeMonarch) {
+              onSelectMonarch(isMonarchSelected ? null : unit.instanceId);
+              onSelectAttacker(null);
+              return;
+            }
+            if (canEstablish) {
+              onEstablishInfluence(laneIndex, unit.instanceId);
               return;
             }
             onInspect(face);
@@ -649,7 +822,10 @@ function SlotRow({
   return (
     <div className="flex flex-col items-center">
       <p className={`mb-1 text-[9px] uppercase tracking-[0.2em] sm:text-[10px] ${labelClass}`}>{label}</p>
-      <div className={`flex items-start justify-center gap-2 rounded-xl border p-2 sm:gap-3 sm:p-3 ${tint}`}>
+      <div
+        className={`flex items-start justify-center gap-2 rounded-xl border p-2 sm:gap-3 sm:p-3 ${tint}`}
+        onMouseLeave={fieldHoverEnabled ? clearUnitHover : undefined}
+      >
         {units.map(renderUnit)}
         {Array.from({ length: emptySlots }, (_, i) => (
           <div
@@ -666,6 +842,14 @@ function SlotRow({
       </div>
       {dropHintActive ? (
         <p className="mt-1 text-[9px] text-emerald-300/80">Drop here to deploy</p>
+      ) : null}
+
+      {fieldHoverEnabled && hoveredUnitId && hoveredRect ? (
+        <CardHoverPreview
+          face={boardUnitToFace(units.find((unit) => unit.instanceId === hoveredUnitId)!)}
+          anchorRect={hoveredRect}
+          placement={hoverPlacement}
+        />
       ) : null}
     </div>
   );
@@ -689,7 +873,7 @@ function PileButton({
       type="button"
       onClick={onClick}
       className={`flex shrink-0 flex-col items-center gap-1 rounded-lg border px-2 py-1.5 transition-colors hover:bg-neutral-900/60 ${
-        muted ? "border-neutral-800 text-neutral-500" : "border-amber-900/40 text-amber-200/90"
+        muted ? "border-neutral-800 text-neutral-500" : "border-accent/35 text-gold-bright/90"
       }`}
       title={`View ${label.toLowerCase()}`}
     >
@@ -701,6 +885,25 @@ function PileButton({
         {label}
       </span>
     </button>
+  );
+}
+
+/** The shared, shuffled Location deck both players' Location cards were
+ * pooled into at setup. Purely a display of what's left to come — not
+ * clickable/inspectable, since a shuffled deck's remaining order isn't
+ * something either player should be able to page through. */
+function LocationDeckPile({ count }: { count: number }) {
+  return (
+    <div
+      className="flex flex-col items-center gap-1 rounded-lg border border-emerald-800/40 px-2 py-1.5 text-emerald-200/80"
+      title={`${count} Location${count === 1 ? "" : "s"} left in the location deck`}
+    >
+      <BattleCardBack size="md" count={count} />
+      <span className="flex items-center gap-0.5 text-[8px] uppercase tracking-wide">
+        <MapPin size={11} />
+        Locations
+      </span>
+    </div>
   );
 }
 
@@ -716,43 +919,50 @@ const HOVER_PREVIEW_WIDTH_PX = HOVER_PREVIEW_WIDTH_REM * 16 * HOVER_PREVIEW_SCAL
 const HOVER_PREVIEW_MARGIN_PX = 16;
 
 /**
- * A bigger, fully un-clipped copy of the hovered hand card, rendered via a
- * portal straight onto document.body. This is deliberate, not a shortcut:
- * the hand row needs overflow-x-auto to scroll wide hands, and per the CSS
- * overflow spec that forces overflow-y to also compute to 'auto' — there is
- * no way to keep one axis scrollable and the other genuinely 'visible' on
- * the same element. Padding-based headroom on that element can approximate
- * enough room for *some* hover states, but it's a guess that breaks for
- * others (as seen: still clipped for some cards/hand sizes). Rendering the
- * preview outside that element entirely sidesteps the limitation instead of
- * fighting it.
+ * A bigger, fully un-clipped copy of the hovered card, rendered via a portal
+ * straight onto document.body (see HandFan comment for why).
  */
-function HandHoverPreview({ face, anchorRect }: { face: BattleCardFace; anchorRect: DOMRect }) {
+function CardHoverPreview({
+  face,
+  anchorRect,
+  placement,
+}: {
+  face: BattleCardFace;
+  anchorRect: DOMRect;
+  placement: "above" | "below";
+}) {
   if (typeof document === "undefined") return null;
 
-  // Grow upward from the card's own top edge — the hand sits at the bottom
-  // of the mat, so there's headroom above but not necessarily below.
-  // Clamped so the preview can never render partly off any edge of the
-  // window, regardless of where in the fan the hovered card sits.
   const centerX = anchorRect.left + anchorRect.width / 2;
   const halfWidth = HOVER_PREVIEW_WIDTH_PX / 2;
   const left = Math.min(
     Math.max(centerX, halfWidth + HOVER_PREVIEW_MARGIN_PX),
     window.innerWidth - halfWidth - HOVER_PREVIEW_MARGIN_PX,
   );
-  const bottom = Math.max(anchorRect.top, HOVER_PREVIEW_HEIGHT_PX + HOVER_PREVIEW_MARGIN_PX);
+
+  const style =
+    placement === "above"
+      ? {
+          left,
+          top: Math.max(anchorRect.top, HOVER_PREVIEW_HEIGHT_PX + HOVER_PREVIEW_MARGIN_PX),
+          transform: `translate(-50%, -100%) scale(${HOVER_PREVIEW_SCALE})`,
+          transformOrigin: "bottom center" as const,
+        }
+      : {
+          left,
+          top: Math.min(
+            anchorRect.bottom + HOVER_PREVIEW_MARGIN_PX,
+            window.innerHeight - HOVER_PREVIEW_HEIGHT_PX - HOVER_PREVIEW_MARGIN_PX,
+          ),
+          transform: `translate(-50%, 0) scale(${HOVER_PREVIEW_SCALE})`,
+          transformOrigin: "top center" as const,
+        };
 
   return createPortal(
     <div
       className="pointer-events-none fixed z-[200] drop-shadow-[0_10px_40px_rgba(0,0,0,0.6)]"
       style={{
-        left,
-        top: bottom,
-        transform: `translate(-50%, -100%) scale(${HOVER_PREVIEW_SCALE})`,
-        // Scale from the bottom edge (the anchored point), not the default
-        // center — otherwise scaling up would push the bottom edge past the
-        // position we just clamped into place.
-        transformOrigin: "bottom center",
+        ...style,
         ["--battle-card-width" as string]: `${HOVER_PREVIEW_WIDTH_REM}rem`,
       }}
     >
@@ -791,7 +1001,15 @@ function HandFan({
   const [hoveredRect, setHoveredRect] = useState<DOMRect | null>(null);
   const cardRefs = useRef<Array<HTMLDivElement | null>>([]);
 
+  useEffect(() => {
+    if (hoveredIndex != null && hoveredIndex >= hand.length) {
+      setHoveredIndex(null);
+      setHoveredRect(null);
+    }
+  }, [hand.length, hoveredIndex]);
+
   function handleEnter(index: number) {
+    if (index < 0 || index >= hand.length || !hand[index]) return;
     setHoveredIndex(index);
     const el = cardRefs.current[index];
     setHoveredRect(el ? el.getBoundingClientRect() : null);
@@ -811,7 +1029,11 @@ function HandFan({
   }
 
   const mid = (hand.length - 1) / 2;
-  const hovered = hoveredIndex != null && draggingIndex == null ? hoveredIndex : null;
+  const hovered =
+    hoveredIndex != null && draggingIndex == null && hoveredIndex < hand.length && hand[hoveredIndex]
+      ? hoveredIndex
+      : null;
+  const hoveredCard = hovered != null ? hand[hovered] : null;
 
   return (
     // Generous side padding buffers the rotated edge cards' visual bounding
@@ -823,6 +1045,7 @@ function HandFan({
       onMouseLeave={handleLeave}
     >
       {hand.map((card, index) => {
+        if (!card) return null;
         const face = cardSnapshotToFace(card);
         const draggable = isPlayerTurn && phase === "logistics" && handIndexIsDraggable(legalActions, index);
         const affordable = card.cost <= cp;
@@ -882,8 +1105,12 @@ function HandFan({
         );
       })}
 
-      {hovered != null && hoveredRect ? (
-        <HandHoverPreview face={cardSnapshotToFace(hand[hovered])} anchorRect={hoveredRect} />
+      {hoveredCard && hoveredRect ? (
+        <CardHoverPreview
+          face={cardSnapshotToFace(hoveredCard)}
+          anchorRect={hoveredRect}
+          placement="above"
+        />
       ) : null}
     </div>
   );
@@ -905,8 +1132,8 @@ function ActionButton({
   const classes =
     variant === "amber"
       ? outline
-        ? "border border-amber-700/60 bg-amber-950/30 text-amber-200 hover:bg-amber-900/40"
-        : "border border-amber-600/60 bg-amber-900/50 text-amber-100 hover:bg-amber-800/50"
+        ? "border border-accent/50 bg-accent/10 text-gold-bright hover:bg-accent/15"
+        : "border border-accent/60 bg-accent/15 text-foreground hover:bg-accent/20"
       : "bg-neutral-100 text-neutral-900 hover:bg-white";
 
   return (

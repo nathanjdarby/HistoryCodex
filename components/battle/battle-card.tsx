@@ -68,7 +68,8 @@ export function BattleCard({
   style,
 }: Props) {
   const isHidden = card.characterId < 0;
-  const interactive = Boolean(onClick) && state !== "disabled";
+  const isDisabled = state === "disabled";
+  const interactive = Boolean(onClick) && !isDisabled;
   const Wrapper = interactive ? "button" : "div";
   const isPlaySize = PLAY_SIZES.has(size);
 
@@ -91,7 +92,7 @@ export function BattleCard({
               }
             : undefined
         }
-        disabled={interactive ? state === "disabled" : undefined}
+        disabled={interactive ? isDisabled : undefined}
         className={`${BATTLE_PLAY_CARD_CLASS} relative block text-left transition-transform ${STATE_RING[state]} ${interactive ? "cursor-pointer hover:-translate-y-1 hover:shadow-xl" : ""} ${className}`}
         style={style}
       >
@@ -129,7 +130,7 @@ export function BattleCard({
             }
           : undefined
       }
-      disabled={interactive ? state === "disabled" : undefined}
+      disabled={interactive ? isDisabled : undefined}
       className={`relative shrink-0 text-left transition-transform ${SIZE_CLASS[size]} ${STATE_RING[state]} ${interactive ? "cursor-pointer hover:-translate-y-1 hover:shadow-xl" : ""} ${className}`}
       style={style}
     >

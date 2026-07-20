@@ -193,12 +193,12 @@ export function ReadingSessionTimer({
   const isPaused = session?.status === "paused";
 
   return (
-    <div className="mt-5 space-y-4 border-t border-neutral-800 pt-5">
+    <div className="mt-5 space-y-4 border-t border-border pt-5">
       <div className="flex items-center gap-2">
-        <Clock size={16} className="text-amber-500" />
-        <h3 className="text-sm font-medium text-neutral-200">Reading session</h3>
+        <Clock size={16} className="text-gold" />
+        <h3 className="text-sm font-medium text-foreground">Reading session</h3>
       </div>
-      <p className="text-xs text-neutral-500">
+      <p className="text-xs text-muted">
         Start a timed session while you read. Points are awarded when you finalize with your page
         number — fast or bulk entries may be flagged for review.
       </p>
@@ -208,7 +208,7 @@ export function ReadingSessionTimer({
           type="button"
           onClick={() => startMutation.mutate()}
           disabled={startMutation.isPending}
-          className="inline-flex items-center gap-2 rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:opacity-50"
         >
           <Play size={14} />
           {startMutation.isPending ? "Starting…" : "Start reading session"}
@@ -216,25 +216,25 @@ export function ReadingSessionTimer({
       )}
 
       {session && (
-        <div className="space-y-3 rounded-lg border border-neutral-800 bg-neutral-950/50 p-4">
+        <div className="space-y-3 rounded-lg border border-border bg-background/50 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-wide text-neutral-500">Engaged time</p>
-              <p className="text-2xl font-semibold tabular-nums text-amber-200">
+              <p className="text-xs uppercase tracking-wide text-muted">Engaged time</p>
+              <p className="text-2xl font-semibold tabular-nums text-gold-bright">
                 {formatDuration(localSeconds)}
               </p>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-wide text-neutral-500">Started at page</p>
-              <p className="text-lg font-medium text-neutral-200">{session.startPage}</p>
+              <p className="text-xs uppercase tracking-wide text-muted">Started at page</p>
+              <p className="text-lg font-medium text-foreground">{session.startPage}</p>
             </div>
             <span
               className={`rounded px-2 py-0.5 text-xs font-medium ${
                 isActive
                   ? "bg-emerald-900/50 text-emerald-200"
                   : isPaused
-                    ? "bg-amber-900/50 text-amber-200"
-                    : "bg-neutral-800 text-neutral-400"
+                    ? "bg-accent/15 text-gold-bright"
+                    : "bg-surface-raised text-muted"
               }`}
             >
               {session.status}
@@ -247,7 +247,7 @@ export function ReadingSessionTimer({
                 type="button"
                 onClick={() => pauseMutation.mutate(session)}
                 disabled={pauseMutation.isPending}
-                className="inline-flex items-center gap-1.5 rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-800"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border-strong px-3 py-1.5 text-sm text-foreground/80 hover:bg-surface-raised"
               >
                 <Pause size={14} />
                 Pause
@@ -258,7 +258,7 @@ export function ReadingSessionTimer({
                 type="button"
                 onClick={() => resumeMutation.mutate(session)}
                 disabled={resumeMutation.isPending}
-                className="inline-flex items-center gap-1.5 rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-800"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border-strong px-3 py-1.5 text-sm text-foreground/80 hover:bg-surface-raised"
               >
                 <Play size={14} />
                 Resume
@@ -282,13 +282,13 @@ export function ReadingSessionTimer({
                 max={totalPages}
                 value={endPageInput}
                 onChange={(e) => setEndPageInput(e.target.value)}
-                className="max-w-xs rounded border border-neutral-700 bg-neutral-950 px-3 py-2"
+                className="max-w-xs rounded border border-border-strong bg-background px-3 py-2"
               />
             </label>
             <button
               type="submit"
               disabled={finalizeMutation.isPending}
-              className="inline-flex items-center gap-2 rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:opacity-50"
             >
               <Square size={14} />
               {finalizeMutation.isPending ? "Saving…" : "End session & save progress"}

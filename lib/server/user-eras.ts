@@ -58,3 +58,17 @@ export async function assertUserHasEra(userId: number, eraId: number | null | un
     throw new ApiError(400, "That timeline is not enabled on your profile");
   }
 }
+
+/** Adds the era to the user's profile when missing (e.g. first book from that timeline). */
+export async function ensureUserHasEra(userId: number, eraId: number | null | undefined) {
+  if (eraId == null) return;
+  const subscribed = await getUserEraIds(userId);
+  if (subscribed.includes(eraId)) return;
+
+  const [era] = await db.select({ id: eras.id }).from(eras).where(eq(eras.id, eraId));
+  if (!era) {
+    throw new ApiError(400, "Book era not found");
+  }
+
+  await db.insert(userEras).values({ userId, eraId });
+}

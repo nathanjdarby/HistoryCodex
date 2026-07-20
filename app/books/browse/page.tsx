@@ -5,7 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, BookOpen, Check, Plus, Search } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { ArrowLeft, BookOpen, Check, Loader2, Plus, Search } from "lucide-react";
 import type { Era } from "@/lib/types";
 
 type CatalogBook = {
@@ -44,6 +45,8 @@ export default function BrowseCatalogPage() {
   });
   const { data: eras } = useQuery({ queryKey: ["eras"], queryFn: fetchEras });
 
+  const [addError, setAddError] = useState<string | null>(null);
+
   const addMutation = useMutation({
     mutationFn: async (catalogBookId: number) => {
       const res = await fetch("/api/books", {
@@ -57,11 +60,14 @@ export default function BrowseCatalogPage() {
       }
       return res.json();
     },
+    onMutate: () => setAddError(null),
     onSuccess: (book) => {
       queryClient.invalidateQueries({ queryKey: ["catalog-books"] });
       queryClient.invalidateQueries({ queryKey: ["books"] });
+      queryClient.invalidateQueries({ queryKey: ["profile-timelines"] });
       router.push(`/books/${book.id}`);
     },
+    onError: (err: Error) => setAddError(err.message),
   });
 
   const filtered = (catalog ?? []).filter((book) => {
@@ -76,35 +82,32 @@ export default function BrowseCatalogPage() {
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/books"
-        className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-200"
-      >
+      <Link href="/books" className="app-link inline-flex items-center gap-1.5 text-sm">
         <ArrowLeft size={15} />
         My library
       </Link>
 
-      <div>
-        <h1 className="text-2xl font-semibold text-amber-100">Browse catalog</h1>
-        <p className="text-sm text-neutral-400">
-          Pick a platform book to add to your library and start earning era points as you read.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Catalog"
+        title="Browse catalog"
+        description="Pick a platform book to add to your library and start earning era points as you read."
+        icon={BookOpen}
+      />
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search title or author…"
-            className="w-full rounded-lg border border-neutral-700 bg-neutral-900 py-2 pl-9 pr-3 text-sm"
+            className="app-input w-full py-2 pl-9 pr-3"
           />
         </div>
         <select
           value={eraFilter}
           onChange={(e) => setEraFilter(e.target.value)}
-          className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+          className="app-input py-2"
         >
           <option value="">All eras</option>
           {eras?.map((era) => (
@@ -115,13 +118,19 @@ export default function BrowseCatalogPage() {
         </select>
       </div>
 
-      {isLoading && <p className="text-sm text-neutral-500">Loading catalog…</p>}
+      {isLoading && <p className="text-sm text-muted">Loading catalog…</p>}
+
+      {addError && (
+        <div className="rounded-lg border border-red-900/60 bg-red-950/40 px-4 py-2 text-sm text-red-200">
+          {addError}
+        </div>
+      )}
 
       {!isLoading && filtered.length === 0 && (
-        <div className="rounded-xl border border-dashed border-neutral-800 px-6 py-10 text-center">
-          <BookOpen size={28} className="mx-auto text-neutral-600" />
-          <p className="mt-3 text-neutral-300">No books match your search.</p>
-          <p className="mt-1 text-sm text-neutral-500">
+        <div className="rounded-xl border border-dashed border-border px-6 py-10 text-center">
+          <BookOpen size={28} className="mx-auto text-subtle" />
+          <p className="mt-3 text-foreground/80">No books match your search.</p>
+          <p className="mt-1 text-sm text-muted">
             Platform titles are added by admins — check back soon.
           </p>
         </div>
@@ -131,27 +140,27 @@ export default function BrowseCatalogPage() {
         {filtered.map((book) => (
           <article
             key={book.id}
-            className="flex flex-col rounded-lg border border-neutral-800 bg-neutral-900/40 p-3"
+            className="relative flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-surface/40 p-3"
           >
-            <div className="relative mb-2 aspect-[2/3] w-full overflow-hidden rounded bg-neutral-800">
+            <div className="relative z-0 mb-2 aspect-[2/3] w-full shrink-0 overflow-hidden rounded bg-surface-raised">
               {book.coverUrl ? (
                 <Image src={book.coverUrl} alt={book.title} fill sizes="200px" className="object-cover" />
               ) : (
-                <div className="flex h-full items-center justify-center text-neutral-600">
+                <div className="flex h-full items-center justify-center text-subtle">
                   <BookOpen size={28} />
                 </div>
               )}
             </div>
-            <p className="line-clamp-2 text-sm font-medium text-neutral-100">{book.title}</p>
+            <p className="line-clamp-2 text-sm font-medium text-foreground">{book.title}</p>
             {book.author && (
-              <p className="line-clamp-1 text-xs text-neutral-500">{book.author}</p>
+              <p className="line-clamp-1 text-xs text-muted">{book.author}</p>
             )}
             {book.eraName && (
-              <p className="mt-1 text-[10px] text-neutral-500">{book.eraName}</p>
+              <p className="mt-1 text-[10px] text-muted">{book.eraName}</p>
             )}
-            <p className="mt-1 text-[10px] text-neutral-500">{book.totalPages} pages</p>
+            <p className="mt-1 text-[10px] text-muted">{book.totalPages} pages</p>
             {book.inLibrary ? (
-              <span className="mt-auto inline-flex items-center gap-1 pt-3 text-xs text-emerald-400">
+              <span className="mt-auto inline-flex shrink-0 items-center gap-1 pt-3 text-xs text-emerald-400">
                 <Check size={14} />
                 In your library
               </span>
@@ -159,20 +168,20 @@ export default function BrowseCatalogPage() {
               <button
                 type="button"
                 onClick={() => addMutation.mutate(book.id)}
-                disabled={addMutation.isPending}
-                className="mt-auto inline-flex items-center justify-center gap-1 rounded-md bg-amber-700 px-2 py-1.5 pt-3 text-xs font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-50"
+                disabled={addMutation.isPending && addMutation.variables === book.id}
+                className="app-btn-primary relative z-10 mt-3 w-full shrink-0 py-2 text-xs disabled:cursor-not-allowed"
               >
-                <Plus size={14} />
+                {addMutation.isPending && addMutation.variables === book.id ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Plus size={14} />
+                )}
                 Add to library
               </button>
             )}
           </article>
         ))}
       </div>
-
-      {addMutation.isError && (
-        <p className="text-sm text-red-400">{(addMutation.error as Error).message}</p>
-      )}
     </div>
   );
 }

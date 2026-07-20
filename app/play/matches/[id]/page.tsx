@@ -4,7 +4,15 @@ import { BattleCardInspect } from "@/components/battle/battle-card-inspect";
 import type { BattleCardFace } from "@/components/battle/battle-card-face";
 import { BattleMat } from "@/components/battle/battle-mat";
 import { BattleChoiceModal } from "@/components/battle/battle-choice-modal";
+import { BattleConfirmModal } from "@/components/battle/battle-confirm-modal";
+import {
+  AttackPreviewPanel,
+  EstablishInfluencePreviewPanel,
+} from "@/components/battle/battle-combat-preview";
 import { resolveHandDropAction } from "@/components/battle/battle-drag";
+import { locationReplacementNeedsConfirm } from "@/lib/battle/locations";
+import { previewAttack, previewEstablishInfluence } from "@/lib/battle/preview";
+import { DEFAULT_BATTLE_RULES } from "@/lib/battle/constants";
 import type { BattleAction, Phase } from "@/lib/battle/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -20,7 +28,30 @@ type ClientMatch = {
   winner: string | null;
   state: import("@/lib/battle/types").MatchState;
   legalActions: BattleAction[];
+  battleRules?: {
+    influenceToCapture: number;
+    locationsToWin: number;
+    failedChronosDrawsToLose: number;
+  };
 };
+
+type PendingConfirm =
+  | {
+      kind: "attack";
+      action: Extract<BattleAction, { type: "attack" }>;
+    }
+  | {
+      kind: "establish";
+      action: Extract<BattleAction, { type: "establish_influence" }>;
+    }
+  | {
+      kind: "location";
+      action: Extract<BattleAction, { type: "play_location" }>;
+    }
+  | {
+      kind: "unification";
+      action: Extract<BattleAction, { type: "unification" }>;
+    };
 
 async function fetchMatch(id: string): Promise<ClientMatch> {
   const res = await fetch(`/api/matches/${id}`);
@@ -33,7 +64,9 @@ export default function MatchPage() {
   const queryClient = useQueryClient();
   const [selectedHandIndex, setSelectedHandIndex] = useState<number | null>(null);
   const [selectedAttackerId, setSelectedAttackerId] = useState<string | null>(null);
+  const [selectedMonarchId, setSelectedMonarchId] = useState<string | null>(null);
   const [inspectingCard, setInspectingCard] = useState<BattleCardFace | null>(null);
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { data: match, isLoading } = useQuery({
@@ -59,41 +92,97 @@ export default function MatchPage() {
       queryClient.setQueryData(["match", params.id], data);
       setSelectedHandIndex(null);
       setSelectedAttackerId(null);
+      setSelectedMonarchId(null);
+      setPendingConfirm(null);
       setError(null);
     },
     onError: (err: Error) => setError(err.message),
   });
 
   if (isLoading || !match) {
-    return <p className="text-sm text-neutral-500">Loading match…</p>;
+    return <p className="text-sm text-muted">Loading match…</p>;
   }
 
-  const state = match.state;
-  const isPlayerTurn = match.activePlayer === "player" && match.status === "active";
+  const currentMatch = match;
+  const state = currentMatch.state;
+  const rules = currentMatch.battleRules ?? {
+    influenceToCapture: DEFAULT_BATTLE_RULES.influenceToCapture,
+    locationsToWin: DEFAULT_BATTLE_RULES.locationsToWin,
+    failedChronosDrawsToLose: DEFAULT_BATTLE_RULES.failedChronosDrawsToLose,
+  };
+  const isPlayerTurn = currentMatch.activePlayer === "player" && currentMatch.status === "active";
+  const lane = state.lanes[0];
+
+  function submitAction(action: BattleAction) {
+    actionMutation.mutate(action);
+  }
 
   function playHandCard(handIndex: number, laneIndex: number, targetInstanceId?: string) {
-    const action = resolveHandDropAction(match.legalActions, handIndex, laneIndex, targetInstanceId);
+    const action = resolveHandDropAction(currentMatch.legalActions, handIndex, laneIndex, targetInstanceId);
     if (!action) {
       setError("That card can't be played there.");
       return;
     }
-    actionMutation.mutate(action);
+
+    const card = state.player.hand[handIndex];
+    if (
+      action.type === "play_location" &&
+      card?.cardType === "location" &&
+      lane &&
+      locationReplacementNeedsConfirm(lane)
+    ) {
+      setPendingConfirm({ kind: "location", action });
+      return;
+    }
+
+    submitAction(action);
   }
 
-  function attack(laneIndex: number, attackerInstanceId: string, defenderInstanceId: string) {
-    actionMutation.mutate({ type: "attack", laneIndex, attackerInstanceId, defenderInstanceId });
+  function requestAttack(laneIndex: number, attackerInstanceId: string, defenderInstanceId: string) {
+    const action = {
+      type: "attack" as const,
+      laneIndex,
+      attackerInstanceId,
+      defenderInstanceId,
+    };
+    const preview = previewAttack(state, "player", laneIndex, attackerInstanceId, defenderInstanceId);
+    if (!preview) {
+      setError("Invalid attack.");
+      return;
+    }
+    setPendingConfirm({ kind: "attack", action });
+  }
+
+  function requestEstablishInfluence(laneIndex: number, unitInstanceId: string) {
+    const action = { type: "establish_influence" as const, laneIndex, unitInstanceId };
+    if (!currentMatch.legalActions.some((a) => a.type === "establish_influence" && a.unitInstanceId === unitInstanceId)) {
+      setError("Cannot establish Influence with this unit.");
+      return;
+    }
+    setPendingConfirm({ kind: "establish", action });
+  }
+
+  function requestUnification(laneIndex: number, monarchInstanceId: string, targetInstanceId: string) {
+    const action = {
+      type: "unification" as const,
+      laneIndex,
+      monarchInstanceId,
+      targetInstanceId,
+    };
+    setPendingConfirm({ kind: "unification", action });
   }
 
   function endPhase() {
     setSelectedAttackerId(null);
+    setSelectedMonarchId(null);
     actionMutation.mutate({ type: "end_phase" });
   }
 
   const canPlaySelected =
     isPlayerTurn &&
-    match.phase === "logistics" &&
+    currentMatch.phase === "logistics" &&
     selectedHandIndex != null &&
-    resolveHandDropAction(match.legalActions, selectedHandIndex, 0) != null;
+    resolveHandDropAction(currentMatch.legalActions, selectedHandIndex, 0) != null;
 
   function resolveChoice(payload: { selectedIndex?: number; topIndices?: number[] }) {
     actionMutation.mutate({ type: "resolve_choice", ...payload });
@@ -101,31 +190,100 @@ export default function MatchPage() {
 
   const pendingChoice =
     isPlayerTurn && state.pendingChoice?.player === "player" ? state.pendingChoice : null;
-  const canRedrawOpening =
-    match.phase === "opening" &&
-    match.legalActions.some((action) => action.type === "redraw_opening_hand");
+
+  const exhaustionWarning =
+    state.player.failedChronosDraws > 0
+      ? `Historical Exhaustion: ${state.player.failedChronosDraws}/${rules.failedChronosDrawsToLose} failed draws`
+      : null;
 
   const matchLabel = (
     <div className="flex min-w-0 items-center gap-2">
-      <Link href="/play" className="shrink-0 text-xs text-neutral-500 hover:text-neutral-300">
+      <Link href="/play" className="shrink-0 text-xs text-muted hover:text-foreground/80">
         ← Play
       </Link>
-      <h1 className="truncate text-sm font-semibold text-neutral-100 sm:text-base">
-        Match #{match.id}
+      <h1 className="truncate text-sm font-semibold text-foreground sm:text-base">
+        Match #{currentMatch.id}
       </h1>
     </div>
   );
 
   const statusBadge =
-    match.status !== "active" ? (
+    currentMatch.status !== "active" ? (
       <div
         className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
-          match.status === "won" ? "bg-emerald-950 text-emerald-300" : "bg-red-950 text-red-300"
+          currentMatch.status === "won" ? "bg-emerald-950 text-emerald-300" : "bg-red-950 text-red-300"
         }`}
       >
-        {match.status === "won" ? "Victory!" : "Defeat"}
+        {currentMatch.status === "won" ? "Victory!" : "Defeat"}
       </div>
     ) : null;
+
+  let confirmModal: React.ReactNode = null;
+  if (pendingConfirm?.kind === "attack") {
+    const preview = previewAttack(
+      state,
+      "player",
+      pendingConfirm.action.laneIndex,
+      pendingConfirm.action.attackerInstanceId,
+      pendingConfirm.action.defenderInstanceId,
+    );
+    confirmModal = (
+      <BattleConfirmModal
+        title="Confirm attack"
+        body={preview ? <AttackPreviewPanel preview={preview} /> : "Proceed with this attack?"}
+        confirmLabel="Attack"
+        onConfirm={() => submitAction(pendingConfirm.action)}
+        onCancel={() => setPendingConfirm(null)}
+        pending={actionMutation.isPending}
+      />
+    );
+  } else if (pendingConfirm?.kind === "establish") {
+    const preview = previewEstablishInfluence(
+      state,
+      "player",
+      pendingConfirm.action.laneIndex,
+      pendingConfirm.action.unitInstanceId,
+      { ...DEFAULT_BATTLE_RULES, influenceToCapture: rules.influenceToCapture },
+    );
+    confirmModal = (
+      <BattleConfirmModal
+        title="Establish Influence"
+        body={
+          preview ? (
+            <EstablishInfluencePreviewPanel preview={preview} />
+          ) : (
+            "Commit this unit to gain 1 Influence. It cannot attack this turn."
+          )
+        }
+        confirmLabel="Commit unit"
+        onConfirm={() => submitAction(pendingConfirm.action)}
+        onCancel={() => setPendingConfirm(null)}
+        pending={actionMutation.isPending}
+      />
+    );
+  } else if (pendingConfirm?.kind === "location") {
+    confirmModal = (
+      <BattleConfirmModal
+        title="Replace Location?"
+        body="Replacing this Location will reset all Influence on the lane. Continue?"
+        confirmLabel="Replace Location"
+        onConfirm={() => submitAction(pendingConfirm.action)}
+        onCancel={() => setPendingConfirm(null)}
+        pending={actionMutation.isPending}
+      />
+    );
+  } else if (pendingConfirm?.kind === "unification") {
+    confirmModal = (
+      <BattleConfirmModal
+        title="Unification"
+        body="Ready the chosen unit, clear commitment, and grant a temporary attack bonus until end of turn."
+        confirmLabel="Unify"
+        onConfirm={() => submitAction(pendingConfirm.action)}
+        onCancel={() => setPendingConfirm(null)}
+        pending={actionMutation.isPending}
+      />
+    );
+  }
 
   return (
     <>
@@ -135,37 +293,27 @@ export default function MatchPage() {
         </div>
       ) : null}
 
-      {canRedrawOpening ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-800/50 bg-amber-950/30 px-4 py-2 sm:px-6">
-          <p className="text-xs text-amber-100/90">
-            Your opening hand has no location card. Redraw until you draw one to begin the match.
-          </p>
-          <button
-            type="button"
-            onClick={() => actionMutation.mutate({ type: "redraw_opening_hand" })}
-            disabled={actionMutation.isPending}
-            className="rounded-md bg-amber-700 px-3 py-1.5 text-xs font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-50"
-          >
-            Redraw opening hand
-          </button>
+      {exhaustionWarning ? (
+        <div className="shrink-0 border-b border-amber-900/50 bg-amber-950/30 px-4 py-1.5 text-xs text-amber-200 sm:px-6">
+          {exhaustionWarning}
         </div>
       ) : null}
 
-      {/* Full-bleed breakout: escapes the site shell's max-w-7xl/px-4/py-6
-          wrapper so the mat can use the whole screen, per design request. */}
       <div className="-my-6 mx-[calc(50%-50vw)] w-screen">
         <BattleMat
           matchLabel={matchLabel}
           statusBadge={statusBadge}
           lanes={state.lanes}
-          phase={match.phase as Phase}
-          turnNumber={match.turnNumber}
+          phase={currentMatch.phase as Phase}
+          turnNumber={currentMatch.turnNumber}
           cp={state.player.cp}
           cpCap={state.player.cpGrantedThisTurn}
           capturedLocations={state.player.capturedLocations}
           aiCapturedLocations={state.ai.capturedLocations}
-          locationsToWin={3}
-          activePlayer={match.activePlayer}
+          locationsToWin={rules.locationsToWin}
+          influenceToCapture={rules.influenceToCapture}
+          locationDeckCount={state.locationDeck.length}
+          activePlayer={currentMatch.activePlayer}
           isPlayerTurn={isPlayerTurn}
           playerHand={state.player.hand}
           playerDeck={state.player.deck}
@@ -173,16 +321,20 @@ export default function MatchPage() {
           aiHandCount={state.ai.hand.length}
           log={state.log}
           selectedHandIndex={selectedHandIndex}
-          legalActions={match.legalActions}
+          legalActions={currentMatch.legalActions}
           selectedAttackerId={selectedAttackerId}
+          selectedMonarchId={selectedMonarchId}
           onSelectHand={setSelectedHandIndex}
           onSelectAttacker={setSelectedAttackerId}
+          onSelectMonarch={setSelectedMonarchId}
           onDeployLane={() => {
             if (selectedHandIndex == null) return;
             playHandCard(selectedHandIndex, 0);
           }}
           onPlayHandCard={playHandCard}
-          onAttack={attack}
+          onAttack={requestAttack}
+          onEstablishInfluence={requestEstablishInfluence}
+          onUnification={requestUnification}
           onInspect={setInspectingCard}
           onEndPhase={endPhase}
           canPlaySelected={canPlaySelected}
@@ -197,6 +349,8 @@ export default function MatchPage() {
       {pendingChoice ? (
         <BattleChoiceModal choice={pendingChoice} onConfirm={resolveChoice} />
       ) : null}
+
+      {confirmModal}
     </>
   );
 }

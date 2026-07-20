@@ -156,7 +156,7 @@ export default function EntryDetailPage({
   });
 
   if (isLoading || !data) {
-    return <p className="text-neutral-500">Loading...</p>;
+    return <p className="text-muted">Loading...</p>;
   }
 
   const { entry, outgoing, backlinks } = data;
@@ -186,19 +186,19 @@ export default function EntryDetailPage({
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <span className="rounded bg-neutral-800 px-2 py-0.5 text-xs font-medium text-neutral-300">
+          <span className="rounded bg-surface-raised px-2 py-0.5 text-xs font-medium text-foreground/80">
             {kindLabel[entry.kind]}
           </span>
           {!editing ? (
-            <h1 className="mt-2 text-2xl font-semibold text-amber-100">{entry.title}</h1>
+            <h1 className="mt-2 text-2xl font-semibold text-foreground">{entry.title}</h1>
           ) : (
             <input
               value={editForm.title}
               onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-              className="mt-2 w-full rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5 text-xl"
+              className="mt-2 w-full rounded border border-border-strong bg-background px-2 py-1.5 text-xl"
             />
           )}
-          <p className="mt-1 text-sm text-neutral-400">{formatEntryDateRange(entry)}</p>
+          <p className="mt-1 text-sm text-muted">{formatEntryDateRange(entry)}</p>
         </div>
         <div className="flex gap-2">
           {entry.kind !== "book" && (
@@ -215,7 +215,7 @@ export default function EntryDetailPage({
                 }
                 setEditing((v) => !v);
               }}
-              className="flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-200"
+              className="flex items-center gap-1 text-sm text-muted hover:text-foreground"
             >
               <Pencil size={14} />
               {editing ? "Cancel" : "Edit"}
@@ -225,7 +225,7 @@ export default function EntryDetailPage({
             onClick={() => {
               if (confirm(`Delete "${entry.title}"?`)) deleteMutation.mutate();
             }}
-            className="flex items-center gap-1 text-sm text-neutral-500 hover:text-red-400"
+            className="flex items-center gap-1 text-sm text-muted hover:text-red-400"
           >
             <Trash2 size={14} />
             Delete
@@ -238,19 +238,19 @@ export default function EntryDetailPage({
         <img
           src={entry.imageUrl}
           alt={entry.title}
-          className="max-h-72 rounded-lg border border-neutral-800 object-cover"
+          className="max-h-72 rounded-lg border border-border object-cover"
         />
       )}
 
       {editing ? (
-        <div className="space-y-3 rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
+        <div className="space-y-3 rounded-lg border border-border bg-surface/40 p-4">
           <EntryDateFields value={dateForm} onChange={setDateForm} />
           <label className="flex flex-col gap-1 text-sm">
             Summary
             <input
               value={editForm.summary}
               onChange={(e) => setEditForm({ ...editForm, summary: e.target.value })}
-              className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+              className="rounded border border-border-strong bg-background px-2 py-1.5"
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
@@ -259,7 +259,7 @@ export default function EntryDetailPage({
               rows={6}
               value={editForm.content}
               onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
-              className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+              className="rounded border border-border-strong bg-background px-2 py-1.5"
             />
           </label>
           {editError && <p className="text-sm text-red-400">{editError}</p>}
@@ -267,7 +267,7 @@ export default function EntryDetailPage({
             <button
               onClick={() => updateMutation.mutate()}
               disabled={updateMutation.isPending}
-              className="rounded-md bg-amber-700 px-3 py-1.5 text-sm font-medium text-amber-50 hover:bg-amber-600"
+              className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground hover:brightness-110"
             >
               Save
             </button>
@@ -275,23 +275,23 @@ export default function EntryDetailPage({
         </div>
       ) : (
         <div className="space-y-2">
-          {entry.summary && <p className="text-neutral-300">{entry.summary}</p>}
+          {entry.summary && <p className="text-foreground/80">{entry.summary}</p>}
           {entry.content && (
-            <p className="whitespace-pre-wrap text-sm text-neutral-400">{entry.content}</p>
+            <p className="whitespace-pre-wrap text-sm text-muted">{entry.content}</p>
           )}
         </div>
       )}
 
       {entry.kind === "person" && (
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/30 p-4">
+        <div className="rounded-lg border border-border bg-surface/30 p-4">
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="flex items-center gap-1.5 text-sm font-medium text-neutral-200">
+            <h2 className="flex items-center gap-1.5 text-sm font-medium text-foreground">
               <BookOpen size={14} />
               Books
             </h2>
             <button
               onClick={() => setShowBookPicker((value) => !value)}
-              className="flex items-center gap-1 text-xs text-amber-400 hover:underline"
+              className="flex items-center gap-1 text-xs text-gold hover:underline"
             >
               <Link2 size={12} />
               Link book
@@ -299,12 +299,12 @@ export default function EntryDetailPage({
           </div>
 
           {showBookPicker && (
-            <div className="mb-3 space-y-2 rounded border border-neutral-800 bg-neutral-950/60 p-2">
+            <div className="mb-3 space-y-2 rounded border border-border bg-background/60 p-2">
               <input
                 value={bookQuery}
                 onChange={(e) => setBookQuery(e.target.value)}
                 placeholder="Search your books..."
-                className="w-full rounded border border-neutral-700 bg-neutral-950 px-2 py-1 text-sm"
+                className="w-full rounded border border-border-strong bg-background px-2 py-1 text-sm"
               />
               <div className="max-h-40 space-y-1 overflow-y-auto">
                 {bookCandidates.map((book) => (
@@ -313,28 +313,28 @@ export default function EntryDetailPage({
                     onClick={() =>
                       addLinkMutation.mutate({ targetBookId: book.id, linkType: "appears_in" })
                     }
-                    className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-sm hover:bg-neutral-800"
+                    className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-sm hover:bg-surface-raised"
                   >
                     <span>{book.title}</span>
-                    {book.author && <span className="text-xs text-neutral-500">{book.author}</span>}
+                    {book.author && <span className="text-xs text-muted">{book.author}</span>}
                   </button>
                 ))}
                 {bookCandidates.length === 0 && (
-                  <p className="px-2 py-1 text-xs text-neutral-500">No matching books.</p>
+                  <p className="px-2 py-1 text-xs text-muted">No matching books.</p>
                 )}
               </div>
             </div>
           )}
 
           {linkedBookLinks.length === 0 ? (
-            <p className="text-sm text-neutral-500">Not linked to any books yet.</p>
+            <p className="text-sm text-muted">Not linked to any books yet.</p>
           ) : (
             <ul className="space-y-1">
               {linkedBookLinks.map((link) => (
                 <li key={link.linkId} className="flex items-center justify-between text-sm">
-                  <Link href={entryHref(link.entry)} className="text-neutral-200 hover:text-amber-300">
+                  <Link href={entryHref(link.entry)} className="text-foreground hover:text-gold-bright">
                     {link.entry.title}
-                    <span className="ml-2 text-xs text-neutral-500">({link.linkType})</span>
+                    <span className="ml-2 text-xs text-muted">({link.linkType})</span>
                   </Link>
                   <button
                     onClick={() =>
@@ -343,7 +343,7 @@ export default function EntryDetailPage({
                         sourceEntryId: link.sourceEntryId,
                       })
                     }
-                    className="text-neutral-600 hover:text-red-400"
+                    className="text-subtle hover:text-red-400"
                   >
                     <Trash2 size={12} />
                   </button>
@@ -354,15 +354,15 @@ export default function EntryDetailPage({
         </div>
       )}
 
-      <div className="rounded-lg border border-neutral-800 bg-neutral-900/30 p-4">
+      <div className="rounded-lg border border-border bg-surface/30 p-4">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="flex items-center gap-1.5 text-sm font-medium text-neutral-200">
+          <h2 className="flex items-center gap-1.5 text-sm font-medium text-foreground">
             <ArrowRight size={14} />
             Links from this entry
           </h2>
           <button
             onClick={() => setShowLinkPicker((v) => !v)}
-            className="flex items-center gap-1 text-xs text-amber-400 hover:underline"
+            className="flex items-center gap-1 text-xs text-gold hover:underline"
           >
             <Link2 size={12} />
             Add link
@@ -370,19 +370,19 @@ export default function EntryDetailPage({
         </div>
 
         {showLinkPicker && (
-          <div className="mb-3 space-y-2 rounded border border-neutral-800 bg-neutral-950/60 p-2">
+          <div className="mb-3 space-y-2 rounded border border-border bg-background/60 p-2">
             <div className="flex gap-2">
               <input
                 value={linkQuery}
                 onChange={(e) => setLinkQuery(e.target.value)}
                 placeholder="Search entries to link..."
-                className="flex-1 rounded border border-neutral-700 bg-neutral-950 px-2 py-1 text-sm"
+                className="flex-1 rounded border border-border-strong bg-background px-2 py-1 text-sm"
               />
               <input
                 value={linkType}
                 onChange={(e) => setLinkType(e.target.value)}
                 placeholder="link type"
-                className="w-32 rounded border border-neutral-700 bg-neutral-950 px-2 py-1 text-sm"
+                className="w-32 rounded border border-border-strong bg-background px-2 py-1 text-sm"
               />
             </div>
             <div className="max-h-40 space-y-1 overflow-y-auto">
@@ -390,36 +390,36 @@ export default function EntryDetailPage({
                 <button
                   key={c.id}
                   onClick={() => addLinkMutation.mutate({ targetEntryId: c.id })}
-                  className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-sm hover:bg-neutral-800"
+                  className="flex w-full items-center justify-between rounded px-2 py-1 text-left text-sm hover:bg-surface-raised"
                 >
                   <span>{c.title}</span>
-                  <span className="text-xs text-neutral-500">
+                  <span className="text-xs text-muted">
                     {kindLabel[c.kind]} · {formatEntryDateRange(c)}
                   </span>
                 </button>
               ))}
               {candidates.length === 0 && (
-                <p className="px-2 py-1 text-xs text-neutral-500">No matching entries.</p>
+                <p className="px-2 py-1 text-xs text-muted">No matching entries.</p>
               )}
             </div>
           </div>
         )}
 
         {genericOutgoing.length === 0 ? (
-          <p className="text-sm text-neutral-500">No outgoing links yet.</p>
+          <p className="text-sm text-muted">No outgoing links yet.</p>
         ) : (
           <ul className="space-y-1">
             {genericOutgoing.map((l) => (
               <li key={l.linkId} className="flex items-center justify-between text-sm">
-                <Link href={entryHref(l.entry)} className="text-neutral-200 hover:text-amber-300">
+                <Link href={entryHref(l.entry)} className="text-foreground hover:text-gold-bright">
                   {l.entry.title}
-                  <span className="ml-2 text-xs text-neutral-500">({l.linkType})</span>
+                  <span className="ml-2 text-xs text-muted">({l.linkType})</span>
                 </Link>
                 <button
                   onClick={() =>
                     removeLinkMutation.mutate({ linkId: l.linkId, sourceEntryId: entry.id })
                   }
-                  className="text-neutral-600 hover:text-red-400"
+                  className="text-subtle hover:text-red-400"
                 >
                   <Trash2 size={12} />
                 </button>
@@ -429,21 +429,21 @@ export default function EntryDetailPage({
         )}
       </div>
 
-      <div className="rounded-lg border border-neutral-800 bg-neutral-900/30 p-4">
-        <h2 className="mb-2 flex items-center gap-1.5 text-sm font-medium text-neutral-200">
+      <div className="rounded-lg border border-border bg-surface/30 p-4">
+        <h2 className="mb-2 flex items-center gap-1.5 text-sm font-medium text-foreground">
           <ArrowLeft size={14} />
           Backlinks
         </h2>
         {genericBacklinks.length === 0 ? (
-          <p className="text-sm text-neutral-500">Nothing links here yet.</p>
+          <p className="text-sm text-muted">Nothing links here yet.</p>
         ) : (
           <ul className="space-y-1">
             {genericBacklinks.map((l) => (
               <li key={l.linkId} className="text-sm">
-                <Link href={entryHref(l.entry)} className="text-neutral-200 hover:text-amber-300">
+                <Link href={entryHref(l.entry)} className="text-foreground hover:text-gold-bright">
                   {l.entry.title}
                 </Link>
-                <span className="ml-2 text-xs text-neutral-500">({l.linkType})</span>
+                <span className="ml-2 text-xs text-muted">({l.linkType})</span>
               </li>
             ))}
           </ul>

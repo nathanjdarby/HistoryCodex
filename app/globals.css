@@ -1,19 +1,79 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #0a0908;
-  --foreground: #ede4d3;
+  --background: #f8f4ef;
+  --foreground: #1a1412;
+  --surface: #fffdfa;
+  --surface-hover: #f0ebe3;
+  --surface-raised: #e8e0d4;
+  --border: #ddd4c8;
+  --border-strong: #c4b8a8;
+  --muted: #6b6258;
+  --subtle: #8a8178;
+  --accent: #9f1239;
+  --accent-hover: #be123c;
+  --accent-foreground: #fff5f5;
+  --accent-soft: rgb(159 18 57 / 0.1);
+  --accent-border: rgb(159 18 57 / 0.28);
+  --gold: #b45309;
+  --gold-bright: #d97706;
+  --app-chrome-offset: 3.5rem;
+  color-scheme: light;
+}
+
+.dark {
+  --background: #060505;
+  --foreground: #e7e5e4;
+  --surface: #0c0a0a;
+  --surface-hover: #141010;
+  --surface-raised: #1a1212;
+  --border: rgb(127 29 29 / 0.22);
+  --border-strong: rgb(127 29 29 / 0.42);
+  --muted: #a8a29e;
+  --subtle: #78716c;
+  --accent: #be123c;
+  --accent-hover: #e11d48;
+  --accent-foreground: #fef2f2;
+  --accent-soft: rgb(190 18 60 / 0.14);
+  --accent-border: rgb(127 29 29 / 0.45);
+  --gold: #c9a227;
+  --gold-bright: #fbbf24;
+  color-scheme: dark;
+}
+
+html[data-browser-fullscreen="true"],
+html[data-nav-hidden="true"] {
+  --app-chrome-offset: 0px;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-gold: var(--gold);
+  --color-gold-bright: var(--gold-bright);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
+  background-image: radial-gradient(
+    ellipse 90% 55% at 50% -15%,
+    color-mix(in srgb, var(--accent) 12%, transparent),
+    transparent 58%
+  );
   color: var(--foreground);
 }
 
@@ -28,10 +88,10 @@ body {
   width: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: #171310;
+  background: var(--surface-raised);
 }
 ::-webkit-scrollbar-thumb {
-  background: #4a3d2c;
+  background: var(--border-strong);
   border-radius: 8px;
 }
 
@@ -155,6 +215,36 @@ body {
   mask-image: radial-gradient(ellipse 85% 75% at 50% 45%, black 20%, transparent 100%);
 }
 
+.battle-location-backdrop {
+  animation: battle-location-backdrop-in 0.8s ease-out both;
+}
+
+.battle-location-backdrop-art {
+  transform: scale(1.08);
+  opacity: 0.44;
+  filter: grayscale(0.3) blur(1.5px) brightness(0.82) contrast(1.08);
+}
+
+.battle-location-backdrop-scrim {
+  background:
+    radial-gradient(
+      ellipse 90% 75% at 50% 42%,
+      rgba(12, 10, 8, 0.22) 0%,
+      rgba(12, 10, 8, 0.48) 52%,
+      rgba(12, 10, 8, 0.78) 100%
+    ),
+    linear-gradient(180deg, rgba(12, 10, 8, 0.4) 0%, rgba(12, 10, 8, 0.15) 38%, rgba(12, 10, 8, 0.55) 100%);
+}
+
+@keyframes battle-location-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .battle-lane {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.15));
   backdrop-filter: blur(2px);
@@ -225,4 +315,217 @@ body {
   min-width: var(--battle-card-width, 9.5rem);
   height: calc(var(--battle-card-width, 9.5rem) * 7 / 5);
   flex-shrink: 0;
+}
+
+/* App-wide UI — crimson & gold (matches marketing home) */
+.app-btn-primary,
+.home-marketing .home-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  background: linear-gradient(180deg, var(--accent-hover) 0%, var(--accent) 100%);
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--accent-foreground);
+  box-shadow: 0 0 20px -6px color-mix(in srgb, var(--accent) 55%, transparent);
+  transition: filter 0.2s;
+}
+
+.app-btn-primary:hover,
+.home-marketing .home-btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.app-btn-primary:disabled {
+  opacity: 0.55;
+  filter: none;
+}
+
+.app-btn-secondary,
+.home-marketing .home-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--accent-border);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.app-btn-secondary:hover,
+.home-marketing .home-btn-secondary:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: var(--accent-soft);
+}
+
+.app-panel,
+.home-marketing .home-panel {
+  border: 1px solid var(--accent-border);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border-radius: 1rem;
+}
+
+.app-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--accent-border);
+}
+
+.app-page-eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 85%, var(--gold));
+}
+
+.app-page-icon {
+  display: flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.65rem;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-soft);
+  color: var(--gold-bright);
+}
+
+.app-page-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+}
+
+.app-page-description {
+  margin-top: 0.35rem;
+  max-width: 42rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.app-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.app-points-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-soft);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--gold-bright);
+}
+
+.app-link {
+  font-weight: 500;
+  color: var(--gold);
+  transition: color 0.2s;
+}
+
+.app-link:hover {
+  color: var(--gold-bright);
+  text-decoration: underline;
+}
+
+.app-segment {
+  display: flex;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  padding: 0.125rem;
+  font-size: 0.875rem;
+}
+
+.app-segment-active {
+  border-radius: 0.375rem;
+  background: linear-gradient(180deg, var(--accent-hover) 0%, var(--accent) 100%);
+  padding: 0.25rem 0.625rem;
+  color: var(--accent-foreground);
+}
+
+.app-segment-inactive {
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  color: var(--muted);
+}
+
+.app-segment-inactive:hover {
+  color: var(--foreground);
+}
+
+.app-empty {
+  border-radius: 0.75rem;
+  border: 1px dashed var(--accent-border);
+  background: color-mix(in srgb, var(--surface) 65%, transparent);
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+.app-card-tile {
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 75%, transparent);
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.app-card-tile:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 8px 24px -12px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.app-input {
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-strong);
+  background: var(--background);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+}
+
+.app-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  outline-offset: 1px;
+}
+
+/* Public home page */
+.home-marketing {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.home-marketing .home-book-cover {
+  box-shadow:
+    0 4px 14px rgb(0 0 0 / 0.45),
+    0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.home-marketing .home-book-cover:hover {
+  box-shadow:
+    0 8px 24px rgb(0 0 0 / 0.55),
+    0 0 20px -4px color-mix(in srgb, var(--accent) 35%, transparent);
 }

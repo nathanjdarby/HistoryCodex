@@ -25,7 +25,7 @@ export const USER_API_PREFIXES = [
 ] as const;
 
 export function isUserAppPath(pathname: string): boolean {
-  if (pathname === "/") return true;
+  if (pathname === "/dashboard") return true;
   return USER_APP_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
@@ -39,5 +39,5 @@ export function isUserApiPath(pathname: string): boolean {
 }
 
 export function defaultPathForRole(role: "user" | "admin"): string {
-  return role === "admin" ? "/admin" : "/";
+  return role === "admin" ? "/admin" : "/dashboard";
 }

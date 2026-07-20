@@ -9,9 +9,11 @@ export type SessionUser = {
 };
 
 function getSecret() {
-  return new TextEncoder().encode(
-    process.env.AUTH_SECRET ?? "historycodex-dev-secret-change-me",
-  );
+  const secret = process.env.AUTH_SECRET;
+  if (process.env.NODE_ENV === "production" && !secret) {
+    throw new Error("AUTH_SECRET must be set in production");
+  }
+  return new TextEncoder().encode(secret ?? "historycodex-dev-secret-change-me");
 }
 
 export async function createSessionToken(user: SessionUser): Promise<string> {

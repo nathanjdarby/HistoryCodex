@@ -31,6 +31,14 @@ export const ABILITY_EFFECT_LABELS: Record<AbilityEffect, string> = {
   block_influence_gain: "Block enemy influence this turn",
   replace_location: "Replace the active location",
   draw_card: "Draw card(s)",
+  epidemic: "Damage all units in a lane",
+  treaty: "Block attacks and enemy influence",
+  revolution: "Gain CP and reduce next deploy cost",
+  trade_route: "Gain CP and draw a card",
+  reform: "Suppress enemy auras in a lane",
+  forced_hand: "Return enemy unit to opponent's hand",
+  forced_discard: "Send enemy unit to discard",
+  exhaust_unit: "Exhaust an enemy unit",
 };
 
 export const ABILITY_EFFECT_OPTIONS: AbilityEffect[] = [
@@ -49,6 +57,14 @@ export const ABILITY_EFFECT_OPTIONS: AbilityEffect[] = [
   "block_influence_gain",
   "replace_location",
   "draw_card",
+  "epidemic",
+  "treaty",
+  "revolution",
+  "trade_route",
+  "reform",
+  "forced_hand",
+  "forced_discard",
+  "exhaust_unit",
 ];
 
 export function describeAbilityEffect(
@@ -88,6 +104,22 @@ export function describeAbilityEffect(
       return "Replace location from hand";
     case "draw_card":
       return `Draw ${value} card(s)`;
+    case "epidemic":
+      return `Deal ${value} to all units in lane`;
+    case "treaty":
+      return "Block attacks and enemy influence this turn";
+    case "revolution":
+      return `Gain ${value} CP; next deploy costs less`;
+    case "trade_route":
+      return `Gain ${value} CP and draw 1`;
+    case "reform":
+      return "Suppress enemy auras in lane until end of turn";
+    case "forced_hand":
+      return "Return target enemy unit to hand";
+    case "forced_discard":
+      return "Send target enemy unit to discard";
+    case "exhaust_unit":
+      return "Exhaust target enemy unit";
     default:
       return null;
   }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { PageHeader } from "@/components/page-header";
 import { Play, Plus, Swords } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -69,15 +70,18 @@ export default function PlayPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-2">
-          <Swords size={20} className="text-amber-500" />
-          <h1 className="text-2xl font-semibold text-neutral-100">Play Chronos</h1>
-        </div>
-        <p className="mt-1 text-sm text-neutral-500">
-          Battle the AI on a single historical lane. Capture locations to win the timeline.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Chronos"
+        title="Play Chronos"
+        description="Battle the AI on a single historical lane. Capture locations to win the timeline."
+        icon={Swords}
+        actions={
+          <Link href="/play/decks" className="app-btn-secondary">
+            <Plus size={14} />
+            Manage decks
+          </Link>
+        }
+      />
 
       {error ? (
         <div className="rounded-md border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm text-red-300">
@@ -86,14 +90,14 @@ export default function PlayPage() {
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
-        <section className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
-          <h2 className="text-lg font-medium text-neutral-100">Start a match</h2>
-          <p className="mt-1 text-sm text-neutral-500">Practice solo vs the AI using your Chronos deck.</p>
+        <section className="app-panel p-4">
+          <h2 className="text-lg font-medium text-foreground">Start a match</h2>
+          <p className="mt-1 text-sm text-muted">Practice solo vs the AI using your Chronos deck.</p>
 
           <label className="mt-4 block space-y-1">
-            <span className="text-sm text-neutral-300">Deck</span>
+            <span className="text-sm text-foreground/80">Deck</span>
             <select
-              className="w-full rounded-md border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+              className="w-full rounded-md border border-border-strong bg-background px-3 py-2 text-sm"
               value={deckId ?? ""}
               onChange={(e) => setSelectedDeckId(Number(e.target.value))}
             >
@@ -109,9 +113,9 @@ export default function PlayPage() {
           </label>
 
           {!hasValidDeck ? (
-            <p className="mt-3 text-sm text-amber-200/80">
+            <p className="mt-3 text-sm text-gold-bright/80">
               New to Chronos?{" "}
-              <Link href="/play/decks" className="underline hover:text-amber-100">
+              <Link href="/play/decks" className="underline hover:text-foreground">
                 Add a free starter deck
               </Link>{" "}
               to get cards and a ready-to-play list.
@@ -123,35 +127,32 @@ export default function PlayPage() {
               type="button"
               disabled={!deckId || !hasValidDeck || startMutation.isPending}
               onClick={() => startMutation.mutate()}
-              className="inline-flex items-center gap-1.5 rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-60"
+              className="app-btn-primary inline-flex items-center gap-1.5 disabled:opacity-60"
             >
               <Play size={14} />
               {startMutation.isPending ? "Starting…" : "Start vs AI"}
             </button>
-            <Link
-              href="/play/decks"
-              className="inline-flex items-center gap-1.5 rounded-md border border-neutral-700 px-4 py-2 text-sm text-neutral-200 hover:bg-neutral-900"
-            >
+            <Link href="/play/decks" className="app-btn-secondary inline-flex items-center gap-1.5 sm:hidden">
               <Plus size={14} />
-              Manage decks
+              Decks
             </Link>
           </div>
         </section>
 
-        <section className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
-          <h2 className="text-lg font-medium text-neutral-100">Recent matches</h2>
+        <section className="app-panel p-4">
+          <h2 className="text-lg font-medium text-foreground">Recent matches</h2>
           <ul className="mt-3 space-y-2">
             {(matches ?? []).length === 0 ? (
-              <li className="text-sm text-neutral-500">No matches yet.</li>
+              <li className="text-sm text-muted">No matches yet.</li>
             ) : (
               (matches ?? []).map((match) => (
                 <li key={match.id}>
                   <Link
                     href={`/play/matches/${match.id}`}
-                    className="flex items-center justify-between rounded-md border border-neutral-800 px-3 py-2 text-sm hover:bg-neutral-900"
+                    className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm hover:bg-surface"
                   >
                     <span>Match #{match.id}</span>
-                    <span className="text-neutral-500">
+                    <span className="text-muted">
                       {match.status} · turn {match.turnNumber}
                     </span>
                   </Link>
@@ -162,8 +163,8 @@ export default function PlayPage() {
         </section>
       </div>
 
-      <p className="text-xs text-neutral-600">
-        Full rules are documented in <code className="text-neutral-400">docs/history_codex_rules.md</code> in the
+      <p className="text-xs text-subtle">
+        Full rules are documented in <code className="text-muted">docs/history_codex_rules.md</code> in the
         project repository.
       </p>
     </div>

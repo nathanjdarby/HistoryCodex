@@ -111,21 +111,21 @@ export function AbilityBuilder({
   }
 
   return (
-    <div className="col-span-full space-y-3 rounded-xl border border-amber-900/30 bg-amber-950/10 p-3">
+    <div className="col-span-full space-y-3 rounded-xl border border-accent/30 bg-accent/10 p-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h3 className="flex items-center gap-1.5 text-sm font-medium text-amber-100">
-            <Wand2 size={14} className="text-amber-400" />
+          <h3 className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+            <Wand2 size={14} className="text-gold" />
             Ability builder
           </h3>
-          <p className="mt-0.5 text-xs text-neutral-400">
+          <p className="mt-0.5 text-xs text-muted">
             Pick a template — name, value, and trigger are suggested from rarity math. Fine-tune
             below.
           </p>
         </div>
         <Link
           href="/admin/abilities"
-          className="text-xs text-amber-400 hover:underline"
+          className="text-xs text-gold hover:underline"
         >
           Full catalog →
         </Link>
@@ -136,7 +136,7 @@ export function AbilityBuilder({
           <button
             type="button"
             onClick={() => applySuggestion(suggestLocationBuffFields(rarity))}
-            className="rounded-md border border-neutral-700 bg-neutral-900 px-2.5 py-1 text-xs text-neutral-200 hover:bg-neutral-800"
+            className="rounded-md border border-border-strong bg-surface px-2.5 py-1 text-xs text-foreground hover:bg-surface-raised"
           >
             Suggest {rarity} location buff
           </button>
@@ -148,7 +148,7 @@ export function AbilityBuilder({
               const fields = suggestArchetypeAbilityFields(rarity, resolvedArchetype);
               if (fields) applySuggestion(fields);
             }}
-            className="rounded-md border border-neutral-700 bg-neutral-900 px-2.5 py-1 text-xs text-neutral-200 hover:bg-neutral-800"
+            className="rounded-md border border-border-strong bg-surface px-2.5 py-1 text-xs text-foreground hover:bg-surface-raised"
           >
             Use {resolvedArchetype} default
           </button>
@@ -157,7 +157,7 @@ export function AbilityBuilder({
           <button
             type="button"
             onClick={() => applySuggestion(suggestion)}
-            className="rounded-md border border-amber-800/60 bg-amber-950/40 px-2.5 py-1 text-xs text-amber-100 hover:bg-amber-900/40"
+            className="rounded-md border border-accent/45 bg-accent/10 px-2.5 py-1 text-xs text-foreground hover:bg-accent/15"
           >
             Recalculate for {rarity}
           </button>
@@ -166,7 +166,7 @@ export function AbilityBuilder({
           <button
             type="button"
             onClick={clearAbility}
-            className="inline-flex items-center gap-1 rounded-md border border-neutral-800 px-2.5 py-1 text-xs text-neutral-400 hover:text-neutral-200"
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1 text-xs text-muted hover:text-foreground"
           >
             <X size={12} />
             Clear
@@ -186,7 +186,7 @@ export function AbilityBuilder({
             }
             selectEffect(next);
           }}
-          className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+          className="rounded border border-border-strong bg-background px-2 py-1.5"
         >
           <option value="">— None —</option>
           {availableEffects.map((effect) => (
@@ -197,7 +197,7 @@ export function AbilityBuilder({
           ))}
         </select>
         {selectedEffect ? (
-          <span className="text-xs text-neutral-500">
+          <span className="text-xs text-muted">
             {availableEffects.find((effect) => effect.id === selectedEffect)?.summary}
           </span>
         ) : null}
@@ -211,7 +211,7 @@ export function AbilityBuilder({
               value={value.abilityName}
               onChange={(event) => onChange({ abilityName: event.target.value })}
               placeholder="Display name on the card"
-              className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+              className="rounded border border-border-strong bg-background px-2 py-1.5"
             />
           </label>
 
@@ -225,7 +225,7 @@ export function AbilityBuilder({
                 onChange={(event) => onChange({ abilityValue: event.target.value })}
                 disabled={suggestion?.abilityValue == null && !value.abilityValue}
                 placeholder={suggestion?.abilityValue == null ? "Not used" : "Value"}
-                className="min-w-0 flex-1 rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5 disabled:opacity-50"
+                className="min-w-0 flex-1 rounded border border-border-strong bg-background px-2 py-1.5 disabled:opacity-50"
               />
               {suggestion && suggestion.abilityValue != null ? (
                 <button
@@ -233,14 +233,14 @@ export function AbilityBuilder({
                   onClick={() =>
                     onChange({ abilityValue: toFormValue(suggestion.abilityValue) })
                   }
-                  className="shrink-0 rounded border border-amber-800/50 px-2 text-xs text-amber-200 hover:bg-amber-950/40"
+                  className="shrink-0 rounded border border-accent/40 px-2 text-xs text-gold-bright hover:bg-accent/10"
                   title={suggestion.valueNote}
                 >
                   Use {suggestion.abilityValue}
                 </button>
               ) : null}
             </div>
-            {valueNote ? <span className="text-xs text-neutral-500">{valueNote}</span> : null}
+            {valueNote ? <span className="text-xs text-muted">{valueNote}</span> : null}
           </label>
 
           {availableTriggers.length > 0 ? (
@@ -253,7 +253,7 @@ export function AbilityBuilder({
                     abilityTrigger: event.target.value as AbilityBuilderValue["abilityTrigger"],
                   })
                 }
-                className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                className="rounded border border-border-strong bg-background px-2 py-1.5"
               >
                 <option value="">— Passive / none —</option>
                 {availableTriggers.map((trigger) => (
@@ -271,7 +271,7 @@ export function AbilityBuilder({
                         defaultTriggerForEffect(selectedEffect, cardType) ?? "",
                     })
                   }
-                  className="text-left text-xs text-amber-400 hover:underline"
+                  className="text-left text-xs text-gold hover:underline"
                 >
                   Suggest{" "}
                   {defaultTriggerForEffect(selectedEffect, cardType)
@@ -283,7 +283,7 @@ export function AbilityBuilder({
               ) : null}
             </label>
           ) : (
-            <p className="text-xs leading-relaxed text-neutral-500">
+            <p className="text-xs leading-relaxed text-muted">
               {cardType === "event"
                 ? "Events resolve when played — no trigger."
                 : cardType === "location"
@@ -293,7 +293,7 @@ export function AbilityBuilder({
           )}
         </div>
       ) : (
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-muted">
           Choose an effect template to configure this card&apos;s ability.
         </p>
       )}

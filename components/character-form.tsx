@@ -335,13 +335,13 @@ export function CharacterForm({
         e.preventDefault();
         saveMutation.mutate();
       }}
-      className="flex max-h-[min(90dvh,calc(100dvh-2rem))] flex-col overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/60"
+      className="flex max-h-[min(90dvh,calc(100dvh-2rem))] flex-col overflow-hidden rounded-lg border border-border bg-surface/60"
     >
-      <div className="flex shrink-0 items-center justify-between border-b border-neutral-800 px-4 py-3">
-        <h2 className="text-sm font-medium text-neutral-200">
+      <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
+        <h2 className="text-sm font-medium text-foreground">
           {editingId ? "Edit character" : "New character"}
         </h2>
-        <button type="button" onClick={onCancel} className="text-neutral-500 hover:text-neutral-200">
+        <button type="button" onClick={onCancel} className="text-muted hover:text-foreground">
           <X size={16} />
         </button>
       </div>
@@ -379,8 +379,8 @@ export function CharacterForm({
             onImagePointerUp={form.imageUrl ? imageDragHandlers.onPointerUp : undefined}
           />
 
-          <details className="mt-3 rounded-lg border border-neutral-800 bg-neutral-950/50 p-2">
-            <summary className="cursor-pointer select-none px-1 py-0.5 text-xs font-medium text-neutral-300">
+          <details className="mt-3 rounded-lg border border-border bg-background/50 p-2">
+            <summary className="cursor-pointer select-none px-1 py-0.5 text-xs font-medium text-foreground/80">
               Art & crop
             </summary>
             <div className="mt-2 flex flex-col items-center gap-2">
@@ -394,7 +394,7 @@ export function CharacterForm({
             />
             <label
               htmlFor="character-image-upload"
-              className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 hover:bg-neutral-800"
+              className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-border-strong px-3 py-1.5 text-sm text-foreground hover:bg-surface-raised"
             >
               <Upload size={14} />
               {uploading ? "Uploading..." : "Upload custom art"}
@@ -411,7 +411,7 @@ export function CharacterForm({
                     imageScale: DEFAULT_IMAGE_FRAME.scale,
                   }))
                 }
-                className="text-xs text-neutral-500 hover:text-red-400"
+                className="text-xs text-muted hover:text-red-400"
               >
                 Remove image (use generated sprite)
               </button>
@@ -423,7 +423,7 @@ export function CharacterForm({
                 disabled={uploading}
               />
             )}
-            <p className="text-center text-[10px] text-neutral-600">
+            <p className="text-center text-[10px] text-subtle">
               PNG, JPEG, GIF, or WebP. Max 5MB.
             </p>
             </div>
@@ -438,7 +438,7 @@ export function CharacterForm({
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+              className="rounded border border-border-strong bg-background px-2 py-1.5"
             />
           </label>
           <label className="col-span-full flex flex-col gap-1 text-sm">
@@ -449,7 +449,7 @@ export function CharacterForm({
               maxLength={280}
               rows={2}
               placeholder="A short quote or lore snippet for the card..."
-              className="resize-none rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+              className="resize-none rounded border border-border-strong bg-background px-2 py-1.5"
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
@@ -478,7 +478,7 @@ export function CharacterForm({
                   return next;
                 });
               }}
-              className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+              className="rounded border border-border-strong bg-background px-2 py-1.5"
             >
               <option value="character">Character</option>
               <option value="unit">Unit</option>
@@ -492,7 +492,7 @@ export function CharacterForm({
               required
               value={form.eraId}
               onChange={(e) => handleEraChange(e.target.value)}
-              className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+              className="rounded border border-border-strong bg-background px-2 py-1.5"
             >
               <option value="" disabled>
                 Select an era
@@ -511,7 +511,7 @@ export function CharacterForm({
                 value={linkCatalogBookId}
                 onChange={(e) => setLinkCatalogBookId(e.target.value)}
                 disabled={!form.eraId}
-                className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5 disabled:opacity-50"
+                className="rounded border border-border-strong bg-background px-2 py-1.5 disabled:opacity-50"
               >
                 <option value="">
                   {!form.eraId ? "Select an era first" : "— None —"}
@@ -525,7 +525,7 @@ export function CharacterForm({
                 ))}
               </select>
               {form.eraId && compatibleBooks.length === 0 ? (
-                <span className="text-xs text-neutral-500">
+                <span className="text-xs text-muted">
                   No catalog books match this era yet.
                 </span>
               ) : null}
@@ -538,7 +538,7 @@ export function CharacterForm({
               onChange={(e) =>
                 setForm({ ...form, rarity: e.target.value as CharacterFormState["rarity"] })
               }
-              className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+              className="rounded border border-border-strong bg-background px-2 py-1.5"
             >
               {RARITY_ORDER.map((r) => (
                 <option key={r} value={r}>
@@ -555,7 +555,7 @@ export function CharacterForm({
               min={1}
               value={form.cost}
               onChange={(e) => setForm({ ...form, cost: e.target.value })}
-              className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+              className="rounded border border-border-strong bg-background px-2 py-1.5"
             />
           </label>
           {!isLocation && (
@@ -569,7 +569,7 @@ export function CharacterForm({
                     archetype: e.target.value as CharacterFormState["archetype"],
                   })
                 }
-                className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                className="rounded border border-border-strong bg-background px-2 py-1.5"
               >
                 <option value="">— None —</option>
                 {ARCHETYPE_OPTIONS.map((a) => (
@@ -586,17 +586,17 @@ export function CharacterForm({
               type="checkbox"
               checked={form.holographic}
               onChange={(e) => setForm({ ...form, holographic: e.target.checked })}
-              className="h-4 w-4 rounded border-neutral-700 bg-neutral-950"
+              className="h-4 w-4 rounded border-border-strong bg-background"
             />
             Holographic
           </label>
 
-          <div className="col-span-full flex items-center justify-between border-t border-neutral-800 pt-3">
-            <h3 className="text-sm font-medium text-neutral-200">{isLocation ? "Buff" : "Battle stats"}</h3>
+          <div className="col-span-full flex items-center justify-between border-t border-border pt-3">
+            <h3 className="text-sm font-medium text-foreground">{isLocation ? "Buff" : "Battle stats"}</h3>
             <button
               type="button"
               onClick={isLocation ? suggestBuff : suggestStats}
-              className="flex items-center gap-1.5 rounded-md border border-neutral-700 px-2.5 py-1 text-xs text-neutral-300 hover:bg-neutral-800"
+              className="flex items-center gap-1.5 rounded-md border border-border-strong px-2.5 py-1 text-xs text-foreground/80 hover:bg-surface-raised"
             >
               <RefreshCw size={12} />
               {isLocation
@@ -615,7 +615,7 @@ export function CharacterForm({
                   min={0}
                   value={form.attack}
                   onChange={(e) => setForm({ ...form, attack: e.target.value })}
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
@@ -626,7 +626,7 @@ export function CharacterForm({
                   min={0}
                   value={form.defense}
                   onChange={(e) => setForm({ ...form, defense: e.target.value })}
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
             </>
@@ -649,19 +649,19 @@ export function CharacterForm({
       </div>
       </div>
 
-      <div className="shrink-0 border-t border-neutral-800 bg-neutral-900/95 px-4 py-3">
+      <div className="shrink-0 border-t border-border bg-surface/95 px-4 py-3">
         <div className="flex justify-end gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-md px-3 py-1.5 text-sm text-neutral-400 hover:text-neutral-200"
+            className="rounded-md px-3 py-1.5 text-sm text-muted hover:text-foreground"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saveMutation.isPending || uploading}
-            className="rounded-md bg-amber-700 px-3 py-1.5 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-50"
+            className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:opacity-50"
           >
             {saveMutation.isPending ? "Saving..." : editingId ? "Save changes" : "Create character"}
           </button>

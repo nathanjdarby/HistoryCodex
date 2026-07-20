@@ -41,7 +41,7 @@ export default function CampaignDetailPage({
   });
 
   if (isLoading || !campaign) {
-    return <p className="text-neutral-500">Loading campaign…</p>;
+    return <p className="text-muted">Loading campaign…</p>;
   }
 
   const unlockedCount = campaign.progress.nodesUnlocked.length;
@@ -51,18 +51,18 @@ export default function CampaignDetailPage({
     <div className="mx-auto max-w-4xl space-y-6">
       <Link
         href="/campaigns"
-        className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-200"
+        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground"
       >
         <ArrowLeft size={15} />
         All campaigns
       </Link>
 
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-amber-100">{campaign.title}</h1>
+        <h1 className="text-2xl font-semibold text-foreground">{campaign.title}</h1>
         {campaign.era.description && (
-          <p className="max-w-2xl text-sm text-neutral-400">{campaign.era.description}</p>
+          <p className="max-w-2xl text-sm text-muted">{campaign.era.description}</p>
         )}
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-muted">
           {unlockedCount} / {totalNodes} milestones unlocked on your campaign map
         </p>
       </header>
@@ -75,13 +75,13 @@ export default function CampaignDetailPage({
         className="aspect-[16/10] min-h-[280px]"
       />
 
-      <section className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
-        <h2 className="text-sm font-medium text-neutral-200">How to progress</h2>
-        <ul className="mt-2 space-y-1.5 text-sm text-neutral-400">
+      <section className="rounded-xl border border-border bg-surface/40 p-4">
+        <h2 className="text-sm font-medium text-foreground">How to progress</h2>
+        <ul className="mt-2 space-y-1.5 text-sm text-muted">
           {campaign.theme.nodes.map((node) => {
             const done = campaign.progress.nodesUnlocked.includes(node.id);
             return (
-              <li key={node.id} className={done ? "text-amber-200/90" : undefined}>
+              <li key={node.id} className={done ? "text-gold-bright/90" : undefined}>
                 {done ? "✓" : "○"} {node.milestone}% — {node.label}
               </li>
             );

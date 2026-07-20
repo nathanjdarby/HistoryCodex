@@ -3,6 +3,7 @@
     "rarity": "common"
   },
   "Alfred the Great": {
+    "eraSlug": "anglo-saxon",
     "rarity": "legendary",
     "archetype": "monarch",
     "flavorText": "Optional override text for this card."

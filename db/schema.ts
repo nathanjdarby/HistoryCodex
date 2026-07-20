@@ -38,6 +38,8 @@ export const catalogBooks = sqliteTable(
     wordCount: integer("word_count"),
     wordsPerPage: integer("words_per_page"),
     eraId: integer("era_id").references(() => eras.id),
+    /** Year shown on the user timeline when this book is added to a library. */
+    timelineYear: integer("timeline_year"),
     active: integer("active", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
@@ -169,16 +171,37 @@ export const ABILITY_EFFECT_ENUM = [
   "block_influence_gain",
   "replace_location",
   "draw_card",
+  "epidemic",
+  "treaty",
+  "revolution",
+  "trade_route",
+  "reform",
+  "forced_hand",
+  "forced_discard",
+  "exhaust_unit",
 ] as const;
 export const ABILITY_TRIGGER_ENUM = ["deploy", "death", "campaign_start"] as const;
 export const CARD_TYPE_ENUM = ["character", "location", "unit", "event"] as const;
 export const USER_ROLE_ENUM = ["user", "admin"] as const;
+export const DISPLAY_NAME_AS_ENUM = [
+  "email",
+  "first_name",
+  "last_name",
+  "nickname",
+  "full_name",
+] as const;
 
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   role: text("role", { enum: USER_ROLE_ENUM }).notNull().default("user"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  nickname: text("nickname"),
+  displayNameAs: text("display_name_as", { enum: DISPLAY_NAME_AS_ENUM })
+    .notNull()
+    .default("email"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

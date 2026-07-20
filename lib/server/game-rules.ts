@@ -5,7 +5,7 @@ import { gameRules } from "@/db/schema";
 import { ApiError } from "@/lib/api-utils";
 import { DEFAULT_BATTLE_RULES } from "@/lib/battle/constants";
 import type { BattleRules } from "@/lib/battle/types";
-import { parseBattleRulesJson, serializeBattleRules } from "@/lib/server/battle-rules";
+import { parseBattleRulesJson, serializeBattleRules, normalizeBattleRules } from "@/lib/server/battle-rules";
 
 export type GameRules = {
   milestones: number[];
@@ -70,6 +70,13 @@ export const gameRulesInputSchema = z
     battleMerchantRefundCp: z.number().int().min(0).max(200),
     battleMonarchAuraAttack: z.number().int().min(0).max(100),
     battleMaxEventsPerTurn: z.number().int().min(0).max(5),
+    battleAllowCpOverflow: z.boolean().optional(),
+    battleLeaderInfluenceBonus: z.number().int().min(0).max(5).optional(),
+    battleLeaderBonusStacks: z.boolean().optional(),
+    battleMonarchAuraStacking: z.boolean().optional(),
+    battleScholarBonusDrawCap: z.number().int().min(0).max(10).optional(),
+    battleMaxEstablishInfluencePerTurn: z.number().int().min(0).max(3).optional(),
+    battleFailedChronosDrawsToLose: z.number().int().min(1).max(10).optional(),
   })
   .refine((data) => data.softSecondsPerPage >= data.minSecondsPerPage, {
     message: "Soft seconds per page must be at least the minimum.",
@@ -120,7 +127,7 @@ function rowToRules(row: typeof gameRules.$inferSelect): GameRules {
 }
 
 function battleFromInput(input: GameRulesInput): BattleRules {
-  return {
+  return normalizeBattleRules({
     cpTrack: input.battleCpTrack,
     cpCap: input.battleCpCap,
     deckSize: input.battleDeckSize,
@@ -131,8 +138,17 @@ function battleFromInput(input: GameRulesInput): BattleRules {
     locationsToWin: input.battleLocationsToWin,
     merchantRefundCp: input.battleMerchantRefundCp,
     monarchAuraAttack: input.battleMonarchAuraAttack,
+    monarchAuraStacking: input.battleMonarchAuraStacking ?? DEFAULT_BATTLE_RULES.monarchAuraStacking,
     maxEventsPerTurn: input.battleMaxEventsPerTurn,
-  };
+    allowCpOverflow: input.battleAllowCpOverflow ?? DEFAULT_BATTLE_RULES.allowCpOverflow,
+    leaderInfluenceBonus: input.battleLeaderInfluenceBonus ?? DEFAULT_BATTLE_RULES.leaderInfluenceBonus,
+    leaderBonusStacks: input.battleLeaderBonusStacks ?? DEFAULT_BATTLE_RULES.leaderBonusStacks,
+    scholarBonusDrawCap: input.battleScholarBonusDrawCap ?? DEFAULT_BATTLE_RULES.scholarBonusDrawCap,
+    maxEstablishInfluencePerTurn:
+      input.battleMaxEstablishInfluencePerTurn ?? DEFAULT_BATTLE_RULES.maxEstablishInfluencePerTurn,
+    failedChronosDrawsToLose:
+      input.battleFailedChronosDrawsToLose ?? DEFAULT_BATTLE_RULES.failedChronosDrawsToLose,
+  });
 }
 
 function normalizeMilestones(milestones: number[]) {

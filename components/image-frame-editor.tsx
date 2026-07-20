@@ -71,25 +71,25 @@ type ImageFrameEditorProps = {
 
 export function ImageFrameEditor({ frame, onChange, disabled = false }: ImageFrameEditorProps) {
   return (
-    <div className="mt-3 space-y-3 rounded-md border border-neutral-800 bg-neutral-950/60 p-3">
+    <div className="mt-3 space-y-3 rounded-md border border-border bg-background/60 p-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-neutral-300">Adjust image crop</p>
+        <p className="text-xs font-medium text-foreground/80">Adjust image crop</p>
         <button
           type="button"
           disabled={disabled}
           onClick={() => onChange(DEFAULT_IMAGE_FRAME)}
-          className="flex items-center gap-1 text-[11px] text-neutral-500 hover:text-neutral-200 disabled:opacity-50"
+          className="flex items-center gap-1 text-[11px] text-muted hover:text-foreground disabled:opacity-50"
         >
           <RotateCcw size={11} />
           Reset
         </button>
       </div>
 
-      <p className="text-[10px] leading-relaxed text-neutral-500">
+      <p className="text-[10px] leading-relaxed text-muted">
         Drag the image in the card preview to reposition it. Use zoom to tighten the crop.
       </p>
 
-      <label className="flex flex-col gap-1.5 text-xs text-neutral-400">
+      <label className="flex flex-col gap-1.5 text-xs text-muted">
         Zoom · {frame.scale}%
         <input
           type="range"
@@ -101,11 +101,11 @@ export function ImageFrameEditor({ frame, onChange, disabled = false }: ImageFra
           onChange={(event) =>
             onChange(clampImageFrame({ ...frame, scale: Number(event.target.value) }))
           }
-          className="w-full accent-amber-600"
+          className="w-full accent-accent"
         />
       </label>
 
-      <div className="grid grid-cols-2 gap-2 text-[10px] text-neutral-600">
+      <div className="grid grid-cols-2 gap-2 text-[10px] text-subtle">
         <span>Focus X · {Math.round(frame.focusX)}%</span>
         <span>Focus Y · {Math.round(frame.focusY)}%</span>
       </div>

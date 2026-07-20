@@ -179,15 +179,15 @@ export default function AdminUsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-100">Users</h1>
-          <p className="text-sm text-neutral-400">
+          <h1 className="text-2xl font-semibold text-foreground">Users</h1>
+          <p className="text-sm text-muted">
             Manage accounts, roles, and points. Expand a row to see what each player is reading and
             how they&apos;re progressing.
           </p>
         </div>
         <button
           onClick={openCreateForm}
-          className="flex items-center gap-1.5 rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600"
+          className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-foreground hover:brightness-110"
         >
           <Plus size={16} />
           New user
@@ -206,9 +206,9 @@ export default function AdminUsersPage() {
             e.preventDefault();
             saveMutation.mutate();
           }}
-          className="grid grid-cols-1 gap-3 rounded-lg border border-neutral-800 bg-neutral-900/60 p-4 sm:grid-cols-2"
+          className="grid grid-cols-1 gap-3 rounded-lg border border-border bg-surface/60 p-4 sm:grid-cols-2"
         >
-          <h2 className="sm:col-span-2 text-sm font-medium text-neutral-200">
+          <h2 className="sm:col-span-2 text-sm font-medium text-foreground">
             {editingUser ? `Edit ${editingUser.email}` : "Create user"}
           </h2>
           <label className="flex flex-col gap-1 text-sm">
@@ -218,7 +218,7 @@ export default function AdminUsersPage() {
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+              className="rounded border border-border-strong bg-background px-2 py-1.5"
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
@@ -230,7 +230,7 @@ export default function AdminUsersPage() {
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               placeholder={editingUser ? "Leave blank to keep current" : "Minimum 6 characters"}
-              className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+              className="rounded border border-border-strong bg-background px-2 py-1.5"
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
@@ -238,7 +238,7 @@ export default function AdminUsersPage() {
             <select
               value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })}
-              className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+              className="rounded border border-border-strong bg-background px-2 py-1.5"
             >
               <option value="user">Player</option>
               <option value="admin">Admin</option>
@@ -252,14 +252,14 @@ export default function AdminUsersPage() {
               min={0}
               value={form.pointsBalance}
               onChange={(e) => setForm({ ...form, pointsBalance: e.target.value })}
-              className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+              className="rounded border border-border-strong bg-background px-2 py-1.5"
             />
           </label>
           <div className="flex gap-2 sm:col-span-2">
             <button
               type="submit"
               disabled={saveMutation.isPending}
-              className="rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-60"
+              className="rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:opacity-60"
             >
               {saveMutation.isPending ? "Saving…" : editingUser ? "Save changes" : "Create user"}
             </button>
@@ -270,7 +270,7 @@ export default function AdminUsersPage() {
                 setEditingUser(null);
                 setForm(emptyForm);
               }}
-              className="rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-900"
+              className="rounded-md border border-border-strong px-3 py-2 text-sm text-foreground/80 hover:bg-surface"
             >
               Cancel
             </button>
@@ -278,9 +278,9 @@ export default function AdminUsersPage() {
         </form>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-neutral-800">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="min-w-full text-sm">
-          <thead className="border-b border-neutral-800 bg-neutral-900/80 text-left text-xs uppercase tracking-wide text-neutral-500">
+          <thead className="border-b border-border bg-surface/80 text-left text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="px-3 py-2" />
               <th className="px-3 py-2">Email</th>
@@ -296,14 +296,14 @@ export default function AdminUsersPage() {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-neutral-500">
+                <td colSpan={9} className="px-3 py-8 text-center text-muted">
                   Loading users…
                 </td>
               </tr>
             )}
             {!isLoading && sortedUsers.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-neutral-500">
+                <td colSpan={9} className="px-3 py-8 text-center text-muted">
                   No users yet.
                 </td>
               </tr>
@@ -312,45 +312,45 @@ export default function AdminUsersPage() {
               const expanded = expandedId === user.id;
               return (
                 <Fragment key={user.id}>
-                  <tr className="border-b border-neutral-800/80 hover:bg-neutral-900/40">
+                  <tr className="border-b border-border/80 hover:bg-surface/40">
                     <td className="px-3 py-2">
                       <button
                         type="button"
                         onClick={() => setExpandedId(expanded ? null : user.id)}
-                        className="rounded p-1 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
+                        className="rounded p-1 text-muted hover:bg-surface-raised hover:text-foreground"
                         aria-label={expanded ? "Collapse details" : "Expand details"}
                       >
                         {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                       </button>
                     </td>
-                    <td className="px-3 py-2 font-medium text-neutral-100">{user.email}</td>
+                    <td className="px-3 py-2 font-medium text-foreground">{user.email}</td>
                     <td className="px-3 py-2">
                       <span
                         className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${
                           user.role === "admin"
-                            ? "bg-amber-900/50 text-amber-200"
-                            : "bg-neutral-800 text-neutral-300"
+                            ? "bg-accent/15 text-gold-bright"
+                            : "bg-surface-raised text-foreground/80"
                         }`}
                       >
                         {user.role === "admin" ? <UserCog size={12} /> : null}
                         {user.role}
                       </span>
                     </td>
-                    <td className="px-3 py-2 font-mono text-amber-200">{user.pointsBalance}</td>
-                    <td className="px-3 py-2 text-neutral-300">{user.booksReading.length}</td>
-                    <td className="px-3 py-2 text-neutral-300">
+                    <td className="px-3 py-2 font-mono text-gold-bright">{user.pointsBalance}</td>
+                    <td className="px-3 py-2 text-foreground/80">{user.booksReading.length}</td>
+                    <td className="px-3 py-2 text-foreground/80">
                       {user.booksTotal}
-                      <span className="text-neutral-500"> · {user.booksFinished} done</span>
+                      <span className="text-muted"> · {user.booksFinished} done</span>
                     </td>
-                    <td className="px-3 py-2 text-neutral-300">{user.cardsOwned}</td>
-                    <td className="px-3 py-2 text-neutral-400">{formatDate(user.createdAt)}</td>
+                    <td className="px-3 py-2 text-foreground/80">{user.cardsOwned}</td>
+                    <td className="px-3 py-2 text-muted">{formatDate(user.createdAt)}</td>
                     <td className="px-3 py-2">
                       <div className="flex justify-end gap-1">
                         <button
                           type="button"
                           onClick={() => promptReset(user)}
                           disabled={resetMutation.isPending}
-                          className="rounded p-1.5 text-neutral-400 hover:bg-amber-950 hover:text-amber-300 disabled:opacity-50"
+                          className="rounded p-1.5 text-muted hover:bg-accent/15 hover:text-gold-bright disabled:opacity-50"
                           aria-label={`Reset ${user.email}`}
                           title="Reset account"
                         >
@@ -359,7 +359,7 @@ export default function AdminUsersPage() {
                         <button
                           type="button"
                           onClick={() => openEditForm(user)}
-                          className="rounded p-1.5 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
+                          className="rounded p-1.5 text-muted hover:bg-surface-raised hover:text-foreground"
                           aria-label={`Edit ${user.email}`}
                         >
                           <Pencil size={15} />
@@ -367,7 +367,7 @@ export default function AdminUsersPage() {
                         <button
                           type="button"
                           onClick={() => promptDelete(user)}
-                          className="rounded p-1.5 text-neutral-400 hover:bg-red-950 hover:text-red-300"
+                          className="rounded p-1.5 text-muted hover:bg-red-950 hover:text-red-300"
                           aria-label={`Delete ${user.email}`}
                         >
                           <Trash2 size={15} />
@@ -376,32 +376,32 @@ export default function AdminUsersPage() {
                     </td>
                   </tr>
                   {expanded && (
-                    <tr className="border-b border-neutral-800/80 bg-neutral-950/60">
+                    <tr className="border-b border-border/80 bg-background/60">
                       <td colSpan={9} className="px-4 py-4">
                         <div className="grid gap-4 lg:grid-cols-3">
-                          <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-3">
-                            <h3 className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+                          <div className="rounded-lg border border-border bg-surface/40 p-3">
+                            <h3 className="text-xs font-medium uppercase tracking-wide text-muted">
                               Points
                             </h3>
                             <dl className="mt-2 space-y-1 text-sm">
                               <div className="flex justify-between gap-3">
-                                <dt className="text-neutral-400">Balance</dt>
-                                <dd className="font-mono text-amber-200">{user.pointsBalance}</dd>
+                                <dt className="text-muted">Balance</dt>
+                                <dd className="font-mono text-gold-bright">{user.pointsBalance}</dd>
                               </div>
                               <div className="flex justify-between gap-3">
-                                <dt className="text-neutral-400">Total earned</dt>
-                                <dd className="font-mono text-neutral-200">{user.totalPointsEarned}</dd>
+                                <dt className="text-muted">Total earned</dt>
+                                <dd className="font-mono text-foreground">{user.totalPointsEarned}</dd>
                               </div>
                             </dl>
                           </div>
 
-                          <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-3 lg:col-span-2">
-                            <h3 className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-neutral-500">
+                          <div className="rounded-lg border border-border bg-surface/40 p-3 lg:col-span-2">
+                            <h3 className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted">
                               <BookOpen size={12} />
                               Currently reading
                             </h3>
                             {user.booksReading.length === 0 ? (
-                              <p className="mt-2 text-sm text-neutral-500">Not reading any books right now.</p>
+                              <p className="mt-2 text-sm text-muted">Not reading any books right now.</p>
                             ) : (
                               <ul className="mt-3 space-y-3">
                                 {user.booksReading.map((book) => {
@@ -409,17 +409,17 @@ export default function AdminUsersPage() {
                                   return (
                                     <li key={book.id} className="space-y-1">
                                       <div className="flex flex-wrap items-baseline justify-between gap-2">
-                                        <span className="font-medium text-neutral-100">{book.title}</span>
-                                        <span className="text-xs text-neutral-400">
+                                        <span className="font-medium text-foreground">{book.title}</span>
+                                        <span className="text-xs text-muted">
                                           p. {book.currentPage} / {book.totalPages} ({pct}%)
                                         </span>
                                       </div>
                                       {book.author && (
-                                        <p className="text-xs text-neutral-500">by {book.author}</p>
+                                        <p className="text-xs text-muted">by {book.author}</p>
                                       )}
-                                      <div className="h-1.5 overflow-hidden rounded-full bg-neutral-800">
+                                      <div className="h-1.5 overflow-hidden rounded-full bg-surface-raised">
                                         <div
-                                          className="h-full rounded-full bg-amber-600"
+                                          className="h-full rounded-full bg-accent"
                                           style={{ width: `${pct}%` }}
                                         />
                                       </div>

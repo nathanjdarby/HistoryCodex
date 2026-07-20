@@ -36,8 +36,51 @@ export function fractionalYearToX(
   return (fractionalYear - minYear) * pxPerYear;
 }
 
+/** Same scale as {@link fractionalYearToX} — usable for vertical timelines. */
+export function fractionalYearToY(
+  fractionalYear: number,
+  minYear: number,
+  pxPerYear: number,
+): number {
+  return fractionalYearToX(fractionalYear, minYear, pxPerYear);
+}
+
 export function yearToX(year: number, minYear: number, pxPerYear: number): number {
   return fractionalYearToX(year, minYear, pxPerYear);
+}
+
+export type TimeRangeLane = { lane: number; laneCount: number };
+
+/** Stack overlapping time ranges side-by-side within a column (calendar-style). */
+export function assignTimeRangeLanes(
+  items: { id: number; start: number; end: number }[],
+): Map<number, TimeRangeLane> {
+  const sorted = [...items].sort((a, b) => a.start - b.start || a.end - b.end);
+  const laneEnds: number[] = [];
+  const laneOf = new Map<number, number>();
+
+  for (const item of sorted) {
+    let placed = false;
+    for (let i = 0; i < laneEnds.length; i++) {
+      if (item.start >= laneEnds[i]) {
+        laneEnds[i] = item.end;
+        laneOf.set(item.id, i);
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      laneEnds.push(item.end);
+      laneOf.set(item.id, laneEnds.length - 1);
+    }
+  }
+
+  const laneCount = Math.max(1, laneEnds.length);
+  const result = new Map<number, TimeRangeLane>();
+  for (const [id, lane] of laneOf) {
+    result.set(id, { lane, laneCount });
+  }
+  return result;
 }
 
 export function niceYearStep(pxPerYear: number, minPxBetweenLabels = 110): number {

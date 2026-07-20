@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { characters, eras, userCharacters, userDeckCards, userDecks } from "@/db/schema";
 import { ApiError } from "@/lib/api-utils";
 import { expandDeckSnapshots, toCardSnapshot } from "@/lib/server/battle-cards";
+import { buildAiDeckFromPool } from "@/lib/battle/ai-deck";
 import { getBattleRules } from "@/lib/server/battle-rules";
 import { splitExpandedDeck, validateDeckComposition } from "@/lib/battle/validators";
 import {
@@ -286,6 +287,7 @@ export async function loadLocationDeck() {
 }
 
 export async function buildAiDeckFromCollection(userId: number) {
+  const rules = await getBattleRules();
   const owned = await db
     .select({ character: characters, era: eras, quantity: userCharacters.quantity })
     .from(userCharacters)
@@ -293,40 +295,28 @@ export async function buildAiDeckFromCollection(userId: number) {
     .innerJoin(eras, eq(eras.id, characters.eraId))
     .where(eq(userCharacters.userId, userId));
 
-  const playable = owned.filter((r) => r.quantity > 0);
-  if (playable.length === 0) throw new ApiError(400, "Collect cards before battling.");
-
-  const targets = baselineDeckTargets();
-  const deck: ReturnType<typeof toCardSnapshot>[] = [];
-
-  for (const cardType of DECK_COMPOSITION_CARD_TYPES) {
-    const target = targets[cardType];
-    let pool = playable.filter((r) => r.character.cardType === cardType);
-
-    if (pool.length === 0 && cardType === "location") {
-      const fallback = await loadLocationDeck();
-      if (fallback.length === 0) {
-        throw new ApiError(500, "Not enough location cards configured.");
-      }
-      let index = 0;
-      while (deck.filter((c) => c.cardType === "location").length < target) {
-        deck.push(fallback[index % fallback.length]!);
-        index++;
-      }
-      continue;
-    }
-
-    if (pool.length === 0) {
-      throw new ApiError(400, `Collect ${cardType} cards before battling.`);
-    }
-
-    let index = 0;
-    while (deck.filter((c) => c.cardType === cardType).length < target) {
-      const row = pool[index % pool.length]!;
-      deck.push(toCardSnapshot(row.character, row.era));
-      index++;
+  const pool: ReturnType<typeof toCardSnapshot>[] = [];
+  for (const row of owned.filter((r) => r.quantity > 0)) {
+    const snap = toCardSnapshot(row.character, row.era);
+    for (let i = 0; i < Math.min(row.quantity, rules.maxCopiesPerCard); i++) {
+      pool.push(snap);
     }
   }
 
-  return deck;
+  if (pool.length === 0) throw new ApiError(400, "Collect cards before battling.");
+
+  let result = buildAiDeckFromPool(pool, rules);
+  if (!result.ok) {
+    const fallbackLocations = await loadLocationDeck();
+    if (fallbackLocations.length > 0 && !pool.some((c) => c.cardType === "location")) {
+      pool.push(...fallbackLocations.slice(0, 3));
+      result = buildAiDeckFromPool(pool, rules);
+    }
+  }
+
+  if (!result.ok) {
+    throw new ApiError(400, result.error);
+  }
+
+  return result.deck;
 }

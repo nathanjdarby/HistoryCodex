@@ -1,0 +1,39 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in .env}
+      DATABASE_PATH: /app/data/historycodex.db
+      GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY:-}
+      READING_SESSIONS_REQUIRED: ${READING_SESSIONS_REQUIRED:-false}
+      # Set to false when TLS terminates at a reverse proxy that sets X-Forwarded-Proto
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
+    volumes:
+      - historycodex-data:/app/data
+      - historycodex-uploads:/app/public/uploads
+
+  # One-time setup: docker compose --profile setup run --rm setup
+  setup:
+    profiles: ["setup"]
+    image: node:20-bookworm-slim
+    working_dir: /app
+    environment:
+      DATABASE_PATH: /app/data/historycodex.db
+    volumes:
+      - ./:/app
+      - historycodex-data:/app/data
+      - historycodex-uploads:/app/public/uploads
+    command: >
+      sh -c "apt-get update && apt-get install -y --no-install-recommends python3 make g++ &&
+      npm ci &&
+      node scripts/migrate-production.mjs &&
+      npm run db:seed &&
+      npm run db:seed-auth"
+
+volumes:
+  historycodex-data:
+  historycodex-uploads:

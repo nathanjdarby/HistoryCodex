@@ -4,6 +4,8 @@ import { useSearchParams } from "next/navigation";
 import { FormEvent, useState, Suspense } from "react";
 
 import { defaultPathForRole } from "@/lib/auth/routes";
+import { ThemeToggle } from "@/lib/client/theme";
+import { LogIn } from "lucide-react";
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -52,12 +54,20 @@ function LoginForm() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center">
-      <div className="rounded-xl border border-neutral-800 bg-neutral-900/50 p-6 shadow-xl">
-        <h1 className="text-2xl font-semibold text-amber-100">Sign in</h1>
-        <p className="mt-1 text-sm text-neutral-400">
-          Use your HistoryCodex account to continue.
-        </p>
+    <div className="relative mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-8">
+      <div className="fixed right-4 top-4 z-50">
+        <ThemeToggle />
+      </div>
+      <div className="app-panel p-6 shadow-xl">
+        <div className="flex items-start gap-2.5">
+          <span className="app-page-icon shrink-0">
+            <LogIn size={20} />
+          </span>
+          <div>
+            <h1 className="app-page-title">Sign in</h1>
+            <p className="app-page-description">Use your HistoryCodex account to continue.</p>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <label className="flex flex-col gap-1 text-sm">
@@ -68,7 +78,7 @@ function LoginForm() {
               required
               autoComplete="email"
               defaultValue="user@example.com"
-              className="rounded border border-neutral-700 bg-neutral-950 px-3 py-2"
+              className="app-input"
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
@@ -79,23 +89,19 @@ function LoginForm() {
               required
               autoComplete="current-password"
               defaultValue="password"
-              className="rounded border border-neutral-700 bg-neutral-950 px-3 py-2"
+              className="app-input"
             />
           </label>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-60"
-          >
+          <button type="submit" disabled={loading} className="app-btn-primary w-full">
             {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
-        <div className="mt-6 rounded-lg border border-neutral-800 bg-neutral-950/70 px-3 py-2.5 text-xs text-neutral-500">
-          <p className="font-medium text-neutral-400">Default accounts</p>
+        <div className="mt-6 rounded-lg border border-accent/30 bg-accent/10 px-3 py-2.5 text-xs text-muted">
+          <p className="font-medium text-foreground/80">Default accounts</p>
           <p className="mt-1">Admin: admin@example.com / password</p>
           <p>User: user@example.com / password</p>
         </div>
@@ -106,7 +112,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<p className="text-neutral-500">Loading...</p>}>
+    <Suspense fallback={<p className="text-muted">Loading...</p>}>
       <LoginForm />
     </Suspense>
   );

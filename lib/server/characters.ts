@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import {
@@ -14,6 +14,48 @@ import {
 } from "@/db/schema";
 import { ApiError, slugify } from "@/lib/api-utils";
 import { computeDefaultBattleStats } from "@/lib/battle";
+import type { CardType } from "@/lib/battle/types";
+import { RARITY_ORDER, type RarityTier } from "@/lib/rarity";
+import type { Archetype } from "@/lib/sprite/generateSprite";
+
+const FEATURED_RARITIES = ["rare", "epic", "legendary", "mythic"] as const;
+
+const RARITY_SCORE: Record<RarityTier, number> = {
+  common: 0,
+  uncommon: 1,
+  rare: 2,
+  epic: 3,
+  legendary: 4,
+  mythic: 5,
+};
+
+export type FeaturedCharacter = {
+  id: number;
+  name: string;
+  flavorText: string | null;
+  seed: string;
+  rarity: RarityTier;
+  cardType: CardType;
+  cost: number;
+  attack: number;
+  defense: number;
+  archetype: Archetype | null;
+  imageUrl: string | null;
+  imageFocusX: number;
+  imageFocusY: number;
+  imageScale: number;
+  holographic: boolean;
+  abilityName: string | null;
+  abilityEffect: (typeof ABILITY_EFFECT_ENUM)[number] | null;
+  abilityValue: number | null;
+  abilityTrigger: (typeof ABILITY_TRIGGER_ENUM)[number] | null;
+  era: {
+    id: number;
+    name: string;
+    colorPrimary: string;
+    colorSecondary: string;
+  };
+};
 
 export const characterInputSchema = z.object({
   eraId: z.number().int(),
@@ -157,4 +199,61 @@ export async function listCharacters(userId: number, eraId?: number) {
     quantity: row.unlockedAt != null ? row.quantity ?? 1 : 0,
     unlockedAt: row.unlockedAt,
   }));
+}
+
+function featuredScore(character: {
+  rarity: RarityTier;
+  imageUrl: string | null;
+  holographic: boolean;
+}) {
+  let score = RARITY_SCORE[character.rarity] * 100;
+  if (character.imageUrl) score += 50;
+  if (character.holographic) score += 30;
+  return score;
+}
+
+export async function listFeaturedCharacters(limit = 6): Promise<FeaturedCharacter[]> {
+  const rows = await db
+    .select({
+      character: characters,
+      era: eras,
+    })
+    .from(characters)
+    .innerJoin(eras, eq(characters.eraId, eras.id))
+    .where(inArray(characters.rarity, [...FEATURED_RARITIES]));
+
+  const ranked = rows
+    .map((row) => ({
+      ...row.character,
+      cardType: row.character.cardType as CardType,
+      archetype: row.character.archetype as Archetype | null,
+      rarity: row.character.rarity as RarityTier,
+      era: {
+        id: row.era.id,
+        name: row.era.name,
+        colorPrimary: row.era.colorPrimary,
+        colorSecondary: row.era.colorSecondary,
+      },
+    }))
+    .sort((a, b) => featuredScore(b) - featuredScore(a));
+
+  const picked: FeaturedCharacter[] = [];
+  const usedEras = new Set<number>();
+
+  for (const character of ranked) {
+    if (picked.length >= limit) break;
+    if (usedEras.has(character.era.id)) continue;
+    picked.push(character);
+    usedEras.add(character.era.id);
+  }
+
+  for (const character of ranked) {
+    if (picked.length >= limit) break;
+    if (picked.some((entry) => entry.id === character.id)) continue;
+    picked.push(character);
+  }
+
+  return picked.sort(
+    (a, b) => RARITY_ORDER.indexOf(b.rarity) - RARITY_ORDER.indexOf(a.rarity),
+  );
 }

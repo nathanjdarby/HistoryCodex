@@ -3,6 +3,10 @@ type PickedImportFile = {
   file: File;
 };
 
+type DirectoryHandleWithEntries = FileSystemDirectoryHandle & {
+  entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
+};
+
 const MAX_UPLOAD_BATCH_BYTES = 8 * 1024 * 1024;
 
 const CARD_TYPE_FOLDER_NAMES = new Set([
@@ -54,13 +58,15 @@ async function collectFilesFromDirectoryHandle(
 ): Promise<PickedImportFile[]> {
   const files: PickedImportFile[] = [];
 
-  for await (const [name, entry] of handle.entries()) {
+  for await (const [name, entry] of (handle as DirectoryHandleWithEntries).entries()) {
     const relativePath = basePath ? `${basePath}/${name}` : name;
     if (entry.kind === "file") {
-      files.push({ relativePath, file: await entry.getFile() });
+      files.push({ relativePath, file: await (entry as FileSystemFileHandle).getFile() });
       continue;
     }
-    files.push(...(await collectFilesFromDirectoryHandle(entry, relativePath)));
+    files.push(
+      ...(await collectFilesFromDirectoryHandle(entry as FileSystemDirectoryHandle, relativePath)),
+    );
   }
 
   return files;

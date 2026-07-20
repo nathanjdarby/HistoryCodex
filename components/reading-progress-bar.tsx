@@ -13,9 +13,9 @@ export function ReadingProgressBar({
 
   return (
     <div>
-      <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-neutral-800">
+      <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-surface-raised">
         <div
-          className="h-full bg-amber-600 transition-all"
+          className="h-full bg-accent transition-all"
           style={{ width: `${progressPercent}%` }}
         />
         {milestones.map((milestone) => {
@@ -28,7 +28,7 @@ export function ReadingProgressBar({
                 collected
                   ? "bg-emerald-300"
                   : reached
-                    ? "bg-amber-200"
+                    ? "bg-gold-bright"
                     : "bg-neutral-600"
               }`}
               style={{ left: `${milestone}%` }}
@@ -55,8 +55,8 @@ export function ReadingProgressBar({
                 collected
                   ? "text-emerald-400"
                   : reached
-                    ? "text-amber-400"
-                    : "text-neutral-600"
+                    ? "text-gold"
+                    : "text-subtle"
               }`}
               style={{ left: `${milestone}%` }}
             >

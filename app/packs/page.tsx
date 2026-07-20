@@ -16,6 +16,7 @@ import {
   type PackPaymentMethod,
 } from "@/lib/pack-pricing";
 import { CARD_TYPE_LABELS_PLURAL, type CardType } from "@/lib/card-types";
+import { PageHeader, PointsPill } from "@/components/page-header";
 
 type Stats = { pointsBalance: number };
 type EraBalance = {
@@ -128,13 +129,13 @@ function PackArtwork({
 }) {
   const baseClass = `relative aspect-[4/7] overflow-hidden rounded-xl border-2 shadow-lg ${
     animate
-      ? "animate-bounce border-amber-500 shadow-[0_0_30px_-4px_rgba(245,158,11,0.7)]"
-      : "border-amber-700/50"
+      ? "animate-bounce border-gold shadow-[0_0_30px_-4px_color-mix(in_srgb,var(--gold)_55%,transparent)]"
+      : "border-accent/45"
   } ${className}`;
 
   if (config.imageUrl) {
     return (
-      <div className={`${baseClass} bg-neutral-950`}>
+      <div className={`${baseClass} bg-background`}>
         <Image src={config.imageUrl} alt={config.name} fill sizes={sizes} className="object-cover" />
       </div>
     );
@@ -142,9 +143,9 @@ function PackArtwork({
 
   return (
     <div
-      className={`${baseClass} flex items-center justify-center bg-gradient-to-br from-amber-900/50 via-amber-950/30 to-neutral-950`}
+      className={`${baseClass} flex items-center justify-center bg-gradient-to-br from-accent/30 via-surface to-neutral-950`}
     >
-      <Gift size={40} className={animate ? "animate-pulse text-amber-300" : "text-amber-400"} />
+      <Gift size={40} className={animate ? "animate-pulse text-gold-bright" : "text-gold"} />
     </div>
   );
 }
@@ -164,30 +165,30 @@ function PackShopTile({
     <button
       type="button"
       onClick={onSelect}
-      className="group flex flex-col overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900/50 text-left transition-all hover:-translate-y-0.5 hover:border-amber-700/60 hover:shadow-[0_12px_40px_-20px_rgba(245,158,11,0.45)]"
+      className="group flex flex-col overflow-hidden rounded-xl border border-border bg-surface/50 text-left transition-all hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-[0_12px_40px_-20px_color-mix(in_srgb,var(--accent)_45%,transparent)]"
     >
       <div className="relative p-3 pb-0">
         <PackArtwork config={config} className="w-full" sizes="(max-width: 768px) 45vw, 220px" />
         {!inStock && (
-          <span className="absolute right-5 top-5 rounded bg-neutral-950/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-400 ring-1 ring-neutral-700">
+          <span className="absolute right-5 top-5 rounded bg-background/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted ring-1 ring-neutral-700">
             Out of stock
           </span>
         )}
       </div>
       <div className="flex flex-1 flex-col gap-1 p-3 pt-2">
-        <p className="line-clamp-2 text-sm font-semibold text-neutral-100 group-hover:text-amber-100">
+        <p className="line-clamp-2 text-sm font-semibold text-foreground group-hover:text-foreground">
           {config.name}
         </p>
-        <p className="text-xs text-neutral-500">{packScope(config)}</p>
+        <p className="text-xs text-muted">{packScope(config)}</p>
         <div className="mt-auto flex items-center justify-between pt-2 text-xs">
-          <span className="flex flex-col gap-0.5 font-medium text-amber-200">
+          <span className="flex flex-col gap-0.5 font-medium text-gold-bright">
             {prices.eraPrice != null ? (
               <>
                 <span className="flex items-center gap-1">
                   <Coins size={12} />
                   {prices.eraPrice} era pts
                 </span>
-                <span className="text-[10px] font-normal text-neutral-500">
+                <span className="text-[10px] font-normal text-muted">
                   or {prices.generalPrice} general
                 </span>
               </>
@@ -198,7 +199,7 @@ function PackShopTile({
               </span>
             )}
           </span>
-          <span className="text-neutral-500">
+          <span className="text-muted">
             {config.cardsPerPack} card{config.cardsPerPack === 1 ? "" : "s"}
           </span>
         </div>
@@ -248,14 +249,14 @@ function PackDetailModal({
       onClick={phase === "opening" ? undefined : onClose}
     >
       <div
-        className="relative max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl"
+        className="relative max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-background shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
           disabled={phase === "opening"}
-          className="absolute right-3 top-3 z-10 rounded-md p-1.5 text-neutral-500 hover:bg-neutral-900 hover:text-neutral-200 disabled:opacity-40"
+          className="absolute right-3 top-3 z-10 rounded-md p-1.5 text-muted hover:bg-surface hover:text-foreground disabled:opacity-40"
           aria-label="Close"
         >
           <X size={18} />
@@ -272,24 +273,24 @@ function PackDetailModal({
           </div>
 
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wide text-amber-500/90">Booster pack</p>
-            <h2 className="mt-1 text-xl font-semibold text-amber-100">{config.name}</h2>
+            <p className="text-xs font-medium uppercase tracking-wide text-gold/90">Booster pack</p>
+            <h2 className="mt-1 text-xl font-semibold text-foreground">{config.name}</h2>
             {config.description ? (
-              <p className="mt-2 text-sm leading-relaxed text-neutral-400">{config.description}</p>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{config.description}</p>
             ) : (
-              <p className="mt-2 text-sm text-neutral-500">
+              <p className="mt-2 text-sm text-muted">
                 A curated pull of cards from your collection catalog.
               </p>
             )}
 
             <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
-              <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <dt className="text-[11px] uppercase tracking-wide text-neutral-500">Price</dt>
-                <dd className="mt-0.5 font-medium text-amber-200">
+              <div className="rounded-lg border border-border bg-surface/40 px-3 py-2">
+                <dt className="text-[11px] uppercase tracking-wide text-muted">Price</dt>
+                <dd className="mt-0.5 font-medium text-gold-bright">
                   {hasEraPricing ? (
                     <>
                       {prices.eraPrice} era pts
-                      <span className="mt-0.5 block text-xs font-normal text-neutral-500">
+                      <span className="mt-0.5 block text-xs font-normal text-muted">
                         or {prices.generalPrice} general pts
                       </span>
                     </>
@@ -298,24 +299,24 @@ function PackDetailModal({
                   )}
                 </dd>
               </div>
-              <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <dt className="text-[11px] uppercase tracking-wide text-neutral-500">Contents</dt>
-                <dd className="mt-0.5 font-medium text-neutral-200">
+              <div className="rounded-lg border border-border bg-surface/40 px-3 py-2">
+                <dt className="text-[11px] uppercase tracking-wide text-muted">Contents</dt>
+                <dd className="mt-0.5 font-medium text-foreground">
                   {cardsPerPack} card{cardsPerPack === 1 ? "" : "s"}
                 </dd>
               </div>
-              <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <dt className="text-[11px] uppercase tracking-wide text-neutral-500">Era</dt>
-                <dd className="mt-0.5 font-medium text-neutral-200">{eraLabel}</dd>
+              <div className="rounded-lg border border-border bg-surface/40 px-3 py-2">
+                <dt className="text-[11px] uppercase tracking-wide text-muted">Era</dt>
+                <dd className="mt-0.5 font-medium text-foreground">{eraLabel}</dd>
               </div>
-              <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 px-3 py-2">
-                <dt className="text-[11px] uppercase tracking-wide text-neutral-500">Card type</dt>
-                <dd className="mt-0.5 font-medium text-neutral-200">{cardTypeLabel}</dd>
+              <div className="rounded-lg border border-border bg-surface/40 px-3 py-2">
+                <dt className="text-[11px] uppercase tracking-wide text-muted">Card type</dt>
+                <dd className="mt-0.5 font-medium text-foreground">{cardTypeLabel}</dd>
               </div>
             </dl>
 
             {eligibility && (
-              <p className="mt-3 text-xs text-neutral-500">
+              <p className="mt-3 text-xs text-muted">
                 {eligibility.poolSize ?? eligibility.remaining} card type
                 {(eligibility.poolSize ?? eligibility.remaining) === 1 ? "" : "s"} in this pack&apos;s pool.
                 Duplicates can be pulled.
@@ -324,7 +325,7 @@ function PackDetailModal({
           </div>
         </div>
 
-        <div className="border-t border-neutral-800 px-5 py-4 sm:px-6">
+        <div className="border-t border-border px-5 py-4 sm:px-6">
           <div className="space-y-3">
               {hasEraPricing && (
                 <div className="grid grid-cols-2 gap-2">
@@ -334,15 +335,15 @@ function PackDetailModal({
                     disabled={phase === "opening"}
                     className={`rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
                       paymentMethod === "era"
-                        ? "border-amber-600 bg-amber-950/40 text-amber-100"
-                        : "border-neutral-800 bg-neutral-900/40 text-neutral-400 hover:border-neutral-700"
+                        ? "border-accent bg-accent/10 text-foreground"
+                        : "border-border bg-surface/40 text-muted hover:border-border-strong"
                     }`}
                   >
-                    <span className="block text-[11px] uppercase tracking-wide text-neutral-500">
+                    <span className="block text-[11px] uppercase tracking-wide text-muted">
                       Era points
                     </span>
                     <span className="mt-0.5 block font-medium">{prices.eraPrice} pts</span>
-                    <span className="mt-0.5 block text-xs text-neutral-500">
+                    <span className="mt-0.5 block text-xs text-muted">
                       {eligibility?.eraPointsBalance ?? 0} available
                     </span>
                   </button>
@@ -352,15 +353,15 @@ function PackDetailModal({
                     disabled={phase === "opening"}
                     className={`rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
                       paymentMethod === "general"
-                        ? "border-amber-600 bg-amber-950/40 text-amber-100"
-                        : "border-neutral-800 bg-neutral-900/40 text-neutral-400 hover:border-neutral-700"
+                        ? "border-accent bg-accent/10 text-foreground"
+                        : "border-border bg-surface/40 text-muted hover:border-border-strong"
                     }`}
                   >
-                    <span className="block text-[11px] uppercase tracking-wide text-neutral-500">
+                    <span className="block text-[11px] uppercase tracking-wide text-muted">
                       General points
                     </span>
                     <span className="mt-0.5 block font-medium">{prices.generalPrice} pts</span>
-                    <span className="mt-0.5 block text-xs text-neutral-500">
+                    <span className="mt-0.5 block text-xs text-muted">
                       {eligibility?.globalPointsBalance ?? stats?.pointsBalance ?? 0} available
                     </span>
                   </button>
@@ -368,11 +369,11 @@ function PackDetailModal({
               )}
 
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="text-sm text-neutral-400">
+                <div className="text-sm text-muted">
                   {balanceLabel}:{" "}
-                  <span className="font-medium text-amber-200">{balance} pts</span>
+                  <span className="font-medium text-gold-bright">{balance} pts</span>
                   {hasEraPricing && paymentMethod === "general" && (
-                    <span className="ml-2 text-xs text-neutral-500">
+                    <span className="ml-2 text-xs text-muted">
                       ({config.eraName}: {eligibility?.eraPointsBalance ?? 0} era pts)
                     </span>
                   )}
@@ -381,7 +382,7 @@ function PackDetailModal({
                   type="button"
                   onClick={onOpen}
                   disabled={phase === "opening" || !canAfford || !hasStock}
-                  className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-neutral-800 disabled:text-neutral-500"
+                  className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:cursor-not-allowed disabled:bg-surface-raised disabled:text-muted"
                 >
                   {phase === "opening"
                     ? "Opening…"
@@ -391,12 +392,12 @@ function PackDetailModal({
           </div>
 
           {!hasStock && phase === "idle" && (
-            <p className="mt-2 text-sm text-neutral-500">
+            <p className="mt-2 text-sm text-muted">
               No cards are configured for this pack yet.
             </p>
           )}
           {hasStock && !canAfford && phase === "idle" && (
-            <p className="mt-2 text-sm text-neutral-500">
+            <p className="mt-2 text-sm text-muted">
               {hasEraPricing && paymentMethod === "era"
                 ? `You need more ${config.eraName ?? "era"} points to open this pack.`
                 : "You need more general points to open this pack."}
@@ -554,22 +555,18 @@ export default function PacksPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="flex items-center gap-2 text-2xl font-semibold text-amber-100">
-            <Package size={22} className="text-amber-500" />
-            Booster pack shop
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-neutral-400">
-            Browse available packs, then tap one to see what&apos;s inside and open it with your
-            reading points.
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5 rounded-full border border-amber-800/50 bg-amber-950/40 px-3 py-1.5 text-sm font-medium text-amber-200">
-          <Sparkles size={14} />
-          {stats?.pointsBalance ?? 0} pts
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Shop"
+        title="Booster pack shop"
+        description="Browse available packs, then tap one to see what's inside and open it with your reading points."
+        icon={Package}
+        actions={
+          <PointsPill>
+            <Sparkles size={14} />
+            {stats?.pointsBalance ?? 0} pts
+          </PointsPill>
+        }
+      />
 
       {error && !packReveal && (
         <p className="rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3 text-sm text-red-300">
@@ -577,13 +574,13 @@ export default function PacksPage() {
         </p>
       )}
 
-      {isLoading && <p className="text-sm text-neutral-500">Loading the shop…</p>}
+      {isLoading && <p className="text-sm text-muted">Loading the shop…</p>}
 
       {!isLoading && activeConfigs.length === 0 && (
-        <div className="rounded-xl border border-dashed border-neutral-800 bg-neutral-900/20 px-6 py-10 text-center">
-          <Gift size={32} className="mx-auto text-neutral-600" />
-          <p className="mt-3 text-neutral-300">No booster packs are on sale right now.</p>
-          <p className="mt-1 text-sm text-neutral-500">Check back later for new drops.</p>
+        <div className="app-empty">
+          <Gift size={32} className="mx-auto text-subtle" />
+          <p className="mt-3 text-foreground/80">No booster packs are on sale right now.</p>
+          <p className="mt-1 text-sm">Check back later for new drops.</p>
         </div>
       )}
 
@@ -606,7 +603,7 @@ export default function PacksPage() {
       )}
 
       {!isLoading && activeConfigs.length > 0 && (
-        <p className="flex items-center gap-1.5 text-xs text-neutral-500">
+        <p className="flex items-center gap-1.5 text-xs text-muted">
           <Layers size={12} />
           {activeConfigs.length} pack{activeConfigs.length === 1 ? "" : "s"} available · duplicate pulls
           allowed

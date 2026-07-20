@@ -79,14 +79,14 @@ function AdminNavLink({
       href={href}
       className={`relative flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors ${
         active
-          ? "bg-neutral-800 text-neutral-100"
-          : "text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200"
+          ? "bg-accent/15 text-gold-bright"
+          : "text-muted hover:bg-accent/10 hover:text-foreground"
       }`}
     >
       <Icon size={14} />
       {label}
       {badge > 0 && (
-        <span className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-600 px-1 text-[10px] font-semibold text-amber-50">
+        <span className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-semibold text-accent-foreground">
           {badge > 99 ? "99+" : badge}
         </span>
       )}
@@ -133,43 +133,43 @@ function CardsNavDropdown({ pathname }: { pathname: string }) {
         aria-haspopup="menu"
         className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors ${
           cardsNavActive || open
-            ? "bg-neutral-800 text-neutral-100"
-            : "text-neutral-400 hover:bg-neutral-900 hover:text-neutral-200"
+            ? "bg-accent/15 text-gold-bright"
+            : "text-muted hover:bg-accent/10 hover:text-foreground"
         }`}
       >
         <IdCard size={14} />
         Cards
         {activeLink ? (
-          <span className="hidden text-neutral-500 sm:inline">· {activeLink.label}</span>
+          <span className="hidden text-muted sm:inline">· {activeLink.label}</span>
         ) : null}
         <ChevronDown
           size={14}
-          className={`text-neutral-500 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`text-muted transition-transform ${open ? "rotate-180" : ""}`}
         />
       </button>
 
       {open ? (
         <div
           role="menu"
-          className="absolute left-0 top-full z-50 mt-1 min-w-[11rem] overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900 py-1 shadow-xl"
+          className="absolute left-0 top-full z-50 mt-1 min-w-[11rem] overflow-hidden rounded-lg border border-border bg-surface py-1 shadow-xl"
         >
           {cardLinks.map(({ href, label, icon: Icon }) => {
             const active = isNavActive(pathname, href);
                 const showDivider = href === "/admin/packs";
             return (
               <div key={href}>
-                {showDivider ? <div className="my-1 border-t border-neutral-800" role="separator" /> : null}
+                {showDivider ? <div className="my-1 border-t border-border" role="separator" /> : null}
                 <Link
                   href={href}
                   role="menuitem"
                   onClick={() => setOpen(false)}
                   className={`flex items-center gap-2 px-3 py-2 text-sm transition-colors ${
                     active
-                      ? "bg-neutral-800 text-neutral-100"
-                      : "text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100"
+                      ? "bg-surface-raised text-foreground"
+                      : "text-foreground/80 hover:bg-surface-raised hover:text-foreground"
                   }`}
                 >
-                  <Icon size={14} className={active ? "text-amber-400" : "text-neutral-500"} />
+                  <Icon size={14} className={active ? "text-gold" : "text-muted"} />
                   {label}
                 </Link>
               </div>
@@ -191,7 +191,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-accent-border pb-3">
         <nav className="flex flex-wrap items-center gap-1">
           {mainLinks.map((link) => (
             <AdminNavLink

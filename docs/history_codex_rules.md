@@ -1,183 +1,193 @@
 # HistoryCodex: Core Rulebook & Game Logic
 
-*Version 1.0 — Canonical rules for the digital TCG*
+*Version 2.0 — Canonical rules for the digital TCG*
 
-Welcome to **HistoryCodex**, a tactical trading card game where different eras, cultures, and archetypes clash across the timeline. This document is the single source of truth for v1 gameplay in the app.
-
----
-
-## Conflict Resolution (v1 canonical)
-
-These rules override any earlier draft contradictions:
-
-| Topic | Canonical v1 rule |
-| --- | --- |
-| Resource name | **Chronos Points (CP)** |
-| CP track | Turn 1 = 50, Turn 2 = 100, Turn 3 = 150, Turn 4 = 200, Turn 5+ = 300 (cap). Unspent CP does **not** carry over. |
-| Merchant passive | **+20 CP refund immediately** when a Merchant is deployed |
-| Monarch passive | **+10 ATK aura** to other friendly units in the same lane (not +DEF) |
-| Scholar passive | **+1 draw** per active Scholar during Chronos Phase |
-| Warrior passive | **Must be targeted first** in-lane before other units |
-| Win condition | **3 influence tokens on one Location** OR **3 captured Locations** total |
-| Time sickness | Units **cannot attack** the turn they are deployed |
-| Player deck | **40 cards**, max **3 copies** each; baseline mix — **Units 18–20**, **Events 8–10**, **Locations 6–8**, **Characters 4–5** (all shuffled together) |
-| Starting battlefield | **No location** on the table at match start |
-| Playing locations | During Logistics, play **one location from hand** onto the lane (pay CP). Overrides opponent location and **resets all influence** |
-| Mythic cost | 450 CP cards require cost-reduction; not playable on a normal Turn 5 refresh alone |
+Welcome to **HistoryCodex**, a tactical trading card game where different eras, cultures, and archetypes clash across the timeline.
 
 ---
 
-## 1. Core Mechanics & Win Conditions
+## Victory
 
-Players struggle for control over historical **Locations** — not a life total.
+There is **no player health or life total**. You win a territorial struggle:
 
-- **Chronos Deck:** Each player builds a deck of exactly **40 cards** (max **3 copies** per card). Recommended baseline composition:
+1. **Reach the Influence threshold** on the active Location to **capture** it.
+2. **Capture the required number of Locations** (default **3**) to win the match.
 
-| Card type | Count | Role |
-| --- | --- | --- |
-| Units | 18–20 (~50%) | Frontline infantry — establish board presence early |
-| Events | 8–10 (~22%) | Removal, tricks, burst damage |
-| Locations | 6–8 (~18%) | Persistent buffs and field control |
-| Characters | 4–5 (~10%) | High-impact heroes |
+Reaching the Influence threshold **never ends the match by itself** — it always resolves as a Location capture.
 
-Any Eras may be mixed. All card types are shuffled into one deck and drawn to hand normally.
-- **Battlefield:** Starts with **no location** on the table. During Logistics, a player may play a location from hand onto the lane (pay its CP cost). Only **one location** occupies the lane at a time. Playing your location on an opponent's location **overrides** it and **resets all influence** on that lane.
-- **Win:** First player to earn **3 influence tokens on a single Location**, or **capture 3 distinct Locations**, wins.
+> Reach the Influence threshold to capture the active Location. Capture the required number of Locations to win the match.
 
 ---
 
-## 2. Chronos Points (CP)
+## Chronos Points (CP)
 
-| Turn | CP granted |
+CP **refreshes each turn** and **does not carry over**.
+
+| Turn | Default CP |
 | --- | --- |
 | 1 | 50 |
 | 2 | 100 |
 | 3 | 150 |
-| 4 | 200 |
-| 5+ | 300 (cap) |
+| 4 | 225 |
+| 5 | 300 |
+| 6+ | 450 (cap) |
 
-Card **cost** on each card is its CP deployment price (Common ≈ 20, Legendary ≈ 300, Mythic = 450).
+Card **cost** equals CP to play. **Mythic** cards (450 CP) are naturally playable from turn 6 under default rules. Cost-reduction effects can enable earlier deployment.
 
----
-
-## 3. Card Types
-
-### Character / Unit cards
-
-- **Cost**, **Archetype**, **ATK**, **DEF**, **Era**, **Ability**
-- Deployed into a Location lane during Logistics Phase
-
-### Location cards
-
-- **3 copies** max per card in each player's 40-card deck (drawn to hand normally)
-- Play from hand during Logistics Phase (pay CP)
-- Define lane era and **Home Ground** buff (+DEF to matching-era units)
-- Override an existing location to reset influence on that lane
-
-### Event cards
-
-One-shot Logistics actions. **0 ATK/DEF**, never placed on the board. Max **1 Event per turn**.
-
-| `abilityEffect` | Event template | Effect |
-| --- | --- | --- |
-| `flat_attack` | Offensive Maneuver | +abilityValue ATK to all friendly units in chosen lane until end of turn |
-| `flat_defense` | Fortify Position | +abilityValue DEF to all friendly units in chosen lane until end of turn |
-| `vs_higher_rarity_attack` | Decisive Strike | Deal abilityValue DEF damage to one enemy unit in chosen lane |
-| `vs_lower_rarity_attack` | Economic Surge | Gain abilityValue CP immediately |
-| `scry` | Royal Survey | Look at top N cards; reorder them on deck |
-| `search_deck` | Archive Search | Reveal top N; add one unit/character to hand; shuffle rest |
-| `discard_to_hand` | Historical Revision | Return one card from discard to hand |
-| `discard_draw` | Mobilize Reserves | Discard one card from hand, draw two |
-| `heal_unit` | Field Surgeon | Restore abilityValue DEF to a friendly unit |
-| `add_influence` | Proclamation | Gain abilityValue influence on chosen lane |
-| `remove_influence` | Undermine Authority | Remove abilityValue enemy influence from lane |
-| `cost_reduction` | War Bonds | Next deploy this turn costs abilityValue less CP |
-| `block_influence_gain` | Protracted Siege | Opponent cannot gain influence this Consolidation |
-| `replace_location` | Relocate Capital | Replace active location with a location from your hand (free); resets influence |
-
-Interactive deck effects (`scry`, `search_deck`, `discard_to_hand`, `discard_draw`) pause the match until the player confirms a choice in the battle UI.
+Merchant refunds and other CP gains respect the configured **CP cap** unless **CP overflow** is enabled in Admin Rules.
 
 ---
 
-## 4. Archetype Passive Rules
+## Deck
 
-| Archetype | Role |
+- **40 cards** in one Chronos deck (Units, Characters, Events, Locations shuffled together)
+- **Max 3 copies** per card
+- Recommended mix: **18–20 Units**, **8–10 Events**, **6–8 Locations**, **4–5 Characters**
+- **Opening hand:** 5 cards, guaranteed to include at least one Location (injected silently if needed)
+- Decks without any Location **cannot start a match**
+
+---
+
+## Battlefield (one lane)
+
+- Match begins with **no Location**
+- During **Logistics**, play a Location from hand (pay CP)
+- **Deploying Units/Characters requires an active Location**
+- Only **one Location** is active at a time
+
+### Location replacement
+
+When you play a Location over an existing one:
+
+- Incoming Location becomes active
+- **All Influence resets to 0**
+- Replaced Location goes to **its owner's discard pile**
+- Surviving Units remain and **recalculate Era synergy**
+
+---
+
+## Influence
+
+### Establish Influence (Logistics, once per turn)
+
+- Requires an active Location and a **ready** friendly Unit
+- Cannot be used by Units with **summoning sickness** or already **committed**
+- Commits the chosen Unit — it **cannot attack** this turn
+- Grants **+1 Influence** immediately (respects block effects and capture threshold)
+- If this reaches the threshold, **capture resolves immediately**
+
+### Passive Consolidation Influence
+
+At **Consolidation**, gain Influence only when:
+
+- An active Location exists
+- You control at least one surviving Unit
+- Opponent controls **no** Units
+- Influence gain is not blocked
+
+**Leaders** grant **+1 bonus Influence** when uncontested (non-stacking by default).
+
+---
+
+## Capture aftermath
+
+When you capture a Location:
+
+- Your **captured Locations** counter increases
+- Captured Location is recorded in **capture history** (not sent to discard)
+- **Enemy Units are routed to discard** (death triggers fire)
+- **Your surviving Units remain** in the lane
+- Active Location is cleared; Influence resets
+- Surviving Units cannot attack, establish Influence, or gain Location synergy until a new Location is played
+- Either player may play the next Location during Logistics
+
+---
+
+## Combat
+
+- Attacks occur during **Campaign**, within the active lane
+- **Warriors** must be targeted first while any live Warrior remains
+- **Simultaneous damage** — both Units deal DEF damage
+- Units at **0 DEF or below** are destroyed and sent to their owner's **discard pile**
+- Death triggers resolve once
+
+### Unit commitment
+
+Units committed via **Establish Influence** cannot attack until commitment clears at their owner's next **Chronos** phase.
+
+---
+
+## Dynamic Era synergy
+
+Location DEF bonuses are **not permanent**. They recalculate when:
+
+- A Unit deploys
+- A Location is played or replaced
+- A Location is captured and cleared
+
+Damage already taken is preserved when bonuses change.
+
+**Sailors** gain **+5 DEF** when eras mismatch, **+10** when they match (also dynamic).
+
+---
+
+## Archetype passives
+
+| Archetype | Passive |
 | --- | --- |
-| **Warrior** | Frontline. Must be targeted first by enemy attacks in the lane. **Giant Slayer:** double ATK vs Epic/Legendary/Mythic targets. |
-| **Monarch** | **Commanding Presence:** +10 ATK to other friendly units in the same lane. |
-| **Merchant** | **Shrewd Bargain:** refund **20 CP** when deployed. |
-| **Scholar** | **Fortified Study:** draw +1 card during your Chronos Phase while active. |
-| **Sailor** | **Sea Legs:** +5 DEF when location is a different era, +10 when eras match. |
-| **Leader** | **Rally the Host:** +1 extra influence when lane is uncontested at Consolidation (stacks with base +1). |
-
-Units may also have triggered abilities via `abilityTrigger`:
-
-| Trigger | When it fires |
-| --- | --- |
-| `deploy` | When the unit enters the lane |
-| `death` | When the unit is destroyed |
-| `campaign_start` | At the start of your Campaign phase |
+| **Warrior** | Must be targeted first; **Giant Slayer** doubles own ATK vs Epic/Legendary/Mythic |
+| **Monarch** | **+10 ATK aura** to other friendlies in lane (non-stacking by default) |
+| **Merchant** | **+20 CP refund** on deploy (respects CP cap) |
+| **Scholar** | **+1 Chronos draw** per Scholar (capped, default max 2) |
+| **Sailor** | Dynamic DEF bonus based on Location era |
+| **Leader** | **+1 Consolidation Influence** when uncontested (non-stacking by default) |
 
 ---
 
-## 5. Turn Structure
+## Unification (one-lane)
 
-Each turn has four phases:
+Monarchs with an ability name containing **"Unification"** may use a once-per-turn Logistics action:
 
-### Phase 1: Chronos (Draw & Resource)
-
-1. Refresh CP to the turn-track value
-2. Draw 1 card
-3. Draw +1 per friendly Scholar on the board
-
-### Phase 2: Logistics (Deployment)
-
-- **Locations:** play from hand onto the lane (pay CP). Overrides opponent location and resets influence.
-- Deploy Characters/Units: pay CP, choose a lane (**requires a location on the lane**)
-- **Era Synergy:** if unit Era matches Location Era, apply Location DEF buff (+10 to +90 by location rarity)
-- **Time sickness:** cannot attack this turn
-- **Merchant:** +20 CP on deploy
-- **Events:** play from hand (see Event templates above)
-
-### Phase 3: Campaign (Combat)
-
-- Attacks stay within the same lane
-- Warriors must be targeted first
-- Simultaneous damage:
-  - `Defender DEF -= Attacker ATK`
-  - `Attacker DEF -= Defender ATK`
-- Units at DEF ≤ 0 go to discard
-
-### Phase 4: Consolidation
-
-- **Lane dominance:** if you have units and opponent has none, place **1 influence token** on that Location
-- **Propaganda / occupation:** some Events and deploy triggers grant influence even when contested
-- **Siege delay:** `block_influence_gain` prevents the opponent from earning Consolidation influence that turn
-- **Capture:** at **3 tokens** from one player, that player captures the Location (counts toward win); the lane is cleared — play a new location from hand to continue fighting there
-- Pass turn to opponent
+- Choose another friendly Unit in the lane (not the Monarch)
+- Remove summoning sickness / clear commitment from that Unit
+- Grant temporary **ATK bonus** until end of turn
 
 ---
 
-## 6. Standardized Ability Logic
+## Historical Exhaustion
 
-- **Commanding Presence (Monarchs):** +10 ATK aura to other friendly units in lane
-- **Shrewd Bargain (Merchants):** +20 CP refund on deploy
-- **Fortified Study (Scholars):** +1 draw during Chronos while active
-- **Giant Slayer (Warriors):** double ATK vs Epic/Legendary/Mythic
-- **Unification (special Monarchs):** on deploy, move 1 friendly unit from an adjacent lane into this lane (when ability present)
+When a player cannot draw during **Chronos**:
 
----
-
-## 7. Setup Checklist
-
-1. Both players shuffle 40-card decks; draw **5** cards
-2. If your opening hand has no location, you may **redraw** (reshuffle and draw 5 again) until you have one
-3. Battlefield begins with **no location** on the lane
-4. Decide starting player
-5. Begin Turn 1 (50 CP)
+- No immediate loss (there is no health)
+- Failed mandatory Chronos draws are tracked
+- After **3 consecutive** failed Chronos draws (configurable), that player loses to **Historical Exhaustion**
+- Returning cards to the deck resets the counter
 
 ---
 
-## 8. Solo vs AI (Digital v1)
+## Turn structure
 
-The app supports **Practice Match vs AI**: one human player, heuristic AI opponent, persisted match state, deck builder from owned collection cards.
+1. **Chronos** — refresh CP, draw, Scholar bonus, exhaustion check
+2. **Logistics** — play Location, deploy, Events, Establish Influence, Unification
+3. **Campaign** — combat
+4. **Consolidation** — passive Influence, capture checks, pass turn
+
+---
+
+## Event effect families
+
+Events use data-driven `abilityEffect` keys including:
+
+- Standard: `flat_attack`, `flat_defense`, `add_influence`, `remove_influence`, …
+- **Epidemic** — DEF damage to all Units in lane
+- **Treaty** — block attacks / Influence for the turn
+- **Revolution** — CP grant + deploy cost reduction
+- **Trade Route** — CP + draw
+- **Reform** — suppress enemy auras until end of turn
+- **Forced movement** — return to hand, discard, or exhaust enemy Units
+
+---
+
+## Configurable rules (Admin)
+
+All balance values are configurable: CP track, CP cap, overflow, influence threshold, locations to win, Merchant refund, Monarch aura, Leader bonus, Scholar draw cap, establish Influence limit, exhaustion threshold, and more.

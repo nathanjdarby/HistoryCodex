@@ -132,15 +132,15 @@ export default function ErasPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-amber-100">Eras &amp; Civilizations</h1>
-          <p className="text-sm text-neutral-400">
+          <h1 className="text-2xl font-semibold text-foreground">Eras &amp; Civilizations</h1>
+          <p className="text-sm text-muted">
             Create, edit, and remove historical periods. Each era drives timeline swimlanes, book
             grouping, character pools, and pack scoping.
           </p>
         </div>
         <button
           onClick={openCreateForm}
-          className="flex items-center gap-1.5 rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600"
+          className="flex items-center gap-1.5 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-foreground hover:brightness-110"
         >
           <Plus size={16} />
           New era
@@ -153,11 +153,11 @@ export default function ErasPage() {
         </div>
       )}
 
-      {isLoading && <p className="text-neutral-500">Loading eras…</p>}
+      {isLoading && <p className="text-muted">Loading eras…</p>}
 
-      <div className="overflow-x-auto rounded-lg border border-neutral-800">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <table className="min-w-full text-sm">
-          <thead className="border-b border-neutral-800 bg-neutral-900/80 text-left text-xs uppercase tracking-wide text-neutral-500">
+          <thead className="border-b border-border bg-surface/80 text-left text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="px-3 py-2">Era</th>
               <th className="px-3 py-2">Region</th>
@@ -170,20 +170,20 @@ export default function ErasPage() {
           <tbody>
             {!isLoading && (eras?.length ?? 0) === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-neutral-500">
-                  No eras yet. Create one, or run <code className="text-neutral-400">npm run db:seed</code>{" "}
+                <td colSpan={6} className="px-3 py-8 text-center text-muted">
+                  No eras yet. Create one, or run <code className="text-muted">npm run db:seed</code>{" "}
                   for starter data.
                 </td>
               </tr>
             )}
             {eras?.map((era) => (
-              <tr key={era.id} className="border-b border-neutral-800/80 hover:bg-neutral-900/40">
+              <tr key={era.id} className="border-b border-border/80 hover:bg-surface/40">
                 <td className="px-3 py-3">
-                  <p className="font-medium text-neutral-100">{era.name}</p>
-                  <p className="font-mono text-[10px] text-neutral-600">{era.slug}</p>
+                  <p className="font-medium text-foreground">{era.name}</p>
+                  <p className="font-mono text-[10px] text-subtle">{era.slug}</p>
                 </td>
-                <td className="px-3 py-3 text-neutral-400">{era.region ?? "—"}</td>
-                <td className="px-3 py-3 whitespace-nowrap text-neutral-300">
+                <td className="px-3 py-3 text-muted">{era.region ?? "—"}</td>
+                <td className="px-3 py-3 whitespace-nowrap text-foreground/80">
                   {formatYearRange(era.startYear, era.endYear)}
                 </td>
                 <td className="px-3 py-3">
@@ -200,7 +200,7 @@ export default function ErasPage() {
                     />
                   </div>
                 </td>
-                <td className="max-w-xs px-3 py-3 text-neutral-400">
+                <td className="max-w-xs px-3 py-3 text-muted">
                   <p className="line-clamp-2">{era.description ?? "—"}</p>
                 </td>
                 <td className="px-3 py-3">
@@ -208,7 +208,7 @@ export default function ErasPage() {
                     <button
                       type="button"
                       onClick={() => openEditForm(era)}
-                      className="rounded p-1.5 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200"
+                      className="rounded p-1.5 text-muted hover:bg-surface-raised hover:text-foreground"
                       aria-label={`Edit ${era.name}`}
                     >
                       <Pencil size={15} />
@@ -217,7 +217,7 @@ export default function ErasPage() {
                       type="button"
                       onClick={() => promptDelete(era)}
                       disabled={deleteMutation.isPending}
-                      className="rounded p-1.5 text-neutral-400 hover:bg-red-950 hover:text-red-300 disabled:opacity-50"
+                      className="rounded p-1.5 text-muted hover:bg-red-950 hover:text-red-300 disabled:opacity-50"
                       aria-label={`Delete ${era.name}`}
                     >
                       <Trash2 size={15} />
@@ -241,16 +241,16 @@ export default function ErasPage() {
               e.preventDefault();
               saveMutation.mutate();
             }}
-            className="my-8 w-full max-w-2xl rounded-lg border border-neutral-800 bg-neutral-900/95 p-5 shadow-2xl"
+            className="my-8 w-full max-w-2xl rounded-lg border border-border bg-surface/95 p-5 shadow-2xl"
           >
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 className="text-lg font-medium text-neutral-100">
+              <h2 className="text-lg font-medium text-foreground">
                 {editingId ? "Edit era" : "Create era"}
               </h2>
               <button
                 type="button"
                 onClick={closeForm}
-                className="rounded p-1 text-neutral-500 hover:bg-neutral-800 hover:text-neutral-200"
+                className="rounded p-1 text-muted hover:bg-surface-raised hover:text-foreground"
                 aria-label="Close"
               >
                 <X size={18} />
@@ -271,7 +271,7 @@ export default function ErasPage() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g. Tudor England"
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
@@ -280,7 +280,7 @@ export default function ErasPage() {
                   value={form.region}
                   onChange={(e) => setForm({ ...form, region: e.target.value })}
                   placeholder="e.g. Britain"
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
@@ -291,7 +291,7 @@ export default function ErasPage() {
                   value={form.startYear}
                   onChange={(e) => setForm({ ...form, startYear: e.target.value })}
                   placeholder="e.g. -500"
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
@@ -302,7 +302,7 @@ export default function ErasPage() {
                   value={form.endYear}
                   onChange={(e) => setForm({ ...form, endYear: e.target.value })}
                   placeholder="e.g. 1485"
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
@@ -312,9 +312,9 @@ export default function ErasPage() {
                     type="color"
                     value={form.colorPrimary}
                     onChange={(e) => setForm({ ...form, colorPrimary: e.target.value })}
-                    className="h-9 w-12 rounded border border-neutral-700 bg-neutral-950 px-1"
+                    className="h-9 w-12 rounded border border-border-strong bg-background px-1"
                   />
-                  <span className="font-mono text-xs text-neutral-500">{form.colorPrimary}</span>
+                  <span className="font-mono text-xs text-muted">{form.colorPrimary}</span>
                 </div>
               </label>
               <label className="flex flex-col gap-1 text-sm">
@@ -324,9 +324,9 @@ export default function ErasPage() {
                     type="color"
                     value={form.colorSecondary}
                     onChange={(e) => setForm({ ...form, colorSecondary: e.target.value })}
-                    className="h-9 w-12 rounded border border-neutral-700 bg-neutral-950 px-1"
+                    className="h-9 w-12 rounded border border-border-strong bg-background px-1"
                   />
-                  <span className="font-mono text-xs text-neutral-500">{form.colorSecondary}</span>
+                  <span className="font-mono text-xs text-muted">{form.colorSecondary}</span>
                 </div>
               </label>
               <label className="col-span-full flex flex-col gap-1 text-sm">
@@ -336,23 +336,23 @@ export default function ErasPage() {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   rows={3}
                   placeholder="Optional context for this period or civilization…"
-                  className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
             </div>
 
-            <div className="mt-5 flex justify-end gap-2 border-t border-neutral-800 pt-4">
+            <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
               <button
                 type="button"
                 onClick={closeForm}
-                className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-800"
+                className="rounded-md border border-border-strong px-3 py-1.5 text-sm text-foreground/80 hover:bg-surface-raised"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saveMutation.isPending}
-                className="rounded-md bg-amber-700 px-3 py-1.5 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-50"
+                className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:opacity-50"
               >
                 {saveMutation.isPending ? "Saving…" : editingId ? "Save changes" : "Create era"}
               </button>

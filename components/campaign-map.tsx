@@ -20,7 +20,7 @@ export function CampaignMap({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950/80 ${className}`}
+      className={`relative overflow-hidden rounded-xl border border-border bg-background/80 ${className}`}
     >
       <svg viewBox="0 0 100 100" className="h-full w-full" preserveAspectRatio="xMidYMid meet">
         <defs>

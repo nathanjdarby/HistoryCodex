@@ -4,12 +4,20 @@ import path from "node:path";
 import fs from "node:fs";
 import * as schema from "./schema";
 
-const dataDir = path.join(process.cwd(), "data");
+function resolveDatabasePath() {
+  if (process.env.DATABASE_PATH) {
+    return path.resolve(process.env.DATABASE_PATH);
+  }
+  return path.join(process.cwd(), "data", "historycodex.db");
+}
+
+const dbPath = resolveDatabasePath();
+const dataDir = path.dirname(dbPath);
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-const sqlite = new Database(path.join(dataDir, "historycodex.db"));
+const sqlite = new Database(dbPath);
 sqlite.pragma("journal_mode = WAL");
 sqlite.pragma("foreign_keys = ON");
 

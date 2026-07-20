@@ -56,7 +56,7 @@ function DateInputs({
           value={year}
           onChange={(e) => onYearChange(e.target.value)}
           placeholder="1066 or -44 for BCE"
-          className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+          className="rounded border border-border-strong bg-background px-2 py-1.5"
         />
       </label>
       {(precision === "month" || precision === "day") && (
@@ -65,7 +65,7 @@ function DateInputs({
           <select
             value={month}
             onChange={(e) => onMonthChange(e.target.value)}
-            className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+            className="rounded border border-border-strong bg-background px-2 py-1.5"
           >
             {MONTH_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -81,7 +81,7 @@ function DateInputs({
           <select
             value={dayChoices.includes(day) ? day : dayChoices[0]}
             onChange={(e) => onDayChange(e.target.value)}
-            className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
+            className="rounded border border-border-strong bg-background px-2 py-1.5"
           >
             {dayChoices.map((d) => (
               <option key={d} value={d}>
@@ -101,10 +101,10 @@ export function EntryDateFields({ value, onChange, allowRange = true }: EntryDat
   }
 
   return (
-    <div className="col-span-full space-y-3 rounded-lg border border-neutral-800 bg-neutral-950/40 p-3">
+    <div className="col-span-full space-y-3 rounded-lg border border-border bg-background/40 p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm font-medium text-neutral-200">Date</span>
-        <div className="flex rounded-md border border-neutral-700 bg-neutral-900 p-0.5 text-xs">
+        <span className="text-sm font-medium text-foreground">Date</span>
+        <div className="flex rounded-md border border-border-strong bg-surface p-0.5 text-xs">
           {PRECISION_OPTIONS.map((option) => (
             <button
               key={option.value}
@@ -112,8 +112,8 @@ export function EntryDateFields({ value, onChange, allowRange = true }: EntryDat
               onClick={() => setPrecision(option.value)}
               className={`rounded px-2 py-1 ${
                 value.precision === option.value
-                  ? "bg-amber-700 text-amber-50"
-                  : "text-neutral-400 hover:text-neutral-100"
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted hover:text-foreground"
               }`}
             >
               {option.label}
@@ -135,7 +135,7 @@ export function EntryDateFields({ value, onChange, allowRange = true }: EntryDat
 
       {allowRange && (
         <>
-          <label className="flex items-center gap-2 text-sm text-neutral-300">
+          <label className="flex items-center gap-2 text-sm text-foreground/80">
             <input
               type="checkbox"
               checked={value.hasEnd}
@@ -160,7 +160,7 @@ export function EntryDateFields({ value, onChange, allowRange = true }: EntryDat
         </>
       )}
 
-      <p className="text-xs text-neutral-500">
+      <p className="text-xs text-muted">
         Use negative years for BCE (e.g. -44 for 44 BCE). Pick the level of detail you know — year
         only, month and year, or an exact day.
       </p>

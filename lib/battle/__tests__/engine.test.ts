@@ -48,6 +48,7 @@ function sampleBoardUnit(overrides: Partial<BoardUnit> = {}): BoardUnit {
     baseAttack: 20,
     baseDefense: 10,
     currentDefense: 10,
+    damageTaken: 0,
     eraId: 1,
     eraName: "Roman Britain",
     eraColorPrimary: "#4a3728",
@@ -63,10 +64,16 @@ function sampleBoardUnit(overrides: Partial<BoardUnit> = {}): BoardUnit {
     flavorText: null,
     cost: 20,
     eraSynergyBonus: 0,
+    locationDefBonus: 0,
+    sailorDefBonus: 0,
     tempAttackBonus: 0,
     tempDefenseBonus: 0,
     summoningSickness: false,
     cannotAttack: false,
+    isCommitted: false,
+    committedUntilTurn: null,
+    cannotEstablishInfluence: false,
+    auraSuppressed: false,
     deployedTurn: 1,
     ...overrides,
   };
@@ -122,27 +129,21 @@ function withLocationOnLane(state: import("@/lib/battle/types").MatchState): imp
 
 function readyMatchState(rngSeed = 42): import("@/lib/battle/types").MatchState {
   const deck = buildTestDeck();
-  let state = createMatchState({
+  const state = createMatchState({
     playerDeck: deck,
     aiDeck: deck,
     rngSeed,
   });
-  let safety = 0;
-  while (state.phase === "opening" && safety < 50) {
-    const result = applyAction(state, "player", { type: "redraw_opening_hand" });
-    assert.ok(!result.error);
-    state = result.state;
-    safety++;
-  }
   assert.equal(state.phase, "logistics");
   return withLocationOnLane(state);
 }
 
 describe("battle constants", () => {
-  it("cp track caps at turn 5", () => {
+  it("cp track caps at turn 6 with default rules", () => {
     assert.equal(cpForTurn(1), 50);
     assert.equal(cpForTurn(5), 300);
-    assert.equal(cpForTurn(10), 300);
+    assert.equal(cpForTurn(6), 450);
+    assert.equal(cpForTurn(10), 450);
   });
 });
 
@@ -250,7 +251,7 @@ describe("abilities", () => {
 });
 
 describe("match flow", () => {
-  it("creates a match with one empty lane and no starting location", () => {
+  it("creates a match with one lane auto-seated from the shared location deck", () => {
     const deck = buildTestDeck();
     const state = createMatchState({
       playerDeck: deck,
@@ -258,7 +259,10 @@ describe("match flow", () => {
       rngSeed: 42,
     });
     assert.equal(state.lanes.length, 1);
-    assert.equal(state.lanes[0]?.location, null);
+    // Locations are pulled out of both decks at setup, pooled into one
+    // shared shuffled deck, and the first one is auto-seated immediately —
+    // the lane no longer starts empty waiting on a hand-played Location.
+    assert.ok(state.lanes[0]?.location != null);
     assert.ok(state.phase === "logistics" || state.phase === "opening");
     if (state.phase === "logistics") {
       assert.equal(state.player.hand.length, 6);
@@ -441,6 +445,7 @@ describe("strategic effects", () => {
       instanceId: "wounded",
       currentDefense: 5,
       baseDefense: 20,
+      damageTaken: 15,
     });
     state = {
       ...state,
@@ -460,7 +465,7 @@ describe("strategic effects", () => {
       targetInstanceId: "wounded",
     });
     assert.ok(!result.error);
-    assert.equal(result.state.lanes[0]?.playerUnits[0]?.currentDefense, 20);
+    assert.equal(result.state.lanes[0]?.playerUnits[0]?.currentDefense, 45);
   });
 
   it("add_influence event grants influence on a lane", () => {

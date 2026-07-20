@@ -13,7 +13,13 @@ async function main() {
     if (character.attack !== 0 || character.defense !== 0) continue;
 
     const stats = computeDefaultBattleStats(character.rarity, character.archetype);
-    await db.update(characters).set(stats).where(eq(characters.id, character.id));
+    await db
+      .update(characters)
+      .set({
+        attack: stats.attack,
+        defense: stats.defense,
+      })
+      .where(eq(characters.id, character.id));
     updated++;
   }
 

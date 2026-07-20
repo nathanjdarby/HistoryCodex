@@ -17,14 +17,8 @@ import type {
   Phase,
   PlayerId,
 } from "@/lib/battle/types";
-import { handHasLocation } from "@/lib/battle/setup";
 import { opponentOf, playerState, unitsInLane } from "@/lib/battle/types";
-import {
-  effectiveAttack,
-  isValidAttackTarget,
-  mustTargetWarriorFirst,
-  warriorsInLane,
-} from "@/lib/battle/abilities";
+import { isValidAttackTarget, hasUnificationAbility } from "@/lib/battle/abilities";
 
 export type DeckValidationResult = {
   valid: boolean;
@@ -114,13 +108,53 @@ export function getLegalActions(
   const actions: BattleAction[] = [];
 
   if (state.phase === "opening") {
-    if (!handHasLocation(ps.hand)) {
-      actions.push({ type: "redraw_opening_hand" });
-    }
+    actions.push({ type: "end_phase" });
     return actions;
   }
 
   if (state.phase === "logistics") {
+    if (!ps.hasEstablishedInfluenceThisTurn && rules.maxEstablishInfluencePerTurn > 0) {
+      state.lanes.forEach((lane, laneIndex) => {
+        if (!lane.location || lane.captureResolvedThisTurn) return;
+        if (playerState(state, opponentOf(actor)).opponentInfluenceBlocked) return;
+        const ready = unitsInLane(lane, actor).filter(
+          (u) =>
+            u.currentDefense > 0 &&
+            !u.summoningSickness &&
+            !u.isCommitted &&
+            !u.cannotEstablishInfluence,
+        );
+        ready.forEach((unit) => {
+          actions.push({
+            type: "establish_influence",
+            laneIndex,
+            unitInstanceId: unit.instanceId,
+          });
+        });
+      });
+    }
+
+    if (!ps.hasUsedUnificationThisTurn) {
+      state.lanes.forEach((lane, laneIndex) => {
+        if (!lane.location) return;
+        const units = unitsInLane(lane, actor);
+        const monarchs = units.filter((u) =>
+          hasUnificationAbility({ abilityName: u.abilityName } as import("@/lib/battle/types").CardSnapshot),
+        );
+        for (const monarch of monarchs) {
+          for (const target of units) {
+            if (target.instanceId === monarch.instanceId) continue;
+            actions.push({
+              type: "unification",
+              laneIndex,
+              monarchInstanceId: monarch.instanceId,
+              targetInstanceId: target.instanceId,
+            });
+          }
+        }
+      });
+    }
+
     ps.hand.forEach((card, handIndex) => {
       if (card.cardType === "location") {
         if (card.cost > ps.cp) return;
@@ -221,7 +255,11 @@ export function getLegalActions(
     state.lanes.forEach((lane, laneIndex) => {
       if (!lane.location) return;
       const attackers = lane[actor === "player" ? "playerUnits" : "aiUnits"].filter(
-        (u) => !u.summoningSickness && !u.cannotAttack && u.currentDefense > 0,
+        (u) =>
+          !u.summoningSickness &&
+          !u.cannotAttack &&
+          !u.isCommitted &&
+          u.currentDefense > 0,
       );
       const defenders = lane[actor === "player" ? "aiUnits" : "playerUnits"].filter(
         (u) => u.currentDefense > 0,
@@ -290,6 +328,8 @@ export function clearPendingEvents(state: MatchState): MatchState {
 
 export function nextPhase(phase: Phase): Phase {
   switch (phase) {
+    case "opening":
+      return "chronos";
     case "chronos":
       return "logistics";
     case "logistics":

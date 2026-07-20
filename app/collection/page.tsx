@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Lock, Sparkles } from "lucide-react";
-import type { Character, Era } from "@/lib/types";
+import { PageHeader, PointsPill } from "@/components/page-header";
+import { Lock, Sparkles, Users2 } from "lucide-react";
 import { CharacterArt } from "@/components/character-art";
 import { CharacterCardModal } from "@/components/character-card-modal";
 import { HolographicOverlay } from "@/components/holographic-overlay";
@@ -25,6 +25,7 @@ import {
 import { RARITY_META, RARITY_ORDER, dexNumber } from "@/lib/rarity";
 import { imageFrameFromCharacter } from "@/lib/image-frame";
 import { fetchEras } from "@/lib/client/eras";
+import type { Character, Era } from "@/lib/types";
 import { useCardModalNavigation } from "@/lib/client/use-card-modal-navigation";
 
 type CharacterWithEra = Character & {
@@ -87,32 +88,35 @@ export default function CollectionPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-amber-100">Collection</h1>
-          <p className="text-sm text-neutral-400">
-            Cards you&apos;ve pulled from booster packs and earned through reading.{" "}
-            {characters && (
-              <span className="text-neutral-500">
+      <PageHeader
+        eyebrow="Cards"
+        title="Collection"
+        description={
+          <>
+            Cards you&apos;ve pulled from booster packs and earned through reading.
+            {characters ? (
+              <>
+                {" "}
                 {ownedCount} / {characters.length} unlocked
-                {totalCopies > ownedCount && (
-                  <span> · {totalCopies} copies total</span>
-                )}
-              </span>
-            )}
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5 rounded-full border border-amber-800/50 bg-amber-950/40 px-3 py-1 text-sm font-medium text-amber-200">
-          <Sparkles size={14} />
-          {stats?.pointsBalance ?? 0} pts available
-        </div>
-      </div>
+                {totalCopies > ownedCount && <> · {totalCopies} copies total</>}
+              </>
+            ) : null}
+          </>
+        }
+        icon={Users2}
+        actions={
+          <PointsPill>
+            <Sparkles size={14} />
+            {stats?.pointsBalance ?? 0} pts available
+          </PointsPill>
+        }
+      />
 
       <div className="flex flex-wrap gap-2">
         <select
           value={eraFilter}
           onChange={(e) => setEraFilter(e.target.value)}
-          className="rounded border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm"
+          className="rounded border border-border-strong bg-surface px-2 py-1.5 text-sm"
         >
           <option value="">All eras</option>
           {eras?.map((era) => (
@@ -121,28 +125,30 @@ export default function CollectionPage() {
             </option>
           ))}
         </select>
-        <div className="flex rounded-md border border-neutral-700 bg-neutral-900 p-0.5 text-sm">
+        <div className="flex rounded-md border border-border-strong bg-surface p-0.5 text-sm">
           {(["all", "owned", "locked"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setOwnedFilter(f)}
               className={`rounded px-2 py-1 capitalize ${
-                ownedFilter === f ? "bg-amber-700 text-amber-50" : "text-neutral-400 hover:text-neutral-100"
+                ownedFilter === f
+                  ? "bg-surface-raised font-medium text-foreground shadow-sm"
+                  : "text-muted hover:text-foreground"
               }`}
             >
               {f}
             </button>
           ))}
         </div>
-        <div className="flex rounded-md border border-neutral-700 bg-neutral-900 p-0.5 text-sm">
+        <div className="flex rounded-md border border-border-strong bg-surface p-0.5 text-sm">
           {(["all", "character", "unit", "location", "event"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setCardTypeFilter(f)}
               className={`rounded px-2 py-1 capitalize ${
                 cardTypeFilter === f
-                  ? "bg-amber-700 text-amber-50"
-                  : "text-neutral-400 hover:text-neutral-100"
+                  ? "bg-surface-raised font-medium text-foreground shadow-sm"
+                  : "text-muted hover:text-foreground"
               }`}
             >
               {f === "all" ? "all types" : f === "event" ? "events" : `${f}s`}
@@ -151,7 +157,7 @@ export default function CollectionPage() {
         </div>
       </div>
 
-      {isLoading && <p className="text-neutral-500">Loading collection...</p>}
+      {isLoading && <p className="text-muted">Loading collection...</p>}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-[repeat(4,minmax(0,1fr))]">
         {filtered.map((character) => {
@@ -160,11 +166,13 @@ export default function CollectionPage() {
             <div
               key={character.id}
               onClick={() => setViewingId(character.id)}
-              className="relative flex aspect-[3/4] w-full cursor-pointer flex-col overflow-hidden rounded-xl border-2 p-2 text-left transition-transform hover:-translate-y-1 sm:aspect-[5/7] sm:p-3 sm:pb-10"
+              className={`relative flex aspect-[3/4] w-full cursor-pointer flex-col overflow-hidden rounded-xl border-2 bg-surface p-2 text-left shadow-sm transition-transform hover:-translate-y-1 sm:aspect-[5/7] sm:p-3 sm:pb-10 ${
+                character.owned ? "" : "border-border-strong"
+              }`}
               style={{
-                borderColor: character.owned ? meta.color : "#262626",
-                boxShadow: character.owned ? meta.glow : "none",
-                background: `linear-gradient(160deg, ${character.era.colorPrimary}22, ${character.era.colorSecondary}22), #111110`,
+                borderColor: character.owned ? meta.color : undefined,
+                boxShadow: character.owned ? meta.glow : undefined,
+                background: `linear-gradient(160deg, ${character.era.colorPrimary}18, ${character.era.colorSecondary}18), var(--surface)`,
               }}
             >
               {character.holographic && <HolographicOverlay />}
@@ -181,10 +189,10 @@ export default function CollectionPage() {
                 name={character.name}
                 rarity={character.rarity}
                 starSize={10}
-                nameClassName="text-[11px] font-semibold text-neutral-100 sm:text-xs"
+                nameClassName="text-[11px] font-semibold text-foreground sm:text-xs"
               />
 
-              <div className="relative my-1 flex min-h-0 flex-1 w-full items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-black/30 sm:my-1.5 sm:h-[50%] sm:max-h-48 sm:min-h-[9rem] sm:flex-none">
+              <div className="relative my-1 flex min-h-0 flex-1 w-full items-center justify-center overflow-hidden rounded-lg border border-border bg-surface-raised sm:my-1.5 sm:h-[50%] sm:max-h-48 sm:min-h-[9rem] sm:flex-none">
                 <CharacterArt
                   seed={character.seed}
                   imageUrl={character.imageUrl}
@@ -196,14 +204,13 @@ export default function CollectionPage() {
                   className={character.owned ? "" : "opacity-40 grayscale"}
                 />
                 {!character.owned && (
-                  <Lock
-                    size={26}
-                    className="absolute inset-0 m-auto text-neutral-300 drop-shadow"
-                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-surface/80 backdrop-blur-[1px]">
+                    <Lock size={26} className="text-muted" />
+                  </div>
                 )}
               </div>
 
-              <div className="mt-1 hidden items-center gap-1.5 sm:flex">
+              <div className="mt-1 hidden items-center gap-1.5 border-t border-border/70 pt-1.5 sm:flex">
                 <div className="flex min-w-0 flex-1 flex-wrap items-center justify-start gap-1">
                   <RarityPill label={meta.label} color={meta.color} size="compact" />
                   {character.cardType === "location" && <LocationBadge size="compact" />}
@@ -216,7 +223,7 @@ export default function CollectionPage() {
               </div>
 
               <div className="mt-auto hidden min-h-0 shrink space-y-1 overflow-hidden pt-1 sm:block">
-                <p className="truncate text-left text-[10px] text-neutral-500">{character.era.name}</p>
+                <p className="truncate text-left text-[10px] text-muted">{character.era.name}</p>
                 <AbilityDescription
                   cardType={character.cardType}
                   abilityName={character.abilityName}
@@ -233,7 +240,7 @@ export default function CollectionPage() {
                     {character.quantity > 1 ? (
                       <CopyCountBadge quantity={character.quantity} />
                     ) : (
-                      <span className="text-[10px] font-medium text-emerald-400">✓</span>
+                      <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400">✓</span>
                     )}
                   </div>
                 )}
@@ -245,7 +252,7 @@ export default function CollectionPage() {
       </div>
 
       {filtered.length === 0 && !isLoading && (
-        <p className="text-sm text-neutral-500">No characters match these filters.</p>
+        <p className="text-sm text-muted">No characters match these filters.</p>
       )}
 
       {viewing && (
@@ -259,9 +266,9 @@ export default function CollectionPage() {
           positionLabel={positionLabel}
           footer={
             !viewing.owned ? (
-              <p className="text-center text-sm leading-relaxed text-neutral-400">
+              <p className="text-center text-sm leading-relaxed text-muted">
                 Open{" "}
-                <Link href="/packs" className="font-medium text-amber-400 hover:underline">
+                <Link href="/packs" className="font-medium text-gold hover:underline">
                   booster packs
                 </Link>{" "}
                 to collect this card.

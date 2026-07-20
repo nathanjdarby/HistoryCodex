@@ -6,7 +6,7 @@ import {
 } from "@/lib/auth/routes";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 
-const PUBLIC_PATHS = ["/login"];
+const GUEST_ONLY_PATHS = ["/login"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -22,7 +22,18 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   const session = token ? await verifySessionToken(token) : null;
 
-  if (PUBLIC_PATHS.includes(pathname)) {
+  if (pathname === "/") {
+    if (session) {
+      return NextResponse.redirect(new URL(defaultPathForRole(session.role), request.url));
+    }
+    return NextResponse.next();
+  }
+
+  if (pathname === "/about") {
+    return NextResponse.next();
+  }
+
+  if (GUEST_ONLY_PATHS.includes(pathname)) {
     if (session) {
       return NextResponse.redirect(new URL(defaultPathForRole(session.role), request.url));
     }
@@ -51,7 +62,7 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   const adminApiPrefixes = ["/api/pack-configs", "/api/uploads", "/api/admin"];

@@ -49,7 +49,7 @@ function PackRevealArtwork({
 
   if (imageUrl) {
     return (
-      <div className={`${baseClass} bg-neutral-950`}>
+      <div className={`${baseClass} bg-background`}>
         <Image src={imageUrl} alt={name} fill sizes="160px" className="object-cover" />
         {animate && <div className="absolute inset-0 animate-pack-flash bg-amber-300/20" />}
       </div>
@@ -106,7 +106,7 @@ function RevealedCard({ character }: { character: PulledPackCharacter }) {
             size={72}
           />
         </div>
-        <p className="mt-1 line-clamp-2 text-[10px] font-semibold text-neutral-100 sm:mt-1.5 sm:text-xs">
+        <p className="mt-1 line-clamp-2 text-[10px] font-semibold text-foreground sm:mt-1.5 sm:text-xs">
           {character.name}
         </p>
         <span
@@ -134,7 +134,7 @@ export function PackOpeningOverlay({
   const cardRows = chunkCards(characters, PACK_REVEAL_CARDS_PER_ROW);
 
   return (
-    <div className="fixed inset-0 z-[130] flex flex-col bg-neutral-950/95 backdrop-blur-md">
+    <div className="fixed inset-0 z-[130] flex flex-col bg-background/95 backdrop-blur-md">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-1/2 top-1/3 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-500/10 blur-3xl" />
         <div className="absolute inset-0 opacity-40 [background:radial-gradient(circle_at_50%_30%,rgba(245,158,11,0.12),transparent_55%)]" />
@@ -153,7 +153,7 @@ export function PackOpeningOverlay({
           </div>
         ) : (
           <div className="flex w-full max-w-5xl flex-col items-center gap-4 sm:gap-5">
-            <p className="text-center text-sm font-medium text-neutral-300">
+            <p className="text-center text-sm font-medium text-foreground/80">
               {isComplete ? (
                 <>
                   You pulled {characters.length} card{characters.length === 1 ? "" : "s"}!
@@ -185,7 +185,7 @@ export function PackOpeningOverlay({
       </div>
 
       {isComplete && (
-        <div className="relative border-t border-neutral-800 bg-neutral-950/80 px-4 py-4">
+        <div className="relative border-t border-border bg-background/80 px-4 py-4">
           <div className="mx-auto flex max-w-6xl justify-center">
             <button
               type="button"

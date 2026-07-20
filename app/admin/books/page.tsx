@@ -19,6 +19,7 @@ type CatalogBook = {
   totalPages: number;
   eraId: number | null;
   eraName: string | null;
+  timelineYear: number | null;
   active: boolean;
   cardCount?: number;
 };
@@ -49,6 +50,7 @@ type FormState = {
   coverUrl: string;
   totalPages: string;
   eraId: string;
+  timelineYear: string;
   active: boolean;
 };
 
@@ -61,6 +63,7 @@ const emptyForm: FormState = {
   coverUrl: "",
   totalPages: "",
   eraId: "",
+  timelineYear: "",
   active: true,
 };
 
@@ -76,7 +79,9 @@ async function fetchEras(): Promise<Era[]> {
   return res.json();
 }
 
-function toForm(book: CatalogBook): FormState {
+function toForm(book: CatalogBook, eras?: Era[]): FormState {
+  const eraStartYear =
+    book.eraId != null ? eras?.find((era) => era.id === book.eraId)?.startYear : undefined;
   return {
     title: book.title,
     author: book.author ?? "",
@@ -86,6 +91,12 @@ function toForm(book: CatalogBook): FormState {
     coverUrl: book.coverUrl ?? "",
     totalPages: String(book.totalPages),
     eraId: book.eraId ? String(book.eraId) : "",
+    timelineYear:
+      book.timelineYear != null
+        ? String(book.timelineYear)
+        : eraStartYear != null
+          ? String(eraStartYear)
+          : "",
     active: book.active,
   };
 }
@@ -102,11 +113,11 @@ function CatalogBookCover({
   iconSize?: number;
 }) {
   return (
-    <div className={`relative w-full overflow-hidden rounded bg-neutral-800 ${className}`}>
+    <div className={`relative w-full overflow-hidden rounded bg-surface-raised ${className}`}>
       {book.coverUrl ? (
         <Image src={book.coverUrl} alt={book.title} fill sizes="200px" className="object-cover" />
       ) : (
-        <div className="flex h-full items-center justify-center text-neutral-600">
+        <div className="flex h-full items-center justify-center text-subtle">
           <BookOpen size={iconSize} />
         </div>
       )}
@@ -191,6 +202,7 @@ export default function AdminBooksPage() {
         coverUrl: form.coverUrl || null,
         totalPages: Number(form.totalPages),
         eraId: form.eraId ? Number(form.eraId) : null,
+        timelineYear: form.timelineYear.trim() ? Number(form.timelineYear) : null,
         active: form.active,
       };
       const res = await fetch(
@@ -240,14 +252,16 @@ export default function AdminBooksPage() {
   }
 
   function openCreate() {
+    setError(null);
     setEditingId(null);
     setForm(emptyForm);
     setFormOpen(true);
   }
 
   function openEdit(book: CatalogBook) {
+    setError(null);
     setEditingId(book.id);
-    setForm(toForm(book));
+    setForm(toForm(book, eras));
     setFormOpen(true);
   }
 
@@ -264,15 +278,15 @@ export default function AdminBooksPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-100">Platform books</h1>
-          <p className="text-sm text-neutral-500">
+          <h1 className="text-2xl font-semibold text-foreground">Platform books</h1>
+          <p className="text-sm text-muted">
             Curate the catalog users browse when adding titles to their library.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/admin/books/import"
-            className="inline-flex items-center gap-1.5 rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-200 hover:bg-neutral-900"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border-strong px-3 py-2 text-sm text-foreground hover:bg-surface"
           >
             <FolderInput size={16} />
             Import cards
@@ -280,7 +294,7 @@ export default function AdminBooksPage() {
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex items-center gap-1.5 rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600"
+            className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-foreground hover:brightness-110"
           >
             <Plus size={16} />
             Add catalog book
@@ -288,205 +302,10 @@ export default function AdminBooksPage() {
         </div>
       </div>
 
-      {error && (
+      {error && !formOpen && (
         <p className="rounded-lg border border-red-900/50 bg-red-950/30 px-3 py-2 text-sm text-red-300">
           {error}
         </p>
-      )}
-
-      {formOpen && (
-        <section className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-medium text-neutral-100">
-              {editingId ? "Edit catalog book" : "New catalog book"}
-            </h2>
-            <button type="button" onClick={closeForm} className="text-neutral-500 hover:text-neutral-300">
-              <X size={18} />
-            </button>
-          </div>
-
-          {!editingId && (
-            <div className="mb-4 flex gap-2">
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    void runSearch();
-                  }
-                }}
-                placeholder="Search Open Library & Google Books…"
-                className="flex-1 rounded border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
-              />
-              <button
-                type="button"
-                onClick={runSearch}
-                disabled={searching}
-                className="inline-flex items-center gap-1 rounded-md border border-neutral-700 px-3 py-2 text-sm hover:bg-neutral-800"
-              >
-                <Search size={14} />
-                {searching ? "…" : "Search"}
-              </button>
-            </div>
-          )}
-
-          {searchWarnings.length > 0 && (
-            <div className="mb-4 space-y-1 rounded border border-amber-900/40 bg-amber-950/20 px-3 py-2 text-xs text-amber-200/90">
-              {searchWarnings.map((warning) => (
-                <p key={warning}>{warning}</p>
-              ))}
-            </div>
-          )}
-
-          {searchResults.length > 0 && (
-            <div className="mb-4 max-h-48 space-y-1 overflow-y-auto rounded border border-neutral-800 p-2">
-              {searchResults.map((r) => (
-                <button
-                  key={`${r.source}-${r.openLibraryId ?? r.googleBooksId ?? r.title}`}
-                  type="button"
-                  onClick={() => pickResult(r)}
-                  className="flex w-full items-start gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-neutral-800"
-                >
-                  {r.coverUrl ? (
-                    <img
-                      src={r.coverUrl}
-                      alt=""
-                      className="mt-0.5 h-[42px] w-7 shrink-0 rounded object-cover"
-                    />
-                  ) : (
-                    <span className="mt-0.5 flex h-[42px] w-7 shrink-0 items-center justify-center rounded bg-neutral-800 text-neutral-600">
-                      <BookOpen size={12} />
-                    </span>
-                  )}
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium text-neutral-100">{r.title}</span>
-                    <span className="block truncate text-xs text-neutral-500">
-                      {r.author ?? "Unknown author"}
-                      {r.estimatedPages ? ` · ${r.estimatedPages} pp` : ""}
-                    </span>
-                  </span>
-                  <span className="shrink-0 rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-neutral-400">
-                    {r.source === "google_books" ? "Google" : "Open Library"}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              saveMutation.mutate();
-            }}
-            className="grid grid-cols-1 gap-3 sm:grid-cols-2"
-          >
-            <div className="sm:col-span-2">
-              <BookCoverUpload
-                coverUrl={form.coverUrl || null}
-                title={form.title || "Book cover"}
-                onCoverUrlChange={(url) => setForm((f) => ({ ...f, coverUrl: url ?? "" }))}
-              />
-            </div>
-            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-              Title
-              <input
-                required
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Author
-              <input
-                value={form.author}
-                onChange={(e) => setForm({ ...form, author: e.target.value })}
-                className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Total pages
-              <input
-                required
-                type="number"
-                min={1}
-                value={form.totalPages}
-                onChange={(e) => setForm({ ...form, totalPages: e.target.value })}
-                className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-              Summary
-              <textarea
-                value={form.summary}
-                onChange={(e) => setForm({ ...form, summary: e.target.value })}
-                onPaste={(e) =>
-                  applyPastedTextToTextarea(e, form.summary, (summary) => setForm({ ...form, summary }), 2000)
-                }
-                rows={3}
-                className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Era
-              <select
-                value={form.eraId}
-                onChange={(e) => setForm({ ...form, eraId: e.target.value })}
-                className="rounded border border-neutral-700 bg-neutral-950 px-2 py-1.5"
-              >
-                <option value="">— None —</option>
-                {eras?.map((era) => (
-                  <option key={era.id} value={era.id}>
-                    {era.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.active}
-                onChange={(e) => setForm({ ...form, active: e.target.checked })}
-              />
-              Visible in user catalog
-            </label>
-            <div className="flex gap-2 sm:col-span-2">
-              <button
-                type="submit"
-                disabled={saveMutation.isPending}
-                className="rounded-md bg-amber-700 px-4 py-2 text-sm font-medium text-amber-50 hover:bg-amber-600 disabled:opacity-50"
-              >
-                {saveMutation.isPending ? "Saving…" : "Save"}
-              </button>
-            </div>
-          </form>
-
-          {editingId != null && (
-            <div className="mt-6 space-y-4 border-t border-neutral-800 pt-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-base font-medium text-neutral-100">Book cards</h3>
-                  <p className="text-sm text-neutral-500">
-                    Import card art from a folder or manage linked cards manually.
-                  </p>
-                </div>
-                <Link
-                  href={`/admin/books/import?bookId=${editingId}`}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-neutral-700 px-3 py-2 text-sm text-neutral-200 hover:bg-neutral-900"
-                >
-                  <FolderInput size={15} />
-                  Import cards
-                </Link>
-              </div>
-              <CatalogBookCardPicker
-                catalogBookId={editingId}
-                eraId={form.eraId ? Number(form.eraId) : null}
-                onError={setError}
-              />
-            </div>
-          )}
-        </section>
       )}
 
       <div className="flex flex-wrap items-center gap-2">
@@ -494,16 +313,16 @@ export default function AdminBooksPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Filter catalog…"
-          className="w-full max-w-md rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+          className="w-full max-w-md rounded-lg border border-border-strong bg-surface px-3 py-2 text-sm"
         />
-        <div className="flex rounded-md border border-neutral-700 bg-neutral-900 p-0.5 text-sm">
+        <div className="flex rounded-md border border-border-strong bg-surface p-0.5 text-sm">
           <button
             type="button"
             onClick={() => setViewMode("gallery")}
             className={`rounded p-1.5 ${
               viewMode === "gallery"
-                ? "bg-neutral-700 text-neutral-100"
-                : "text-neutral-400 hover:text-neutral-200"
+                ? "bg-surface-raised text-foreground"
+                : "text-muted hover:text-foreground"
             }`}
             aria-label="Gallery view"
             title="Gallery view"
@@ -515,8 +334,8 @@ export default function AdminBooksPage() {
             onClick={() => setViewMode("list")}
             className={`rounded p-1.5 ${
               viewMode === "list"
-                ? "bg-neutral-700 text-neutral-100"
-                : "text-neutral-400 hover:text-neutral-200"
+                ? "bg-surface-raised text-foreground"
+                : "text-muted hover:text-foreground"
             }`}
             aria-label="List view"
             title="List view"
@@ -526,12 +345,12 @@ export default function AdminBooksPage() {
         </div>
       </div>
 
-      {isLoading && <p className="text-sm text-neutral-500">Loading catalog…</p>}
+      {isLoading && <p className="text-sm text-muted">Loading catalog…</p>}
 
       {!isLoading && filtered.length === 0 && (
-        <div className="rounded-xl border border-dashed border-neutral-800 px-6 py-10 text-center">
-          <BookOpen size={28} className="mx-auto text-neutral-600" />
-          <p className="mt-3 text-neutral-300">No books match your filter.</p>
+        <div className="rounded-xl border border-dashed border-border px-6 py-10 text-center">
+          <BookOpen size={28} className="mx-auto text-subtle" />
+          <p className="mt-3 text-foreground/80">No books match your filter.</p>
         </div>
       )}
 
@@ -540,38 +359,38 @@ export default function AdminBooksPage() {
           {filtered.map((book) => (
             <article
               key={book.id}
-              className="group flex flex-col rounded-xl border border-neutral-800 bg-neutral-900/40 p-3"
+              className="group flex flex-col rounded-xl border border-border bg-surface/40 p-3"
             >
               <CatalogBookCover book={book} className="mb-3 aspect-[2/3]" />
               <div className="flex min-h-0 flex-1 flex-col gap-1">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="line-clamp-2 text-sm font-medium leading-snug text-neutral-100">
+                  <p className="line-clamp-2 text-sm font-medium leading-snug text-foreground">
                     {book.title}
                   </p>
                   <span
                     className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] ${
                       book.active
                         ? "bg-emerald-900/50 text-emerald-200"
-                        : "bg-neutral-800 text-neutral-400"
+                        : "bg-surface-raised text-muted"
                     }`}
                   >
                     {book.active ? "Active" : "Hidden"}
                   </span>
                 </div>
-                <p className="line-clamp-1 text-xs text-neutral-500">
+                <p className="line-clamp-1 text-xs text-muted">
                   {book.author ?? "Unknown author"}
                 </p>
-                <p className="text-[10px] text-neutral-500">
+                <p className="text-[10px] text-muted">
                   {book.totalPages} pp
                   {book.eraName ? ` · ${book.eraName}` : ""}
                   {(book.cardCount ?? 0) > 0 ? ` · ${book.cardCount} cards` : ""}
                 </p>
               </div>
-              <div className="mt-3 flex gap-2 border-t border-neutral-800 pt-3">
+              <div className="mt-3 flex gap-2 border-t border-border pt-3">
                 <button
                   type="button"
                   onClick={() => openEdit(book)}
-                  className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-neutral-700 px-2 py-1.5 text-xs text-neutral-300 hover:bg-neutral-800"
+                  className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-border-strong px-2 py-1.5 text-xs text-foreground/80 hover:bg-surface-raised"
                 >
                   <Pencil size={12} />
                   Edit
@@ -597,27 +416,27 @@ export default function AdminBooksPage() {
           {filtered.map((book) => (
             <article
               key={book.id}
-              className="flex flex-wrap items-center gap-4 rounded-xl border border-neutral-800 bg-neutral-900/40 p-4"
+              className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-surface/40 p-4"
             >
-              <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded bg-neutral-800">
+              <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded bg-surface-raised">
                 {book.coverUrl ? (
                   <Image src={book.coverUrl} alt="" fill sizes="44px" className="object-cover" />
                 ) : (
-                  <div className="flex h-full items-center justify-center text-neutral-600">
+                  <div className="flex h-full items-center justify-center text-subtle">
                     <BookOpen size={16} />
                   </div>
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-neutral-100">{book.title}</p>
-                <p className="text-sm text-neutral-500">
+                <p className="font-medium text-foreground">{book.title}</p>
+                <p className="text-sm text-muted">
                   {book.author ?? "Unknown author"} · {book.totalPages} pp
                   {book.eraName ? ` · ${book.eraName}` : ""}
                   {(book.cardCount ?? 0) > 0 ? ` · ${book.cardCount} cards` : ""}
                 </p>
               </div>
               <span
-                className={`rounded px-2 py-0.5 text-xs ${book.active ? "bg-emerald-900/50 text-emerald-200" : "bg-neutral-800 text-neutral-400"}`}
+                className={`rounded px-2 py-0.5 text-xs ${book.active ? "bg-emerald-900/50 text-emerald-200" : "bg-surface-raised text-muted"}`}
               >
                 {book.active ? "Active" : "Hidden"}
               </span>
@@ -625,7 +444,7 @@ export default function AdminBooksPage() {
                 <button
                   type="button"
                   onClick={() => openEdit(book)}
-                  className="rounded border border-neutral-700 p-1.5 text-neutral-400 hover:bg-neutral-800"
+                  className="rounded border border-border-strong p-1.5 text-muted hover:bg-surface-raised"
                 >
                   <Pencil size={14} />
                 </button>
@@ -643,6 +462,240 @@ export default function AdminBooksPage() {
               </div>
             </article>
           ))}
+        </div>
+      )}
+
+      {formOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 py-6 backdrop-blur-sm"
+          onClick={closeForm}
+        >
+          <section
+            className="w-full max-w-3xl shrink-0 rounded-xl border border-border bg-surface p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-medium text-foreground">
+                {editingId ? "Edit catalog book" : "New catalog book"}
+              </h2>
+              <button type="button" onClick={closeForm} className="text-muted hover:text-foreground/80">
+                <X size={18} />
+              </button>
+            </div>
+
+            {error && (
+              <p className="mb-4 rounded-lg border border-red-900/50 bg-red-950/30 px-3 py-2 text-sm text-red-300">
+                {error}
+              </p>
+            )}
+
+            {!editingId && (
+              <div className="mb-4 flex gap-2">
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void runSearch();
+                    }
+                  }}
+                  placeholder="Search Open Library & Google Books…"
+                  className="flex-1 rounded border border-border-strong bg-background px-3 py-2 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={runSearch}
+                  disabled={searching}
+                  className="inline-flex items-center gap-1 rounded-md border border-border-strong px-3 py-2 text-sm hover:bg-surface-raised"
+                >
+                  <Search size={14} />
+                  {searching ? "…" : "Search"}
+                </button>
+              </div>
+            )}
+
+            {searchWarnings.length > 0 && (
+              <div className="mb-4 space-y-1 rounded border border-accent/35 bg-accent/10 px-3 py-2 text-xs text-gold-bright/90">
+                {searchWarnings.map((warning) => (
+                  <p key={warning}>{warning}</p>
+                ))}
+              </div>
+            )}
+
+            {searchResults.length > 0 && (
+              <div className="mb-4 max-h-48 space-y-1 overflow-y-auto rounded border border-border p-2">
+                {searchResults.map((r) => (
+                  <button
+                    key={`${r.source}-${r.openLibraryId ?? r.googleBooksId ?? r.title}`}
+                    type="button"
+                    onClick={() => pickResult(r)}
+                    className="flex w-full items-start gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-raised"
+                  >
+                    {r.coverUrl ? (
+                      <img
+                        src={r.coverUrl}
+                        alt=""
+                        className="mt-0.5 h-[42px] w-7 shrink-0 rounded object-cover"
+                      />
+                    ) : (
+                      <span className="mt-0.5 flex h-[42px] w-7 shrink-0 items-center justify-center rounded bg-surface-raised text-subtle">
+                        <BookOpen size={12} />
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium text-foreground">{r.title}</span>
+                      <span className="block truncate text-xs text-muted">
+                        {r.author ?? "Unknown author"}
+                        {r.estimatedPages ? ` · ${r.estimatedPages} pp` : ""}
+                      </span>
+                    </span>
+                    <span className="shrink-0 rounded bg-surface-raised px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">
+                      {r.source === "google_books" ? "Google" : "Open Library"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                saveMutation.mutate();
+              }}
+              className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+            >
+              <div className="sm:col-span-2">
+                <BookCoverUpload
+                  coverUrl={form.coverUrl || null}
+                  title={form.title || "Book cover"}
+                  onCoverUrlChange={(url) => setForm((f) => ({ ...f, coverUrl: url ?? "" }))}
+                />
+              </div>
+              <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+                Title
+                <input
+                  required
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Author
+                <input
+                  value={form.author}
+                  onChange={(e) => setForm({ ...form, author: e.target.value })}
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Total pages
+                <input
+                  required
+                  type="number"
+                  min={1}
+                  value={form.totalPages}
+                  onChange={(e) => setForm({ ...form, totalPages: e.target.value })}
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+                Summary
+                <textarea
+                  value={form.summary}
+                  onChange={(e) => setForm({ ...form, summary: e.target.value })}
+                  onPaste={(e) =>
+                    applyPastedTextToTextarea(e, form.summary, (summary) => setForm({ ...form, summary }), 2000)
+                  }
+                  rows={3}
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Era
+                <select
+                  value={form.eraId}
+                  onChange={(e) => {
+                    const eraId = e.target.value;
+                    const era = eras?.find((item) => String(item.id) === eraId);
+                    setForm((f) => ({
+                      ...f,
+                      eraId,
+                      timelineYear:
+                        f.timelineYear.trim() || !era
+                          ? f.timelineYear
+                          : String(era.startYear),
+                    }));
+                  }}
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
+                >
+                  <option value="">— None (multi-era) —</option>
+                  {eras?.map((era) => (
+                    <option key={era.id} value={era.id}>
+                      {era.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Starting year
+                <input
+                  type="number"
+                  value={form.timelineYear}
+                  onChange={(e) => setForm({ ...form, timelineYear: e.target.value })}
+                  placeholder="Timeline placement"
+                  className="rounded border border-border-strong bg-background px-2 py-1.5"
+                />
+                <span className="text-xs text-muted">
+                  Where this book sits on the timeline when added to a library. Defaults from era if
+                  set.
+                </span>
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.active}
+                  onChange={(e) => setForm({ ...form, active: e.target.checked })}
+                />
+                Visible in user catalog
+              </label>
+              <div className="flex gap-2 sm:col-span-2">
+                <button
+                  type="submit"
+                  disabled={saveMutation.isPending}
+                  className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:opacity-50"
+                >
+                  {saveMutation.isPending ? "Saving…" : "Save"}
+                </button>
+              </div>
+            </form>
+
+            {editingId != null && (
+              <div className="mt-6 space-y-4 border-t border-border pt-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-base font-medium text-foreground">Book cards</h3>
+                    <p className="text-sm text-muted">
+                      Import card art from a folder or manage linked cards manually.
+                    </p>
+                  </div>
+                  <Link
+                    href={`/admin/books/import?bookId=${editingId}`}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border-strong px-3 py-2 text-sm text-foreground hover:bg-surface"
+                  >
+                    <FolderInput size={15} />
+                    Import cards
+                  </Link>
+                </div>
+                <CatalogBookCardPicker
+                  catalogBookId={editingId}
+                  eraId={form.eraId ? Number(form.eraId) : null}
+                  onError={setError}
+                />
+              </div>
+            )}
+          </section>
         </div>
       )}
     </div>

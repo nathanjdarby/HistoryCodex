@@ -49,16 +49,24 @@ export function BattleBoard({
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
-      {lanes.map((lane, laneIndex) => (
+      {lanes.map((lane, laneIndex) => {
+        const location = lane.location;
+        return (
         <div
-          key={`${lane.location.characterId}-${laneIndex}`}
+          key={`lane-${laneIndex}-${location?.characterId ?? "empty"}`}
           className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-3"
         >
           <div className="mb-3 flex items-start justify-between gap-2">
             <div>
               <p className="text-xs uppercase tracking-wide text-neutral-500">Lane {laneIndex + 1}</p>
-              <h3 className="font-medium text-neutral-100">{lane.location.name}</h3>
-              <p className="text-xs text-neutral-500">{lane.location.eraName}</p>
+              {location ? (
+                <>
+                  <h3 className="font-medium text-neutral-100">{location.name}</h3>
+                  <p className="text-xs text-neutral-500">{location.eraName}</p>
+                </>
+              ) : (
+                <h3 className="font-medium text-neutral-500">No location</h3>
+              )}
             </div>
             <div className="text-right text-xs text-neutral-400">
               <div>You: {lane.playerInfluence} influence</div>
@@ -70,7 +78,7 @@ export function BattleBoard({
             <button
               type="button"
               onClick={() => onSelectLane(laneIndex)}
-              className="mb-3 w-full rounded-md border border-dashed border-amber-700/50 px-2 py-1 text-xs text-amber-300 hover:bg-amber-950/30"
+              className="mb-3 w-full rounded-md border border-dashed border-accent/45 px-2 py-1 text-xs text-gold-bright hover:bg-accent/10"
             >
               Deploy / target here
             </button>
@@ -160,7 +168,8 @@ export function BattleBoard({
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -188,7 +197,7 @@ function UnitRow({
     <div
       className={`flex items-center justify-between rounded-md border px-2 py-1.5 ${
         highlight
-          ? "border-amber-600 bg-amber-950/30"
+          ? "border-accent bg-accent/10"
           : dimmed
             ? "border-neutral-900 bg-neutral-950/30 opacity-50"
             : "border-neutral-800 bg-neutral-950/60"
@@ -209,7 +218,7 @@ function UnitRow({
               actionLabel === "Attack"
                 ? "bg-red-900/60 text-red-200 hover:bg-red-800/60"
                 : actionLabel === "Selected"
-                  ? "bg-amber-800/60 text-amber-100"
+                  ? "bg-amber-800/60 text-foreground"
                   : "bg-neutral-800 text-neutral-200 hover:bg-neutral-700"
             }`}
           >

@@ -1,13 +1,23 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { books, catalogBooks, eras, pointsLedger, timelineEntries, userCharacters } from "@/db/schema";
+import {
+  antiCheatEvents,
+  books,
+  catalogBooks,
+  pointsLedger,
+  readingSessions,
+  timelineEntries,
+  userCharacters,
+  verificationQueue,
+} from "@/db/schema";
 import { ApiError } from "@/lib/api-utils";
 import {
   snapshotFromCatalog,
+  resolveCatalogBookTimelineYear,
   type CatalogBookRow,
 } from "@/lib/server/catalog-books";
-import { assertUserHasEra } from "@/lib/server/user-eras";
+import { ensureUserHasEra } from "@/lib/server/user-eras";
 
 export const addToLibrarySchema = z.object({
   catalogBookId: z.number().int().positive(),
@@ -78,7 +88,7 @@ export async function addBookToLibrary(userId: number, catalogBookId: number) {
     throw new ApiError(400, "This book is not available on the platform.");
   }
 
-  await assertUserHasEra(userId, catalog.eraId);
+  await ensureUserHasEra(userId, catalog.eraId);
 
   const [existing] = await db
     .select()
@@ -100,11 +110,7 @@ export async function addBookToLibrary(userId: number, catalogBookId: number) {
     })
     .returning();
 
-  let year = new Date().getFullYear();
-  if (catalog.eraId) {
-    const [era] = await db.select().from(eras).where(eq(eras.id, catalog.eraId));
-    if (era) year = era.startYear;
-  }
+  let year = await resolveCatalogBookTimelineYear(catalog);
 
   await db.insert(timelineEntries).values({
     kind: "book",
@@ -119,10 +125,35 @@ export async function addBookToLibrary(userId: number, catalogBookId: number) {
   return mergeBookRow(book, catalog);
 }
 
+async function clearBookDependencies(bookId: number) {
+  const sessionRows = await db
+    .select({ id: readingSessions.id })
+    .from(readingSessions)
+    .where(eq(readingSessions.bookId, bookId));
+  const sessionIds = sessionRows.map((row) => row.id);
+
+  if (sessionIds.length > 0) {
+    await db.delete(verificationQueue).where(inArray(verificationQueue.sessionId, sessionIds));
+    await db.delete(antiCheatEvents).where(inArray(antiCheatEvents.sessionId, sessionIds));
+    await db.delete(readingSessions).where(eq(readingSessions.bookId, bookId));
+  }
+
+  const ledgerRows = await db
+    .select({ id: pointsLedger.id })
+    .from(pointsLedger)
+    .where(eq(pointsLedger.bookId, bookId));
+  const ledgerIds = ledgerRows.map((row) => row.id);
+
+  if (ledgerIds.length > 0) {
+    await db.delete(verificationQueue).where(inArray(verificationQueue.ledgerId, ledgerIds));
+  }
+}
+
 export async function removeBookFromLibrary(id: number, userId?: number) {
   if (userId !== undefined) await getBook(id, userId);
   else await getBook(id);
 
+  await clearBookDependencies(id);
   await db.delete(timelineEntries).where(eq(timelineEntries.bookId, id));
   await db.delete(pointsLedger).where(eq(pointsLedger.bookId, id));
   await db

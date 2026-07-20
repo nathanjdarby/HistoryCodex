@@ -1,25 +1,48 @@
 import type { MatchState } from "@/lib/battle/types";
 import { playerState, setPlayerState } from "@/lib/battle/types";
 import { shuffle } from "@/lib/battle/rng-core";
+import type { BattleRules } from "@/lib/battle/types";
 
 export { createRng, nextRandom, shuffle } from "@/lib/battle/rng-core";
+
+export type DrawResult = {
+  state: MatchState;
+  drawn: number;
+  exhausted: boolean;
+};
 
 export function drawCards(
   state: MatchState,
   playerKey: "player" | "ai",
   count: number,
+  rules?: BattleRules,
 ): MatchState {
-  if (count <= 0) return state;
-  const ps = state[playerKey];
+  return drawCardsWithExhaustion(state, playerKey, count, rules).state;
+}
+
+export function drawCardsWithExhaustion(
+  state: MatchState,
+  playerKey: "player" | "ai",
+  count: number,
+  _rules?: BattleRules,
+): DrawResult {
+  if (count <= 0) return { state, drawn: 0, exhausted: false };
+  const ps = playerState(state, playerKey);
   const deck = [...ps.deck];
   const hand = [...ps.hand];
+  let drawn = 0;
   for (let i = 0; i < count && deck.length > 0; i++) {
     hand.push(deck.shift()!);
+    drawn++;
   }
-  return {
-    ...state,
-    [playerKey]: { ...ps, deck, hand },
-  };
+  const exhausted = drawn < count;
+  const next = setPlayerState(state, playerKey, {
+    ...ps,
+    deck,
+    hand,
+    deckExhausted: exhausted || ps.deckExhausted,
+  });
+  return { state: next, drawn, exhausted };
 }
 
 export function peekDeckTop(state: MatchState, playerKey: "player" | "ai", count: number) {
@@ -41,6 +64,8 @@ export function reorderDeckTop(
   return setPlayerState(state, playerKey, {
     ...ps,
     deck: [...topCards, ...bottomCards, ...deck],
+    failedChronosDraws: 0,
+    deckExhausted: false,
   });
 }
 
@@ -53,6 +78,8 @@ export function putCardOnDeckTop(
   return setPlayerState(state, playerKey, {
     ...ps,
     deck: [card, ...ps.deck],
+    failedChronosDraws: 0,
+    deckExhausted: false,
   });
 }
 
@@ -61,7 +88,7 @@ export function shufflePlayerDeck(state: MatchState, playerKey: "player" | "ai")
   const shuffled = shuffle(ps.deck, state);
   return {
     ...shuffled.state,
-    [playerKey]: { ...ps, deck: shuffled.items },
+    [playerKey]: { ...ps, deck: shuffled.items, failedChronosDraws: 0, deckExhausted: false },
   };
 }
 

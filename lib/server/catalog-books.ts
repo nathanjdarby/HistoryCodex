@@ -16,6 +16,7 @@ export const catalogBookInputSchema = z.object({
   wordCount: z.number().int().positive().nullable().optional(),
   wordsPerPage: z.number().int().positive().nullable().optional(),
   eraId: z.number().int().nullable().optional(),
+  timelineYear: z.number().int().nullable().optional(),
   active: z.boolean().optional(),
 });
 
@@ -40,6 +41,7 @@ function catalogSelectFields() {
     wordCount: catalogBooks.wordCount,
     wordsPerPage: catalogBooks.wordsPerPage,
     eraId: catalogBooks.eraId,
+    timelineYear: catalogBooks.timelineYear,
     active: catalogBooks.active,
     createdAt: catalogBooks.createdAt,
     updatedAt: catalogBooks.updatedAt,
@@ -61,6 +63,8 @@ export async function listCatalogBooks(options?: { activeOnly?: boolean }) {
     cardCount: counts.get(row.id) ?? 0,
   }));
 }
+
+export type FeaturedCatalogBook = Awaited<ReturnType<typeof listCatalogBooks>>[number];
 
 export async function getCatalogBook(id: number) {
   const [row] = await db
@@ -130,6 +134,17 @@ export function snapshotFromCatalog(catalog: CatalogBookRow) {
   };
 }
 
+export async function resolveCatalogBookTimelineYear(
+  catalog: Pick<CatalogBookRow, "timelineYear" | "eraId">,
+): Promise<number> {
+  if (catalog.timelineYear != null) return catalog.timelineYear;
+  if (catalog.eraId != null) {
+    const [era] = await db.select().from(eras).where(eq(eras.id, catalog.eraId));
+    if (era) return era.startYear;
+  }
+  return new Date().getFullYear();
+}
+
 function timelineSummaryForBook(book: { summary: string | null; author: string | null }) {
   const summary = book.summary?.trim();
   if (summary) return summary;
@@ -158,12 +173,14 @@ export async function syncUserBooksFromCatalog(catalogBookId: number) {
       .from(timelineEntries)
       .where(eq(timelineEntries.bookId, userBook.id));
     if (companionEntry) {
+      const year = await resolveCatalogBookTimelineYear(catalog);
       await db
         .update(timelineEntries)
         .set({
           title: catalog.title,
           summary: timelineSummaryForBook(catalog),
           eraId: catalog.eraId,
+          year,
           imageUrl: catalog.coverUrl,
           updatedAt: new Date(),
         })

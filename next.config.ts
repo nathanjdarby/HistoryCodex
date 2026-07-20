@@ -5,6 +5,7 @@ const lanDevOrigins = process.env.DEV_ALLOWED_ORIGINS?.split(",")
   .filter(Boolean);
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   serverExternalPackages: ["better-sqlite3"],
   allowedDevOrigins: lanDevOrigins?.length ? lanDevOrigins : ["192.168.1.43"],
   experimental: {

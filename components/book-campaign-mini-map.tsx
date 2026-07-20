@@ -34,8 +34,8 @@ export function BookCampaignMiniMap({ eraSlug, eraName }: { eraSlug: string; era
 
   if (isLoading) {
     return (
-      <section className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-5 sm:p-6">
-        <p className="text-sm text-neutral-500">Loading campaign map…</p>
+      <section className="rounded-xl border border-border bg-surface/40 p-5 sm:p-6">
+        <p className="text-sm text-muted">Loading campaign map…</p>
       </section>
     );
   }
@@ -46,20 +46,20 @@ export function BookCampaignMiniMap({ eraSlug, eraName }: { eraSlug: string; era
   const total = campaign.theme.nodes.length;
 
   return (
-    <section className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-5 sm:p-6">
+    <section className="rounded-xl border border-border bg-surface/40 p-5 sm:p-6">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Map size={16} className="text-amber-500" />
-          <h2 className="text-lg font-medium text-neutral-100">{eraName} campaign</h2>
+          <Map size={16} className="text-gold" />
+          <h2 className="text-lg font-medium text-foreground">{eraName} campaign</h2>
         </div>
         <Link
           href={`/campaigns/${eraSlug}`}
-          className="text-xs text-amber-400 hover:underline"
+          className="text-xs text-gold hover:underline"
         >
           View full map
         </Link>
       </div>
-      <p className="mb-3 text-xs text-neutral-500">
+      <p className="mb-3 text-xs text-muted">
         {unlocked} / {total} milestones unlocked — hit reading milestones on this book to advance.
       </p>
       <CampaignMap

@@ -1,16 +1,19 @@
-import { DEFAULT_BATTLE_RULES } from "@/lib/battle/constants";
-import { beginChronosPhase, redrawOpeningHand } from "@/lib/battle/setup";
+import { DEFAULT_BATTLE_RULES, normalizeBattleRules } from "@/lib/battle/constants";
+import { beginChronosPhase } from "@/lib/battle/setup";
 import {
   deployUnitFromHand,
   playEventFromHand,
   moveUnitBetweenLanes,
+  unificationOneLane,
 } from "@/lib/battle/phases/logistics";
 import { playLocationFromHand } from "@/lib/battle/locations";
 import { resolveAttack, runConsolidation } from "@/lib/battle/phases/campaign";
 import { autoResolvePendingChoice, resolvePendingChoice } from "@/lib/battle/effects";
+import { establishInfluenceFromUnit } from "@/lib/battle/influence";
 import { appendLog } from "@/lib/battle/rng";
 import { nextPhase } from "@/lib/battle/validators";
 import { clearTurnFlags, runCampaignStartTriggers } from "@/lib/battle/triggers";
+import { normalizeMatchState } from "@/lib/battle/state-normalize";
 import type {
   ActionResult,
   BattleAction,
@@ -27,49 +30,76 @@ export function applyAction(
   action: BattleAction,
   rules: BattleRules = DEFAULT_BATTLE_RULES,
 ): ActionResult {
-  if (state.status !== "active") {
-    return { state, events: [], error: "Match is already finished." };
+  const normalized = normalizeMatchState(state, rules);
+  if (normalized.status !== "active") {
+    return { state: normalized, events: [], error: "Match is already finished." };
   }
-  if (state.activePlayer !== actor) {
-    return { state, events: [], error: "Not your turn." };
+  if (normalized.activePlayer !== actor) {
+    return { state: normalized, events: [], error: "Not your turn." };
   }
 
-  let next: MatchState = { ...state, pendingEvents: [] };
+  let next: MatchState = { ...normalized, pendingEvents: [] };
   const phase = next.phase;
 
   if (action.type === "resolve_choice") {
     const result = resolvePendingChoice(next, actor, action);
-    if (!result) return { state, events: [], error: "Invalid choice." };
-    next = result;
-    return { state: next, events: next.pendingEvents };
+    if (!result) return { state: normalized, events: [], error: "Invalid choice." };
+    return { state: result, events: result.pendingEvents };
   }
 
   if (next.pendingChoice) {
-    return { state, events: [], error: "Resolve the pending choice first." };
-  }
-
-  if (phase === "opening") {
-    if (action.type !== "redraw_opening_hand") {
-      return { state, events: [], error: "Redraw your opening hand before the match begins." };
-    }
-    const result = redrawOpeningHand(next, actor, rules);
-    if (!result) return { state, events: [], error: "Cannot redraw opening hand." };
-    next = result;
-    return { state: next, events: next.pendingEvents };
+    return { state: normalized, events: [], error: "Resolve the pending choice first." };
   }
 
   if (action.type === "deploy_unit") {
-    if (phase !== "logistics") return { state, events: [], error: "Can only deploy during Logistics." };
+    if (phase !== "logistics") return { state: normalized, events: [], error: "Can only deploy during Logistics." };
     const result = deployUnitFromHand(next, actor, action.handIndex, action.laneIndex, rules);
-    if (!result) return { state, events: [], error: "Invalid deployment." };
+    if (!result) return { state: normalized, events: [], error: "Invalid deployment." };
     next = result;
   } else if (action.type === "play_event") {
-    if (phase !== "logistics") return { state, events: [], error: "Can only play events during Logistics." };
+    if (phase !== "logistics") return { state: normalized, events: [], error: "Can only play events during Logistics." };
     const result = playEventFromHand(next, actor, action, rules);
-    if (!result) return { state, events: [], error: "Invalid event." };
+    if (!result) return { state: normalized, events: [], error: "Invalid event." };
     next = result;
+  } else if (action.type === "establish_influence") {
+    if (phase !== "logistics") {
+      return { state: normalized, events: [], error: "Establish Influence only during Logistics." };
+    }
+    const result = establishInfluenceFromUnit(
+      next,
+      actor,
+      action.laneIndex,
+      action.unitInstanceId,
+      rules,
+    );
+    if (!result) return { state: normalized, events: [], error: "Cannot establish Influence." };
+    next = result;
+  } else if (action.type === "unification") {
+    if (phase !== "logistics") return { state: normalized, events: [], error: "Unification only during Logistics." };
+    if (rules.activeLaneCount > 1 && action.fromLaneIndex != null && action.unitInstanceId) {
+      const result = moveUnitBetweenLanes(
+        next,
+        actor,
+        action.fromLaneIndex,
+        action.laneIndex,
+        action.unitInstanceId,
+      );
+      if (!result) return { state: normalized, events: [], error: "Invalid unification move." };
+      next = result;
+    } else {
+      const result = unificationOneLane(
+        next,
+        actor,
+        action.laneIndex,
+        action.monarchInstanceId,
+        action.targetInstanceId,
+        rules,
+      );
+      if (!result) return { state: normalized, events: [], error: "Invalid unification." };
+      next = result;
+    }
   } else if (action.type === "unification_move") {
-    if (phase !== "logistics") return { state, events: [], error: "Unification only during Logistics." };
+    if (phase !== "logistics") return { state: normalized, events: [], error: "Unification only during Logistics." };
     const result = moveUnitBetweenLanes(
       next,
       actor,
@@ -77,15 +107,15 @@ export function applyAction(
       action.laneIndex,
       action.unitInstanceId,
     );
-    if (!result) return { state, events: [], error: "Invalid unification move." };
+    if (!result) return { state: normalized, events: [], error: "Invalid unification move." };
     next = result;
   } else if (action.type === "play_location") {
-    if (phase !== "logistics") return { state, events: [], error: "Can only play locations during Logistics." };
+    if (phase !== "logistics") return { state: normalized, events: [], error: "Can only play locations during Logistics." };
     const result = playLocationFromHand(next, actor, action.handIndex, action.laneIndex);
-    if (!result) return { state, events: [], error: "Invalid location play." };
+    if (!result) return { state: normalized, events: [], error: "Invalid location play." };
     next = result;
   } else if (action.type === "attack") {
-    if (phase !== "campaign") return { state, events: [], error: "Can only attack during Campaign." };
+    if (phase !== "campaign") return { state: normalized, events: [], error: "Can only attack during Campaign." };
     const result = resolveAttack(
       next,
       actor,
@@ -94,7 +124,7 @@ export function applyAction(
       action.defenderInstanceId,
       rules,
     );
-    if (!result) return { state, events: [], error: "Invalid attack." };
+    if (!result) return { state: normalized, events: [], error: "Invalid attack." };
     next = result;
   } else if (action.type === "end_phase") {
     if (phase === "consolidation") {
@@ -112,8 +142,10 @@ export function applyAction(
     if (upcoming === "campaign") {
       next = runCampaignStartTriggers(next, actor);
     }
+  } else if (action.type === "redraw_opening_hand") {
+    return { state: normalized, events: [], error: "Opening redraw is no longer used." };
   } else {
-    return { state, events: [], error: "Unknown action." };
+    return { state: normalized, events: [], error: "Unknown action." };
   }
 
   return { state: next, events: next.pendingEvents };
@@ -146,17 +178,17 @@ function clearEndOfTurn(state: MatchState, endingPlayer: PlayerId): MatchState {
       ...lane,
       playerUnits: lane.playerUnits.map((u) => ({
         ...u,
-        tempAttackBonus: 0,
-        tempDefenseBonus: 0,
+        tempAttackBonus: u.owner === endingPlayer ? 0 : u.tempAttackBonus,
+        tempDefenseBonus: u.owner === endingPlayer ? 0 : u.tempDefenseBonus,
         summoningSickness: u.owner === endingPlayer ? false : u.summoningSickness,
-        cannotAttack: u.owner === endingPlayer ? false : u.cannotAttack,
+        cannotAttack: u.owner === endingPlayer ? u.isCommitted : u.cannotAttack,
       })),
       aiUnits: lane.aiUnits.map((u) => ({
         ...u,
-        tempAttackBonus: 0,
-        tempDefenseBonus: 0,
+        tempAttackBonus: u.owner === endingPlayer ? 0 : u.tempAttackBonus,
+        tempDefenseBonus: u.owner === endingPlayer ? 0 : u.tempDefenseBonus,
         summoningSickness: u.owner === endingPlayer ? false : u.summoningSickness,
-        cannotAttack: u.owner === endingPlayer ? false : u.cannotAttack,
+        cannotAttack: u.owner === endingPlayer ? u.isCommitted : u.cannotAttack,
       })),
     })),
   };
@@ -166,7 +198,7 @@ export function runAiTurn(
   state: MatchState,
   rules: BattleRules = DEFAULT_BATTLE_RULES,
 ): MatchState {
-  let current = state;
+  let current = normalizeMatchState(state, rules);
   let safety = 0;
   while (current.activePlayer === "ai" && current.status === "active" && safety < 80) {
     safety++;
@@ -192,3 +224,5 @@ export function runAiTurn(
   }
   return current;
 }
+
+export { normalizeBattleRules };
