@@ -101,6 +101,14 @@ docker compose up -d
 docker compose exec app node scripts/migrate-production.mjs
 ```
 
+If the app loop-restarts with `SQLITE_READONLY_DIRECTORY`, fix ownership on bind-mounted folders (or `git pull` and rebuild for the auto-fix entrypoint):
+
+```bash
+docker compose down
+chown -R 1001:1001 ~/HistoryCodex/data ~/HistoryCodex/public/uploads
+docker compose up -d
+```
+
 ---
 
 ## Bare-metal deploy (no Docker)

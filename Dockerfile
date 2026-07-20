@@ -24,7 +24,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 
-RUN addgroup --system --gid 1001 nodejs \
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends gosu \
+  && rm -rf /var/lib/apt/lists/* \
+  && addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 --ingroup nodejs nextjs
 
 COPY --from=builder /app/public ./public
@@ -38,7 +41,6 @@ RUN chmod +x /app/scripts/docker-entrypoint.sh \
   && mkdir -p /app/data /app/public/uploads/characters /app/public/uploads/books /app/public/uploads/packs \
   && chown -R nextjs:nodejs /app/data /app/public/uploads
 
-USER nextjs
 EXPOSE 3000
 
 ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
