@@ -72,14 +72,14 @@ export type CharacterCardPreviewProps = {
 
 const DENSITY = {
   full: {
-    shell: "aspect-[5/7] rounded-2xl shadow-2xl",
+    shell: "aspect-[3/5] rounded-2xl shadow-2xl sm:aspect-[5/7]",
     padding: "px-3.5 pb-3.5 pt-3 sm:px-4 sm:pb-3 sm:pt-3.5",
     headerVariant: "prominent" as const,
     headerNameClass: "text-lg font-bold leading-tight tracking-tight sm:text-xl",
     headerNameClamp: "",
     headerStarSize: 12,
     headerGap: "mb-2.5 sm:mb-3",
-    art: "relative mb-2.5 min-h-0 w-full flex-1 overflow-hidden rounded-xl border border-white/10 bg-black/30 aspect-[5/4] sm:mb-2 sm:aspect-auto sm:min-h-[12rem]",
+    art: "relative mb-2.5 w-full flex-1 overflow-hidden rounded-xl border border-white/10 bg-black/30 min-h-[14rem] sm:mb-2 sm:min-h-[12rem]",
     artSize: 240,
     badgeClass: "",
     badgeGap: "gap-1.5",

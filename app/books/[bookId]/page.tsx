@@ -5,27 +5,20 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, BookOpen, Link2, Lock, Sparkles, Trash2, User } from "lucide-react";
+import { ArrowLeft, BookOpen, Link2, Sparkles, Trash2, User } from "lucide-react";
 import type { Book, Character, Era, TimelineEntry } from "@/lib/types";
 import { BookCampaignMiniMap } from "@/components/book-campaign-mini-map";
-import { CharacterArt } from "@/components/character-art";
-import {
-  CharacterCardHeader,
-  CopyCountBadge,
-  EventBadge,
-  LocationBadge,
-  RarityPill,
-  UnitBadge,
-} from "@/components/character-badges";
 import { CharacterCardModal } from "@/components/character-card-modal";
+import { CharacterCardPreview } from "@/components/character-card-preview";
 import { ReadingSessionTimer } from "@/components/reading-session-timer";
 import { ReadingProgressBar } from "@/components/reading-progress-bar";
 import { useCardModalNavigation } from "@/lib/client/use-card-modal-navigation";
+import type { AbilityEffect, AbilityTrigger } from "@/lib/battle";
 import { entryHref, linkedPeopleWithSource, type LinkedEntry } from "@/lib/entry-links";
 import { formatMilestonePercents } from "@/lib/format";
 import { imageFrameFromCharacter } from "@/lib/image-frame";
 import { CARD_TYPE_ICONS, CARD_TYPE_LABELS_PLURAL, CARD_TYPES, type CardType } from "@/lib/card-types";
-import { RARITY_META, RARITY_ORDER, type RarityTier } from "@/lib/rarity";
+import { RARITY_ORDER, dexNumber, type RarityTier } from "@/lib/rarity";
 
 type BookCard = Character & {
   era: Era;
@@ -465,76 +458,51 @@ export default function BookDetailPage({
                     {CARD_TYPE_LABELS_PLURAL[cardType]}
                     <span className="font-normal text-muted">({cards.length})</span>
                   </h3>
-                  <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                    {cards.map((card) => {
-                      const meta = RARITY_META[card.rarity];
-                      return (
-                        <li key={card.id}>
-                          <button
-                            type="button"
-                            onClick={() => setViewingCardId(card.id)}
-                            className={`group relative flex h-full w-full flex-col overflow-hidden rounded-xl border-2 bg-surface p-2.5 text-left shadow-sm transition-transform hover:scale-[1.02] ${
-                              card.owned ? "" : "border-border-strong opacity-95"
-                            }`}
-                            style={{
-                              borderColor: card.owned ? meta.color : undefined,
-                              boxShadow: card.owned ? meta.glow : undefined,
-                              background: `linear-gradient(160deg, ${card.era.colorPrimary}18, ${card.era.colorSecondary}18), var(--surface)`,
+                  <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+                    {cards.map((card) => (
+                      <li key={card.id} className="min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => setViewingCardId(card.id)}
+                          className="block w-full text-left transition-transform hover:scale-[1.015]"
+                        >
+                          <CharacterCardPreview
+                            name={card.name}
+                            rarity={card.rarity}
+                            cardType={card.cardType}
+                            cost={card.cost}
+                            attack={card.attack}
+                            defense={card.defense}
+                            archetype={card.archetype}
+                            era={{
+                              name: card.era.name,
+                              colorPrimary: card.era.colorPrimary,
+                              colorSecondary: card.era.colorSecondary,
                             }}
-                          >
-                            <CharacterCardHeader
-                              name={card.name}
-                              rarity={card.rarity}
-                              variant="compact"
-                              nameClassName="text-[11px] font-semibold leading-tight text-foreground"
-                              starSize={9}
-                            />
-
-                            <div className="relative my-2 flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-lg border border-border bg-surface-raised">
-                              <CharacterArt
-                                seed={card.seed}
-                                imageUrl={card.imageUrl}
-                                imageFrame={imageFrameFromCharacter(card)}
-                                era={card.era}
-                                rarity={card.rarity}
-                                archetype={card.archetype}
-                                size={160}
-                                className={card.owned ? "" : "opacity-45 grayscale"}
-                              />
-                              {!card.owned && (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-surface/85 backdrop-blur-[1px]">
-                                  <Lock size={20} className="text-muted" />
-                                  <span className="text-[10px] font-medium text-muted">Locked</span>
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="mt-auto space-y-1 border-t border-border/70 pt-2">
-                              <div className="flex flex-wrap items-center gap-1">
-                                <RarityPill label={meta.label} color={meta.color} size="compact" />
-                                {card.cardType === "location" && <LocationBadge size="compact" />}
-                                {card.cardType === "unit" && <UnitBadge size="compact" />}
-                                {card.cardType === "event" && <EventBadge size="compact" />}
-                              </div>
-
-                              <p className="truncate text-[10px] text-muted">{card.era.name}</p>
-
-                              {card.owned ? (
-                                card.quantity > 1 ? (
-                                  <CopyCountBadge quantity={card.quantity} className="mt-0.5" />
-                                ) : (
-                                  <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
-                                    Owned
-                                  </span>
-                                )
-                              ) : (
-                                <span className="text-[10px] font-medium text-subtle">Tap to preview</span>
-                              )}
-                            </div>
-                          </button>
-                        </li>
-                      );
-                    })}
+                            abilityName={card.abilityName}
+                            abilityEffect={card.abilityEffect as AbilityEffect | null}
+                            abilityValue={card.abilityValue}
+                            abilityTrigger={card.abilityTrigger as AbilityTrigger | null}
+                            flavorText={card.flavorText}
+                            seed={card.seed}
+                            imageUrl={card.imageUrl}
+                            imageFrame={imageFrameFromCharacter(card)}
+                            holographic={card.holographic}
+                            dexLabel={dexNumber(card.id)}
+                            locked={!card.owned}
+                            reserveHeaderActionsSpace={false}
+                            ownership={{ showStatus: true, owned: card.owned, quantity: card.quantity }}
+                            flavorFooter={
+                              card.owned && card.quantity > 1 ? (
+                                <p className="border-t border-white/10 px-2.5 py-2 text-xs text-amber-200/90 sm:px-3">
+                                  You own {card.quantity} copies of this card.
+                                </p>
+                              ) : null
+                            }
+                          />
+                        </button>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               );
