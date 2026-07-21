@@ -116,9 +116,37 @@ Keep the SQLite backup until stable.
 
 ---
 
-## Moving uploads to the server
+## Uploads (Supabase Storage)
 
-Uploads remain on the local filesystem (`public/uploads/`):
+Card art, booster pack images, and custom book covers are stored in a **public Supabase Storage bucket** when `SUPABASE_SERVICE_ROLE_KEY` is set. The database stores the public object URL; all environments (local dev and production) read the same files.
+
+One-time setup:
+
+```bash
+# In .env / .env.local
+SUPABASE_URL=https://[ref].supabase.co          # optional if DATABASE_URL uses postgres.[ref]@
+SUPABASE_SERVICE_ROLE_KEY=...                   # Supabase → Settings → API
+SUPABASE_STORAGE_BUCKET=historycodex-uploads    # optional default
+
+npm run uploads:setup-storage
+```
+
+Migrate existing files from `public/uploads/` (sync from production first if your machine is missing files):
+
+```bash
+# Optional: pull missing files from production into public/uploads/
+UPLOAD_MIRROR_URL=https://your-production-host npm run uploads:sync
+
+npm run uploads:migrate
+```
+
+Legacy `/uploads/...` paths in the database redirect to Supabase when storage is configured. New uploads go directly to the bucket.
+
+---
+
+## Moving uploads to the server (legacy)
+
+If you are not using Supabase Storage yet, uploads remain on the local filesystem (`public/uploads/`):
 
 ```bash
 scp -r public/uploads user@your-server:/path/to/historycodex/public/

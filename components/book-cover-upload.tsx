@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { BookOpen, ImageUp } from "lucide-react";
+import { isCustomBookCoverUrl } from "@/lib/upload-urls";
 
 type BookCoverUploadProps = {
   coverUrl: string | null;
@@ -44,7 +45,7 @@ export function BookCoverUpload({
     }
   }
 
-  const isCustomCover = coverUrl?.startsWith("/uploads/books/") ?? false;
+  const isCustomCover = isCustomBookCoverUrl(coverUrl);
   const [coverFailed, setCoverFailed] = useState(false);
 
   useEffect(() => {

@@ -10,6 +10,14 @@ import {
   isWebpFilename,
   webpFilenameFrom,
 } from "@/lib/server/image-webp";
+import {
+  deleteObject,
+  downloadObject,
+  getPublicObjectUrl,
+  isSupabaseStorageEnabled,
+  listObjects,
+  uploadObject,
+} from "@/lib/server/supabase-storage";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "characters");
 const URL_PREFIX = "/uploads/characters/";
@@ -41,6 +49,33 @@ async function usageMap(): Promise<Map<string, { id: number; name: string }[]>> 
 }
 
 export async function listArtwork() {
+  const usage = await usageMap();
+
+  if (isSupabaseStorageEnabled()) {
+    const objects = await listObjects("characters");
+    let totalBytes = 0;
+    let unusedCount = 0;
+    let nonWebpCount = 0;
+
+    const files = objects.map((object) => {
+      const url = getPublicObjectUrl(object.path);
+      const usedBy = usage.get(url) ?? usage.get(`${URL_PREFIX}${object.name}`) ?? [];
+      totalBytes += object.sizeBytes;
+      if (usedBy.length === 0) unusedCount++;
+      if (!isWebpFilename(object.name)) nonWebpCount++;
+      return {
+        filename: object.name,
+        url,
+        sizeBytes: object.sizeBytes,
+        modifiedAt: object.updatedAt ?? new Date(0).toISOString(),
+        usedBy,
+        isWebp: isWebpFilename(object.name),
+      };
+    });
+
+    return { files, totalBytes, unusedCount, nonWebpCount };
+  }
+
   let filenames: string[];
   try {
     filenames = fs.readdirSync(UPLOAD_DIR);
@@ -48,7 +83,6 @@ export async function listArtwork() {
     return { files: [], totalBytes: 0, unusedCount: 0, nonWebpCount: 0 };
   }
 
-  const usage = await usageMap();
   let totalBytes = 0;
   let unusedCount = 0;
   let nonWebpCount = 0;
@@ -103,19 +137,59 @@ export async function convertArtworkFileToWebp(filename: string): Promise<Artwor
     throw new ApiError(400, "File is already WebP");
   }
 
+  const oldUrl = `${URL_PREFIX}${filename}`;
+  const usage = await usageMap();
+  const usedBy = usage.get(oldUrl) ?? usage.get(getPublicObjectUrl(`characters/${filename}`)) ?? [];
+
+  if (isSupabaseStorageEnabled()) {
+    const storagePath = `characters/${filename}`;
+    const source = await downloadObject(storagePath);
+    if (!source) throw new ApiError(404, "File not found");
+
+    const tempDir = path.join(process.cwd(), ".tmp", "artwork-convert");
+    fs.mkdirSync(tempDir, { recursive: true });
+    const tempSource = path.join(tempDir, filename);
+    const tempDest = path.join(tempDir, webpFilenameFrom(filename));
+    fs.writeFileSync(tempSource, source);
+
+    const newSizeBytes = await convertFileToWebp(tempSource, tempDest);
+    const newFilename = path.basename(tempDest);
+    const newUrl = await uploadObject(`characters/${newFilename}`, fs.readFileSync(tempDest));
+
+    if (usedBy.length > 0) {
+      await db
+        .update(characters)
+        .set({ imageUrl: newUrl })
+        .where(eq(characters.imageUrl, oldUrl));
+      const publicOldUrl = getPublicObjectUrl(storagePath);
+      await db
+        .update(characters)
+        .set({ imageUrl: newUrl })
+        .where(eq(characters.imageUrl, publicOldUrl));
+    }
+
+    await deleteObject(storagePath);
+    fs.rmSync(tempDir, { recursive: true, force: true });
+
+    return {
+      oldFilename: filename,
+      newFilename,
+      oldUrl,
+      newUrl,
+      oldSizeBytes: source.length,
+      newSizeBytes,
+      updatedCharacterIds: usedBy.map((c) => c.id),
+    };
+  }
+
   const oldPath = path.join(UPLOAD_DIR, filename);
   if (!fs.existsSync(oldPath)) {
     throw new ApiError(404, "File not found");
   }
 
-  const oldUrl = `${URL_PREFIX}${filename}`;
   const oldSizeBytes = fs.statSync(oldPath).size;
-  const usage = await usageMap();
-  const usedBy = usage.get(oldUrl) ?? [];
-
   const { newFilename, newPath } = resolveWebpDestination(filename);
   const newUrl = `${URL_PREFIX}${newFilename}`;
-
   const newSizeBytes = await convertFileToWebp(oldPath, newPath);
 
   if (usedBy.length > 0) {
@@ -136,6 +210,26 @@ export async function convertArtworkFileToWebp(filename: string): Promise<Artwor
 }
 
 export async function convertAllArtworkToWebp() {
+  if (isSupabaseStorageEnabled()) {
+    const listed = await listArtwork();
+    const converted: ArtworkConversionResult[] = [];
+    const errors: { filename: string; error: string }[] = [];
+
+    for (const file of listed.files) {
+      if (file.isWebp) continue;
+      try {
+        converted.push(await convertArtworkFileToWebp(file.filename));
+      } catch (error) {
+        errors.push({
+          filename: file.filename,
+          error: error instanceof Error ? error.message : "Conversion failed",
+        });
+      }
+    }
+
+    return { converted, errors };
+  }
+
   let filenames: string[];
   try {
     filenames = fs.readdirSync(UPLOAD_DIR);
@@ -163,21 +257,34 @@ export async function convertAllArtworkToWebp() {
 
 export async function deleteArtworkFile(filename: string, force: boolean) {
   assertSafeFilename(filename);
-  const filePath = path.join(UPLOAD_DIR, filename);
-  if (!fs.existsSync(filePath)) {
-    throw new ApiError(404, "File not found");
-  }
 
-  const url = `${URL_PREFIX}${filename}`;
+  const localUrl = `${URL_PREFIX}${filename}`;
+  const publicUrl = isSupabaseStorageEnabled() ? getPublicObjectUrl(`characters/${filename}`) : null;
   const usage = await usageMap();
-  const usedBy = usage.get(url) ?? [];
+  const usedBy =
+    usage.get(localUrl) ??
+    (publicUrl ? usage.get(publicUrl) : undefined) ??
+    [];
 
   if (usedBy.length > 0 && !force) {
     throw new ApiError(409, `In use by ${usedBy.map((c) => c.name).join(", ")}`);
   }
 
   if (usedBy.length > 0) {
-    await db.update(characters).set({ imageUrl: null }).where(eq(characters.imageUrl, url));
+    await db.update(characters).set({ imageUrl: null }).where(eq(characters.imageUrl, localUrl));
+    if (publicUrl) {
+      await db.update(characters).set({ imageUrl: null }).where(eq(characters.imageUrl, publicUrl));
+    }
+  }
+
+  if (isSupabaseStorageEnabled()) {
+    await deleteObject(`characters/${filename}`);
+    return { nulledCharacterIds: usedBy.map((c) => c.id) };
+  }
+
+  const filePath = path.join(UPLOAD_DIR, filename);
+  if (!fs.existsSync(filePath)) {
+    throw new ApiError(404, "File not found");
   }
 
   fs.unlinkSync(filePath);

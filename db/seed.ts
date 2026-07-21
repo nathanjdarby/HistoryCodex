@@ -158,6 +158,8 @@ const flavorByArchetype: Record<(typeof archetypes)[number], string> = {
   scholar: "History does not sleep; it waits in ink and margin.",
   monarch: "A crown is heavy long before it reaches the brow.",
   merchant: "Every road leads somewhere worth selling.",
+  sailor: "The horizon keeps its secrets until the tide turns.",
+  leader: "Armies follow the voice that outlasts the battle.",
 };
 const locationFlavorText =
   "Those who hold this ground find the past harder to dislodge than any army.";
@@ -166,6 +168,8 @@ const epithets: Record<(typeof archetypes)[number], [string, string]> = {
   scholar: ["Chronicler", "Sage"],
   monarch: ["Regent", "Claimant"],
   merchant: ["Trader", "Guildmaster"],
+  sailor: ["Navigator", "Helmsman"],
+  leader: ["Commander", "Strategist"],
 };
 const rarityOrder = [
   "common",

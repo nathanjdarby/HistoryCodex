@@ -3,11 +3,34 @@ import fs from "node:fs";
 import path from "node:path";
 import { ApiError } from "@/lib/api-utils";
 import { bufferToWebp } from "@/lib/server/image-webp";
+import {
+  isSupabaseStorageEnabled,
+  uploadKindObject,
+  type UploadKind,
+} from "@/lib/server/supabase-storage";
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp"]);
 
-export type UploadKind = "characters" | "packs" | "books";
+export type { UploadKind };
+
+export async function saveUploadedImageBuffer(
+  buffer: Buffer,
+  kind: UploadKind,
+): Promise<string> {
+  const webpBuffer = await bufferToWebp(buffer);
+  const filename = `${randomUUID()}.webp`;
+
+  if (isSupabaseStorageEnabled()) {
+    return uploadKindObject(kind, filename, webpBuffer);
+  }
+
+  const uploadDir = path.join(process.cwd(), "public", "uploads", kind);
+  fs.mkdirSync(uploadDir, { recursive: true });
+  fs.writeFileSync(path.join(uploadDir, filename), webpBuffer);
+
+  return `/uploads/${kind}/${filename}`;
+}
 
 export async function saveUploadedImage(file: File, kind: UploadKind): Promise<string> {
   if (!ALLOWED_TYPES.has(file.type)) {
@@ -18,11 +41,5 @@ export async function saveUploadedImage(file: File, kind: UploadKind): Promise<s
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const webpBuffer = await bufferToWebp(buffer);
-  const filename = `${randomUUID()}.webp`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads", kind);
-  fs.mkdirSync(uploadDir, { recursive: true });
-  fs.writeFileSync(path.join(uploadDir, filename), webpBuffer);
-
-  return `/uploads/${kind}/${filename}`;
+  return saveUploadedImageBuffer(buffer, kind);
 }

@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { saveUploadedImageBuffer } from "@/lib/server/uploads";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
@@ -17,7 +18,6 @@ import {
   setCatalogBookCards,
 } from "@/lib/server/catalog-book-cards";
 import { createCatalogBook, getCatalogBook } from "@/lib/server/catalog-books";
-import { convertFileToWebp } from "@/lib/server/image-webp";
 import { importStagingPreviewUrl } from "@/lib/server/stage-import-folder";
 import type { Archetype, Rarity } from "@/lib/sprite/generateSprite";
 
@@ -232,12 +232,8 @@ async function importImageFile(sourcePath: string) {
     throw new Error(`Unsupported image type: ${sourcePath}`);
   }
 
-  const filename = `${randomUUID()}.webp`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "characters");
-  const destination = path.join(uploadDir, filename);
-  fs.mkdirSync(uploadDir, { recursive: true });
-  await convertFileToWebp(sourcePath, destination);
-  return `/uploads/characters/${filename}`;
+  const buffer = fs.readFileSync(sourcePath);
+  return saveUploadedImageBuffer(buffer, "characters");
 }
 
 function buildCharacterValues(params: {

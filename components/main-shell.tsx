@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-const FULL_BLEED_PATHS = new Set(["/", "/about", "/login"]);
+const FULL_BLEED_PATHS = new Set(["/", "/about", "/login", "/dashboard"]);
 
 export function MainShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();

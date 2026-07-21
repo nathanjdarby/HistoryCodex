@@ -4,6 +4,8 @@ const lanDevOrigins = process.env.DEV_ALLOWED_ORIGINS?.split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const supabaseHost = process.env.SUPABASE_URL?.replace(/^https?:\/\//, "").replace(/\/$/, "");
+
 const nextConfig: NextConfig = {
   output: "standalone",
   serverExternalPackages: ["postgres"],
@@ -52,6 +54,9 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "**.googleusercontent.com",
       },
+      ...(supabaseHost
+        ? [{ protocol: "https" as const, hostname: supabaseHost }]
+        : [{ protocol: "https" as const, hostname: "**.supabase.co" }]),
     ],
   },
 };
