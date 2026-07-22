@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen } from "lucide-react";
 import type { Book, Character, Era } from "@/lib/types";
+import { formatProgressLabel, getProgressPercent } from "@/lib/book-progress";
 import { DashboardRecentUnlocks } from "@/components/dashboard-recent-unlocks";
 import { PageSection } from "@/components/page-header";
 
@@ -22,8 +23,7 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 function progressPct(book: Book) {
-  if (book.totalPages <= 0) return 0;
-  return Math.min(100, Math.round((book.currentPage / book.totalPages) * 100));
+  return getProgressPercent(book);
 }
 
 function BookPreviewCard({
@@ -60,7 +60,7 @@ function BookPreviewCard({
       {showProgress ? (
         <>
           <p className="mt-1.5 text-[11px] text-muted">
-            Page {book.currentPage} / {book.totalPages}
+            {formatProgressLabel(book)}
           </p>
           <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-surface-raised">
             <div className="h-full bg-accent" style={{ width: `${pct}%` }} />

@@ -13,7 +13,7 @@ npm run db:seed-auth
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3005](http://localhost:3005).
 
 Default dev accounts (after `db:seed-auth`): `admin@example.com` / `user@example.com`, password `password`.
 

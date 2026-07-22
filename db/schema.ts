@@ -10,6 +10,7 @@ import {
   uniqueIndex,
   index,
   primaryKey,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 export const eras = pgTable("eras", {
@@ -69,6 +70,14 @@ export const books = pgTable(
     summary: text("summary"),
     totalPages: integer("total_pages").notNull(),
     currentPage: integer("current_page").notNull().default(0),
+    consumptionFormat: text("consumption_format", {
+      enum: ["print", "ebook", "audiobook"],
+    })
+      .notNull()
+      .default("print"),
+    editionTotalPages: integer("edition_total_pages"),
+    totalDurationSeconds: integer("total_duration_seconds"),
+    currentPositionSeconds: integer("current_position_seconds").notNull().default(0),
     wordCount: integer("word_count"),
     wordsPerPage: integer("words_per_page"),
     campaignSlug: text("campaign_slug"),
@@ -638,3 +647,26 @@ export const matches = pgTable(
     index("idx_matches_status").on(table.status),
   ],
 );
+
+export const cardLayouts = pgTable("card_layouts", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  layout: jsonb("layout").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const cardLayoutAssignments = pgTable("card_layout_assignments", {
+  cardType: text("card_type", { enum: CARD_TYPE_ENUM }).primaryKey(),
+  layoutId: integer("layout_id")
+    .notNull()
+    .references(() => cardLayouts.id, { onDelete: "cascade" }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const cardLayoutSettings = pgTable("card_layout_settings", {
+  id: serial("id").primaryKey(),
+  aspectRatioW: doublePrecision("aspect_ratio_w").notNull(),
+  aspectRatioH: doublePrecision("aspect_ratio_h").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

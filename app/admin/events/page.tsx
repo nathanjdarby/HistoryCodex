@@ -5,12 +5,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, ImageOff, LayoutGrid, List, Pencil, Plus, Trash2 } from "lucide-react";
 import type { Character, Era } from "@/lib/types";
 import { AdminCardGallery } from "@/components/admin-card-gallery";
+import { AdminCardTableThumb } from "@/components/admin-card-table-thumb";
 import { AdminCardSearchInput } from "@/components/admin-card-search-input";
-import { CharacterArt } from "@/components/character-art";
 import { CharacterCardModal } from "@/components/character-card-modal";
 import { CharacterForm } from "@/components/character-form";
 import { HoloBadge } from "@/components/character-badges";
-import { imageFrameFromCharacter } from "@/lib/image-frame";
 import { RARITY_META, RARITY_ORDER } from "@/lib/rarity";
 import { fetchEras } from "@/lib/client/eras";
 import { adminCardResultLabel, matchesAdminCardSearch } from "@/lib/client/admin-card-search";
@@ -311,18 +310,10 @@ export default function AdminEventsPage() {
                     <button
                       type="button"
                       onClick={() => openPreview(c)}
-                      className="relative block h-9 w-9 overflow-hidden rounded border border-border bg-surface-raised hover:border-accent/50"
+                      className="block hover:opacity-90"
                       aria-label={`View ${c.name}`}
                     >
-                      <CharacterArt
-                        seed={c.seed}
-                        imageUrl={c.imageUrl}
-                        imageFrame={imageFrameFromCharacter(c)}
-                        era={c.era}
-                        rarity={c.rarity}
-                        archetype={c.archetype}
-                        size={36}
-                      />
+                      <AdminCardTableThumb character={c} owned={c.owned} />
                     </button>
                   </td>
                   <td className="px-3 py-2 text-left">

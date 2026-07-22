@@ -3,15 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { CharacterCardModal, type CharacterCardView } from "@/components/character-card-modal";
-import { CharacterCardPreview } from "@/components/character-card-preview";
 import { useCardModalNavigation } from "@/lib/client/use-card-modal-navigation";
-import { imageFrameFromCharacter } from "@/lib/image-frame";
-import { dexNumber } from "@/lib/rarity";
+import {
+  CARD_PREVIEW_WIDTH_REM,
+  LayoutCharacterCard,
+  layoutCharacterCardFromCharacter,
+} from "@/components/layout-character-card";
 import type { FeaturedCharacter } from "@/lib/server/characters";
 
-import { ScaledCharacterCardShell } from "@/components/scaled-character-card";
-
-const DISPLAY_WIDTH_REM = 10.2;
+const DISPLAY_WIDTH_REM = CARD_PREVIEW_WIDTH_REM - 2.3;
 
 const previewFooter = (
   <p className="text-center text-sm leading-relaxed text-muted">
@@ -82,32 +82,12 @@ function FeaturedCard({
       aria-label={`Preview ${card.name}`}
       className={`group relative mx-auto cursor-pointer border-0 bg-transparent p-0 pb-5 text-left transition-all duration-300 hover:z-10 hover:-translate-y-2 hover:scale-[1.05] hover:rotate-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold ${tilt} ${rowOffset}`}
     >
-      <ScaledCharacterCardShell
-        displayWidthRem={DISPLAY_WIDTH_REM}
-        innerClassName="pointer-events-none transition-[filter] duration-300 group-hover:brightness-110"
-      >
-        <CharacterCardPreview
-            name={card.name}
-            rarity={card.rarity}
-            cardType={card.cardType}
-            cost={card.cost}
-            attack={card.attack}
-            defense={card.defense}
-            archetype={card.archetype}
-            era={card.era}
-            abilityName={card.abilityName}
-            abilityEffect={card.abilityEffect}
-            abilityValue={card.abilityValue}
-            abilityTrigger={card.abilityTrigger}
-            flavorText={card.flavorText}
-            seed={card.seed}
-            imageUrl={card.imageUrl}
-            imageFrame={imageFrameFromCharacter(card)}
-            holographic={card.holographic}
-            dexLabel={dexNumber(card.id)}
-            density="full"
-          />
-      </ScaledCharacterCardShell>
+      <LayoutCharacterCard
+        {...layoutCharacterCardFromCharacter(card, {
+          displayWidthRem: DISPLAY_WIDTH_REM,
+          innerClassName: "pointer-events-none transition-[filter] duration-300 group-hover:brightness-110",
+        })}
+      />
       <span className="pointer-events-none absolute inset-x-0 bottom-0 text-center text-[10px] font-medium text-subtle opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         Click to preview
       </span>

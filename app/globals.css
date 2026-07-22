@@ -281,30 +281,30 @@ body {
   /* Content-sized mat — avoid stretching to fill viewport and leaving dead space */
 }
 
-/* In-match play cards: render full collection layout at 18rem, scale down uniformly.
-   --battle-card-width is set once on .battle-mat (responsive) so cards and the hand
-   row stay in sync instead of duplicating the same magic number in two places. */
+/* In-match play cards: --battle-card-width is set once on .battle-mat (responsive)
+   so cards and the hand row stay in sync. Content scales via .card-container cqw. */
 .battle-play-card {
-  --battle-card-source-width: 18rem;
   width: var(--battle-card-width, 9.5rem);
   min-width: var(--battle-card-width, 9.5rem);
   max-width: var(--battle-card-width, 9.5rem);
-  height: calc(var(--battle-card-width, 9.5rem) * 7 / 5);
+  height: calc(
+    var(--battle-card-width, 9.5rem) * var(--card-aspect-ratio-h, 7) / var(--card-aspect-ratio-w, 5)
+  );
   overflow: hidden;
   position: relative;
   flex-shrink: 0;
 }
 
 .battle-play-card-inner {
-  width: var(--battle-card-source-width);
-  height: calc(var(--battle-card-source-width) * 7 / 5);
-  transform: scale(calc(var(--battle-card-width, 9.5rem) / var(--battle-card-source-width)));
-  transform-origin: top left;
+  width: 100%;
+  height: 100%;
   pointer-events: auto;
 }
 
 .battle-hand-row {
-  min-height: calc(var(--battle-card-width, 9.5rem) * 7 / 5);
+  min-height: calc(
+    var(--battle-card-width, 9.5rem) * var(--card-aspect-ratio-h, 7) / var(--card-aspect-ratio-w, 5)
+  );
 }
 
 /* Empty lane slot — same footprint as .battle-play-card so a row of 5 slots
@@ -313,8 +313,458 @@ body {
 .battle-slot-empty {
   width: var(--battle-card-width, 9.5rem);
   min-width: var(--battle-card-width, 9.5rem);
-  height: calc(var(--battle-card-width, 9.5rem) * 7 / 5);
+  height: calc(
+    var(--battle-card-width, 9.5rem) * var(--card-aspect-ratio-h, 7) / var(--card-aspect-ratio-w, 5)
+  );
   flex-shrink: 0;
+}
+
+/* Shared card shape — driven by card_layout_settings via CardLayoutsProvider. */
+.card-aspect-ratio {
+  aspect-ratio: var(--card-aspect-ratio-w, 5) / var(--card-aspect-ratio-h, 7);
+}
+
+/*
+ * Card layout system — content scales with rendered card width via container queries.
+ * Values are derived from the 34rem (~544px) full-size design reference (px / 544 * 100 = cqw).
+ */
+.card-container {
+  container-type: inline-size;
+  container-name: card;
+}
+
+.card-container .card-icon-chip {
+  width: 1.85cqw;
+  height: 1.85cqw;
+}
+.card-container .card-icon-lock-lg {
+  width: 5.9cqw;
+  height: 5.9cqw;
+}
+.card-container .card-icon-lock-md {
+  width: 3.3cqw;
+  height: 3.3cqw;
+}
+.card-container .card-icon-lock-sm {
+  width: 2.2cqw;
+  height: 2.2cqw;
+}
+.card-container .card-icon-status-lg {
+  width: 3.7cqw;
+  height: 3.7cqw;
+}
+.card-container .card-icon-status-sm {
+  width: 2.6cqw;
+  height: 2.6cqw;
+}
+
+.card-container .card-stat-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border-width: 1px;
+  border-style: solid;
+  background: rgb(0 0 0 / 0.8);
+  font-family: ui-monospace, monospace;
+  line-height: 1;
+  backdrop-filter: blur(4px);
+}
+
+.card-container .card-stat-badge-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/*
+ * Stat badges + chips scale with their layout box (not the whole card).
+ * Calibrated so default box sizes match the previous card-width cqw values.
+ */
+.stat-badge-slot {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: flex-start;
+  justify-content: flex-end;
+  container-type: size;
+}
+
+.stat-badge-slot .card-stat-badge {
+  width: 64.29cqmin;
+  height: 64.29cqmin;
+}
+
+.stat-badge-slot .card-text-badge-label {
+  font-size: 11.9cqmin;
+}
+
+.stat-badge-slot .card-text-badge-value {
+  font-size: 17.46cqmin;
+}
+
+.stat-badge-slot .card-icon-combat {
+  width: 20.63cqmin;
+  height: 20.63cqmin;
+}
+
+.stat-badge-slot .card-icon-archetype {
+  width: 26.19cqmin;
+  height: 26.19cqmin;
+}
+
+.stat-badge-slot .card-stat-badge-icon {
+  gap: 1.19cqmin;
+}
+
+.chip-slot {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  container-type: size;
+}
+
+.chip-slot .card-pill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10.71cqmin;
+  min-height: 57.14cqmin;
+  height: 100%;
+  max-height: 100%;
+  padding: 10.71cqmin 15.71cqmin;
+  border-radius: 10.71cqmin;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.chip-slot .card-text-chip {
+  font-size: 23.57cqmin;
+}
+
+.chip-slot .card-icon-chip {
+  width: 26.43cqmin;
+  height: 26.43cqmin;
+}
+
+/*
+ * Text slots — content scales with each layout box (default 5:7 card).
+ * cqmin = prior cqw ÷ min(box.w, box.h × 7/5) × 100
+ */
+.name-slot {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  container-type: size;
+}
+
+.name-slot .card-text-name-xl {
+  font-size: 37.76cqmin;
+}
+.name-slot .card-text-name-lg {
+  font-size: 33.67cqmin;
+}
+.name-slot .card-text-name-md {
+  font-size: 29.59cqmin;
+}
+.name-slot .card-text-name-sm {
+  font-size: 26.53cqmin;
+}
+.name-slot .card-text-name-xs {
+  font-size: 22.45cqmin;
+}
+
+.rarity-pill-slot {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  container-type: size;
+}
+
+.rarity-pill-slot .card-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 13.39cqmin;
+  min-height: 71.43cqmin;
+  height: 100%;
+  max-height: 100%;
+  padding: 13.39cqmin 19.64cqmin;
+  border-radius: 13.39cqmin;
+  border-width: 1px;
+  border-style: solid;
+  font-weight: 500;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.rarity-pill-slot .card-text-pill {
+  font-size: 29.46cqmin;
+}
+
+.stars-slot {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: flex-end;
+  container-type: size;
+}
+
+.stars-slot .card-stars-row {
+  gap: 5.95cqmin;
+}
+
+.stars-slot .card-icon-star {
+  width: 52.38cqmin;
+  height: 52.38cqmin;
+}
+
+.ability-label-slot,
+.ability-body-slot {
+  width: 100%;
+  height: 100%;
+  container-type: size;
+}
+
+.ability-label-slot .card-panel-label {
+  padding: 7.65cqmin;
+}
+
+.ability-label-slot .card-text-panel-label {
+  font-size: 18.88cqmin;
+}
+
+.ability-body-slot .card-panel-body {
+  padding: 7.65cqmin 15.31cqmin;
+}
+
+.ability-body-slot .card-text-panel-body {
+  font-size: 22.45cqmin;
+}
+
+.era-name-slot,
+.era-dex-slot {
+  width: 100%;
+  height: 100%;
+  container-type: size;
+}
+
+.era-name-slot .card-era-box,
+.era-dex-slot .card-era-box {
+  border-radius: 39.29cqmin;
+  padding: 0 33.04cqmin;
+}
+
+.era-name-slot .card-text-era,
+.era-dex-slot .card-text-dex {
+  font-size: 33.04cqmin;
+}
+
+.era-dex-slot .card-era-box {
+  gap: 26.79cqmin;
+}
+
+.era-dex-slot .card-copy-badge {
+  min-width: 78.57cqmin;
+  padding: 7.14cqmin 19.64cqmin;
+  font-size: 33.04cqmin;
+}
+
+.era-dex-slot .card-era-status-badge {
+  padding: 7.14cqmin;
+}
+
+.era-dex-slot .card-icon-status-sm {
+  width: 46.43cqmin;
+  height: 46.43cqmin;
+}
+
+.era-dex-slot .card-icon-lock-sm {
+  width: 39.29cqmin;
+  height: 39.29cqmin;
+}
+
+.flavor-text-slot {
+  width: 100%;
+  height: 100%;
+  container-type: size;
+}
+
+.flavor-text-slot .card-flavor-box {
+  border-radius: 13.1cqmin;
+}
+
+.flavor-text-slot .card-flavor-scroll {
+  padding: 6.55cqmin 11.01cqmin;
+}
+
+.flavor-text-slot .card-flavor-scroll-expanded {
+  max-height: 122.62cqmin;
+}
+
+.flavor-text-slot .card-flavor-scroll-collapsed {
+  max-height: 48.21cqmin;
+}
+
+.flavor-text-slot .card-text-flavor {
+  font-size: 15cqmin;
+}
+
+.flavor-text-slot .card-text-flavor-toggle {
+  margin-top: 5.95cqmin;
+  font-size: 11.01cqmin;
+}
+
+.corner-dex-slot {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 26.79cqmin;
+  container-type: size;
+}
+
+.corner-dex-slot .card-text-dex-corner {
+  font-size: 46.43cqmin;
+}
+
+.corner-dex-slot .card-status-badge {
+  padding: 19.64cqmin;
+}
+
+.corner-dex-slot .card-icon-status-lg {
+  width: 66.07cqmin;
+  height: 66.07cqmin;
+}
+
+.corner-dex-slot .card-icon-lock-md {
+  width: 58.93cqmin;
+  height: 58.93cqmin;
+}
+
+.card-container .card-pill {
+  display: inline-flex;
+  align-items: center;
+  border-width: 1px;
+  border-style: solid;
+  font-weight: 500;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.card-container .card-pill-chip {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.card-container .card-panel {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(0 0 0 / 0.3);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.card-container .card-panel-label {
+  justify-content: center;
+  text-align: center;
+}
+
+.card-container .card-panel-body {
+  overflow: hidden;
+  text-align: left;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  line-height: 1.375;
+  color: rgb(231 229 228 / 0.8);
+}
+
+.card-container .card-era-box {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(0 0 0 / 0.3);
+}
+
+.card-container .card-art-frame {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 2.2cqw;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(0 0 0 / 0.3);
+}
+
+.card-container .card-flavor-box {
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(0 0 0 / 0.3);
+}
+
+.card-container .card-flavor-scroll {
+  overflow-y: auto;
+}
+
+.card-container .card-copy-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: rgb(255 253 250 / 0.95);
+  font-family: ui-monospace, monospace;
+  font-weight: 600;
+  color: var(--gold);
+  backdrop-filter: blur(4px);
+}
+
+.card-container .card-status-badge {
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: rgb(255 253 250 / 0.95);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  backdrop-filter: blur(4px);
+}
+
+.card-container .card-era-status-badge {
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(0 0 0 / 0.5);
+}
+
+.card-modal-container {
+  width: min(
+    98vw,
+    34rem,
+    calc((100dvh - 2rem) * var(--card-aspect-ratio-w, 5) / var(--card-aspect-ratio-h, 7))
+  );
+  max-height: min(calc(100dvh - 2rem), 52rem);
+}
+
+@media (min-width: 640px) {
+  .card-modal-container {
+    max-height: min(calc(100dvh - 2.5rem), 52rem);
+    width: min(
+      34rem,
+      calc((100dvh - 2.5rem) * var(--card-aspect-ratio-w, 5) / var(--card-aspect-ratio-h, 7))
+    );
+  }
 }
 
 /* App-wide UI — crimson & gold (matches marketing home) */

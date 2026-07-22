@@ -5,9 +5,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, BookOpen, Check, Loader2, Plus, Search } from "lucide-react";
+import { AddBookDialog } from "@/components/add-book-dialog";
 import { CatalogBooksEraSections } from "@/components/catalog-books-era-sections";
 import { PageHeader } from "@/components/page-header";
-import { ArrowLeft, BookOpen, Check, Loader2, Plus, Search } from "lucide-react";
+import type { ConsumptionFormat } from "@/lib/book-progress";
 import type { Era } from "@/lib/types";
 
 type CatalogBook = {
@@ -20,6 +22,13 @@ type CatalogBook = {
   eraId: number | null;
   eraName: string | null;
   inLibrary: boolean;
+};
+
+type AddBookInput = {
+  catalogBookId: number;
+  consumptionFormat: ConsumptionFormat;
+  editionTotalPages?: number;
+  totalDurationSeconds?: number;
 };
 
 async function fetchCatalog(): Promise<CatalogBook[]> {
@@ -38,6 +47,8 @@ export default function BrowseCatalogPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
+  const [addTarget, setAddTarget] = useState<CatalogBook | null>(null);
+  const [addError, setAddError] = useState<string | null>(null);
 
   const { data: catalog, isLoading } = useQuery({
     queryKey: ["catalog-books"],
@@ -45,14 +56,12 @@ export default function BrowseCatalogPage() {
   });
   const { data: eras } = useQuery({ queryKey: ["eras"], queryFn: fetchEras });
 
-  const [addError, setAddError] = useState<string | null>(null);
-
   const addMutation = useMutation({
-    mutationFn: async (catalogBookId: number) => {
+    mutationFn: async (input: AddBookInput) => {
       const res = await fetch("/api/books", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ catalogBookId }),
+        body: JSON.stringify(input),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -62,6 +71,7 @@ export default function BrowseCatalogPage() {
     },
     onMutate: () => setAddError(null),
     onSuccess: (book) => {
+      setAddTarget(null);
       queryClient.invalidateQueries({ queryKey: ["catalog-books"] });
       queryClient.invalidateQueries({ queryKey: ["books"] });
       queryClient.invalidateQueries({ queryKey: ["profile-timelines"] });
@@ -89,7 +99,7 @@ export default function BrowseCatalogPage() {
       <PageHeader
         eyebrow="Catalog"
         title="Browse catalog"
-        description="Pick a platform book to add to your library and start earning era points as you read."
+        description="Pick a platform book to add to your library and start earning era points as you read, listen, or read on your device."
         icon={BookOpen}
       />
 
@@ -105,7 +115,7 @@ export default function BrowseCatalogPage() {
 
       {isLoading && <p className="text-sm text-muted">Loading catalog…</p>}
 
-      {addError && (
+      {addError && !addTarget && (
         <div className="rounded-lg border border-red-900/60 bg-red-950/40 px-4 py-2 text-sm text-red-200">
           {addError}
         </div>
@@ -151,15 +161,13 @@ export default function BrowseCatalogPage() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => addMutation.mutate(book.id)}
-                  disabled={addMutation.isPending && addMutation.variables === book.id}
-                  className="app-btn-primary inline-flex shrink-0 items-center gap-1 px-3 py-2 text-xs disabled:cursor-not-allowed"
+                  onClick={() => {
+                    setAddError(null);
+                    setAddTarget(book);
+                  }}
+                  className="app-btn-primary inline-flex shrink-0 items-center gap-1 px-3 py-2 text-xs"
                 >
-                  {addMutation.isPending && addMutation.variables === book.id ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <Plus size={14} />
-                  )}
+                  <Plus size={14} />
                   Add to library
                 </button>
               )}
@@ -167,6 +175,18 @@ export default function BrowseCatalogPage() {
           )}
         />
       )}
+
+      <AddBookDialog
+        book={addTarget}
+        open={addTarget != null}
+        pending={addMutation.isPending}
+        error={addError}
+        onConfirm={(input) => addMutation.mutate(input)}
+        onCancel={() => {
+          setAddTarget(null);
+          setAddError(null);
+        }}
+      />
     </div>
   );
 }

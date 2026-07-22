@@ -3,6 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Clock, Pause, Play, Square } from "lucide-react";
+import {
+  durationToParts,
+  formatDuration,
+  getProgressDenominator,
+  getProgressNumerator,
+  partsToDuration,
+  type BookProgressFields,
+} from "@/lib/book-progress";
 
 const HEARTBEAT_INTERVAL_SEC = 30;
 
@@ -16,7 +24,7 @@ type ReadingSession = {
 };
 
 type FinalizeResult = {
-  book: { currentPage: number; status: string };
+  book: { currentPage: number; currentPositionSeconds: number; status: string };
   awardedMilestones: string[];
   awardedPoints: number;
   pendingPoints: number;
@@ -29,7 +37,7 @@ type FinalizeResult = {
 
 const STORAGE_KEY = (bookId: number) => `reading-session:${bookId}`;
 
-function formatDuration(totalSeconds: number) {
+function formatTimerDuration(totalSeconds: number) {
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
   const s = totalSeconds % 60;
@@ -46,17 +54,22 @@ async function fetchActiveSession(bookId: number): Promise<ReadingSession | null
 
 export function ReadingSessionTimer({
   bookId,
-  currentPage,
-  totalPages,
+  book,
   onFinalized,
 }: {
   bookId: number;
-  currentPage: number;
-  totalPages: number;
+  book: BookProgressFields;
   onFinalized?: (result: FinalizeResult) => void;
 }) {
   const queryClient = useQueryClient();
-  const [endPageInput, setEndPageInput] = useState(String(currentPage));
+  const isAudiobook = book.consumptionFormat === "audiobook";
+  const currentPosition = getProgressNumerator(book);
+  const maxPosition = getProgressDenominator(book);
+
+  const [endPageInput, setEndPageInput] = useState(String(currentPosition));
+  const [hours, setHours] = useState("0");
+  const [minutes, setMinutes] = useState("0");
+  const [seconds, setSeconds] = useState("0");
   const [localSeconds, setLocalSeconds] = useState(0);
   const [tabVisible, setTabVisible] = useState(true);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -67,8 +80,12 @@ export function ReadingSessionTimer({
   });
 
   useEffect(() => {
-    setEndPageInput(String(currentPage));
-  }, [currentPage]);
+    setEndPageInput(String(currentPosition));
+    const parts = durationToParts(currentPosition);
+    setHours(String(parts.h));
+    setMinutes(String(parts.m));
+    setSeconds(String(parts.s));
+  }, [currentPosition]);
 
   useEffect(() => {
     const onVisibility = () => setTabVisible(document.visibilityState === "visible");
@@ -149,11 +166,23 @@ export function ReadingSessionTimer({
   });
 
   const finalizeMutation = useMutation({
-    mutationFn: async ({ s, endPage }: { s: ReadingSession; endPage: number }) => {
+    mutationFn: async ({
+      s,
+      endPage,
+      endPositionSeconds,
+    }: {
+      s: ReadingSession;
+      endPage?: number;
+      endPositionSeconds?: number;
+    }) => {
       const res = await fetch(`/api/books/${bookId}/sessions/${s.id}/finalize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientToken: s.clientToken, endPage }),
+        body: JSON.stringify({
+          clientToken: s.clientToken,
+          endPage,
+          endPositionSeconds,
+        }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -191,16 +220,22 @@ export function ReadingSessionTimer({
 
   const isActive = session?.status === "active";
   const isPaused = session?.status === "paused";
+  const sessionLabel = isAudiobook ? "Listening session" : "Reading session";
+  const startLabel = isAudiobook ? "Start listening session" : "Start reading session";
+
+  const formatStartLabel = (position: number) =>
+    isAudiobook ? formatDuration(position) : String(position);
 
   return (
     <div className="mt-5 space-y-4 border-t border-border pt-5">
       <div className="flex items-center gap-2">
         <Clock size={16} className="text-gold" />
-        <h3 className="text-sm font-medium text-foreground">Reading session</h3>
+        <h3 className="text-sm font-medium text-foreground">{sessionLabel}</h3>
       </div>
       <p className="text-xs text-muted">
-        Start a timed session while you read. Points are awarded when you finalize with your page
-        number — fast or bulk entries may be flagged for review.
+        {isAudiobook
+          ? "Start a timed session while you listen. Points are awarded when you finalize with your playback position."
+          : "Start a timed session while you read. Points are awarded when you finalize with your page number — fast or bulk entries may be flagged for review."}
       </p>
 
       {!session && (
@@ -211,7 +246,7 @@ export function ReadingSessionTimer({
           className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:opacity-50"
         >
           <Play size={14} />
-          {startMutation.isPending ? "Starting…" : "Start reading session"}
+          {startMutation.isPending ? "Starting…" : startLabel}
         </button>
       )}
 
@@ -221,12 +256,16 @@ export function ReadingSessionTimer({
             <div>
               <p className="text-xs uppercase tracking-wide text-muted">Engaged time</p>
               <p className="text-2xl font-semibold tabular-nums text-gold-bright">
-                {formatDuration(localSeconds)}
+                {formatTimerDuration(localSeconds)}
               </p>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-wide text-muted">Started at page</p>
-              <p className="text-lg font-medium text-foreground">{session.startPage}</p>
+              <p className="text-xs uppercase tracking-wide text-muted">
+                {isAudiobook ? "Started at" : "Started at page"}
+              </p>
+              <p className="text-lg font-medium text-foreground">
+                {formatStartLabel(session.startPage)}
+              </p>
             </div>
             <span
               className={`rounded px-2 py-0.5 text-xs font-medium ${
@@ -269,22 +308,76 @@ export function ReadingSessionTimer({
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              const endPage = Number(endPageInput);
-              finalizeMutation.mutate({ s: session, endPage });
+              if (isAudiobook) {
+                finalizeMutation.mutate({
+                  s: session,
+                  endPositionSeconds: partsToDuration(
+                    Number(hours) || 0,
+                    Number(minutes) || 0,
+                    Number(seconds) || 0,
+                  ),
+                });
+              } else {
+                finalizeMutation.mutate({
+                  s: session,
+                  endPage: Number(endPageInput),
+                });
+              }
             }}
             className="flex flex-col gap-3 sm:flex-row sm:items-end"
           >
-            <label className="flex flex-1 flex-col gap-1 text-sm">
-              Page reached
-              <input
-                type="number"
-                min={session.startPage}
-                max={totalPages}
-                value={endPageInput}
-                onChange={(e) => setEndPageInput(e.target.value)}
-                className="max-w-xs rounded border border-border-strong bg-background px-3 py-2"
-              />
-            </label>
+            {isAudiobook ? (
+              <fieldset className="flex flex-1 flex-col gap-2">
+                <legend className="text-sm">Playback position</legend>
+                <div className="grid max-w-md grid-cols-3 gap-2">
+                  <label className="flex flex-col gap-1 text-xs text-muted">
+                    Hours
+                    <input
+                      type="number"
+                      min={0}
+                      value={hours}
+                      onChange={(e) => setHours(e.target.value)}
+                      className="rounded border border-border-strong bg-background px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs text-muted">
+                    Minutes
+                    <input
+                      type="number"
+                      min={0}
+                      max={59}
+                      value={minutes}
+                      onChange={(e) => setMinutes(e.target.value)}
+                      className="rounded border border-border-strong bg-background px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs text-muted">
+                    Seconds
+                    <input
+                      type="number"
+                      min={0}
+                      max={59}
+                      value={seconds}
+                      onChange={(e) => setSeconds(e.target.value)}
+                      className="rounded border border-border-strong bg-background px-3 py-2 text-sm"
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-muted">Total: {formatDuration(maxPosition)}</p>
+              </fieldset>
+            ) : (
+              <label className="flex flex-1 flex-col gap-1 text-sm">
+                Page reached
+                <input
+                  type="number"
+                  min={session.startPage}
+                  max={maxPosition}
+                  value={endPageInput}
+                  onChange={(e) => setEndPageInput(e.target.value)}
+                  className="max-w-xs rounded border border-border-strong bg-background px-3 py-2"
+                />
+              </label>
+            )}
             <button
               type="submit"
               disabled={finalizeMutation.isPending}

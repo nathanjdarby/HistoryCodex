@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen, Plus } from "lucide-react";
 import type { Book } from "@/lib/types";
+import { getProgressPercent } from "@/lib/book-progress";
 import { PageHeader } from "@/components/page-header";
 
 async function fetchBooks(): Promise<Book[]> {
@@ -47,7 +48,7 @@ export default function BooksPage() {
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {books?.map((book) => {
-          const pct = Math.min(100, Math.round((book.currentPage / book.totalPages) * 100));
+          const pct = getProgressPercent(book);
           return (
             <Link
               key={book.id}

@@ -23,6 +23,15 @@ export type CatalogBookCardRow = {
   seed: string;
   cardType: (typeof CARD_TYPE_ENUM)[number];
   rarity: string;
+  cost: number;
+  attack: number;
+  defense: number;
+  abilityName: string | null;
+  abilityEffect: string | null;
+  abilityValue: number | null;
+  abilityTrigger: string | null;
+  flavorText: string | null;
+  holographic: boolean;
   eraId: number;
   eraName: string;
   eraColorPrimary: string;
@@ -47,6 +56,15 @@ export async function listCatalogBookCards(catalogBookId: number): Promise<Catal
       seed: characters.seed,
       cardType: characters.cardType,
       rarity: characters.rarity,
+      cost: characters.cost,
+      attack: characters.attack,
+      defense: characters.defense,
+      abilityName: characters.abilityName,
+      abilityEffect: characters.abilityEffect,
+      abilityValue: characters.abilityValue,
+      abilityTrigger: characters.abilityTrigger,
+      flavorText: characters.flavorText,
+      holographic: characters.holographic,
       eraId: characters.eraId,
       eraName: eras.name,
       eraColorPrimary: eras.colorPrimary,

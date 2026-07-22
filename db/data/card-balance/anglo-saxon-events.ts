@@ -62,4 +62,14 @@ export const ANGLO_SAXON_EVENT_BALANCE: Record<string, CardBalanceDef> = {
       abilityValue: 20,
     },
   },
+  "event-mobilize-reserves": {
+    rarity: "common",
+    flavorText:
+      "The shire reeve sends fresh spears to the burh—trade a spent warrior for one still fit to stand in the shield-wall.",
+    eventAbility: {
+      abilityName: "Supply Requisition",
+      abilityEffect: "discard_draw",
+      abilityValue: 2,
+    },
+  },
 };

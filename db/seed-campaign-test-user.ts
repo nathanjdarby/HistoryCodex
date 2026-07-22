@@ -40,7 +40,7 @@ async function main() {
     const catalogBookId = Number(catalogBookIdStr);
     let book;
     try {
-      book = await addBookToLibrary(user.id, catalogBookId);
+      book = await addBookToLibrary(user.id, { catalogBookId, consumptionFormat: "print" });
       console.log(`Added to library: ${book.title}`);
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
@@ -54,7 +54,7 @@ async function main() {
     }
 
     const targetPage = Math.round((pct / 100) * book.totalPages);
-    const result = await updateBookProgress(user.id, book.id, targetPage);
+    const result = await updateBookProgress(user.id, book.id, { currentPage: targetPage });
     console.log(
       `  → ${pct}% (${targetPage}/${book.totalPages} pages), milestones: ${result.awardedMilestones.join(", ") || "none"}`,
     );

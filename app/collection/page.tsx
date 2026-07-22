@@ -4,29 +4,19 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader, PointsPill } from "@/components/page-header";
-import { Lock, Sparkles, Users2 } from "lucide-react";
-import { CharacterArt } from "@/components/character-art";
+import { Sparkles, Users2 } from "lucide-react";
 import { CharacterCardModal } from "@/components/character-card-modal";
-import { HolographicOverlay } from "@/components/holographic-overlay";
 import {
-  AbilityChip,
-  AbilityDescription,
-  ArchetypeBadge,
-  CharacterCardCorner,
-  CharacterCardHeader,
-  CharacterCardPowerGauge,
-  CopyCountBadge,
-  FlavorText,
-  EventBadge,
-  LocationBadge,
-  RarityPill,
-  UnitBadge,
-} from "@/components/character-badges";
-import { RARITY_META, RARITY_ORDER, dexNumber } from "@/lib/rarity";
-import { imageFrameFromCharacter } from "@/lib/image-frame";
+  CARD_PREVIEW_WIDTH_REM,
+  LayoutCharacterCard,
+  layoutCharacterCardFromCharacter,
+} from "@/components/layout-character-card";
 import { fetchEras } from "@/lib/client/eras";
+import { RARITY_ORDER } from "@/lib/rarity";
 import type { Character, Era } from "@/lib/types";
 import { useCardModalNavigation } from "@/lib/client/use-card-modal-navigation";
+
+const COLLECTION_CARD_WIDTH_REM = CARD_PREVIEW_WIDTH_REM;
 
 type CharacterWithEra = Character & {
   era: Era;
@@ -159,96 +149,29 @@ export default function CollectionPage() {
 
       {isLoading && <p className="text-muted">Loading collection...</p>}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-[repeat(4,minmax(0,1fr))]">
-        {filtered.map((character) => {
-          const meta = RARITY_META[character.rarity];
-          return (
-            <div
-              key={character.id}
-              onClick={() => setViewingId(character.id)}
-              className={`relative flex aspect-[3/4] w-full cursor-pointer flex-col overflow-hidden rounded-xl border-2 bg-surface p-2 text-left shadow-sm transition-transform hover:-translate-y-1 sm:aspect-[5/7] sm:p-3 sm:pb-10 ${
-                character.owned ? "" : "border-border-strong"
-              }`}
-              style={{
-                borderColor: character.owned ? meta.color : undefined,
-                boxShadow: character.owned ? meta.glow : undefined,
-                background: `linear-gradient(160deg, ${character.era.colorPrimary}18, ${character.era.colorSecondary}18), var(--surface)`,
-              }}
-            >
-              {character.holographic && <HolographicOverlay />}
-
-              {character.owned && character.quantity > 1 && (
-                <div className="absolute left-2 top-2 z-10 sm:left-3 sm:top-3">
-                  <CopyCountBadge quantity={character.quantity} />
-                </div>
-              )}
-
-              <div className="relative z-[1] flex min-h-0 flex-1 flex-col">
-              <CharacterCardCorner dexLabel={dexNumber(character.id)} className="hidden sm:flex" />
-              <CharacterCardHeader
-                name={character.name}
-                rarity={character.rarity}
-                starSize={10}
-                nameClassName="text-[11px] font-semibold text-foreground sm:text-xs"
-              />
-
-              <div className="relative my-1 flex min-h-0 flex-1 w-full items-center justify-center overflow-hidden rounded-lg border border-border bg-surface-raised sm:my-1.5 sm:h-[50%] sm:max-h-48 sm:min-h-[9rem] sm:flex-none">
-                <CharacterArt
-                  seed={character.seed}
-                  imageUrl={character.imageUrl}
-                  imageFrame={imageFrameFromCharacter(character)}
-                  era={character.era}
-                  rarity={character.rarity}
-                  archetype={character.archetype}
-                  size={192}
-                  className={character.owned ? "" : "opacity-40 grayscale"}
-                />
-                {!character.owned && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-surface/80 backdrop-blur-[1px]">
-                    <Lock size={26} className="text-muted" />
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-1 hidden items-center gap-1.5 border-t border-border/70 pt-1.5 sm:flex">
-                <div className="flex min-w-0 flex-1 flex-wrap items-center justify-start gap-1">
-                  <RarityPill label={meta.label} color={meta.color} size="compact" />
-                  {character.cardType === "location" && <LocationBadge size="compact" />}
-                  {character.cardType === "unit" && <UnitBadge size="compact" />}
-                  {character.cardType === "event" && <EventBadge size="compact" />}
-                  <ArchetypeBadge archetype={character.archetype} size="compact" />
-                  <AbilityChip name={character.abilityName} size="compact" />
-                </div>
-                <CharacterCardPowerGauge cost={character.cost} color={meta.color} compact />
-              </div>
-
-              <div className="mt-auto hidden min-h-0 shrink space-y-1 overflow-hidden pt-1 sm:block">
-                <p className="truncate text-left text-[10px] text-muted">{character.era.name}</p>
-                <AbilityDescription
-                  cardType={character.cardType}
-                  abilityName={character.abilityName}
-                  abilityEffect={character.abilityEffect}
-                  abilityValue={character.abilityValue}
-                  abilityTrigger={character.abilityTrigger}
-                  eraName={character.era.name}
-                  variant="compact"
-                  lines={2}
-                />
-                <FlavorText text={character.flavorText} lines={2} />
-                {character.owned && (
-                  <div className="flex items-center justify-end gap-1 px-0.5">
-                    {character.quantity > 1 ? (
-                      <CopyCountBadge quantity={character.quantity} />
-                    ) : (
-                      <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400">✓</span>
-                    )}
-                  </div>
-                )}
-              </div>
-              </div>
-            </div>
-          );
-        })}
+      <div className="grid grid-cols-2 place-items-center gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+        {filtered.map((character) => (
+          <button
+            key={character.id}
+            type="button"
+            onClick={() => setViewingId(character.id)}
+            className="group cursor-pointer border-0 bg-transparent p-0 text-left transition-transform hover:-translate-y-1"
+            aria-label={`View ${character.name}`}
+          >
+            <LayoutCharacterCard
+              {...layoutCharacterCardFromCharacter(character, {
+                displayWidthRem: COLLECTION_CARD_WIDTH_REM,
+                innerClassName: "pointer-events-none transition-[filter] duration-200 group-hover:brightness-110",
+                locked: !character.owned,
+                ownership: {
+                  showStatus: true,
+                  owned: character.owned,
+                  quantity: character.quantity,
+                },
+              })}
+            />
+          </button>
+        ))}
       </div>
 
       {filtered.length === 0 && !isLoading && (

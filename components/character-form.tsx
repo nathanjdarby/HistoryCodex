@@ -5,7 +5,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw, Upload, X } from "lucide-react";
 import type { Character } from "@/lib/types";
 import { CARD_TYPE_ENUM } from "@/db/schema";
-import { CharacterCardPreview } from "@/components/character-card-preview";
+import {
+  LayoutCharacterCard,
+  layoutCharacterCardFromCharacter,
+} from "@/components/layout-character-card";
 import { ImageFrameEditor, useImageFrameDrag } from "@/components/image-frame-editor";
 import {
   computeDefaultBattleStats,
@@ -350,33 +353,41 @@ export function CharacterForm({
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(22rem,26rem)_minmax(0,30rem)] xl:justify-start">
         {/* Live card preview — matches collection modal layout */}
         <div className="mx-auto w-full max-w-[26rem] xl:mx-0 xl:sticky xl:top-0 xl:self-start">
-          <CharacterCardPreview
-            name={form.name.trim() || "Unnamed character"}
-            rarity={form.rarity}
-            cardType={form.cardType}
-            cost={previewCost}
-            attack={previewAttack}
-            defense={previewDefense}
-            archetype={form.archetype || null}
-            era={{
-              name: previewEraSelection?.name ?? "Select an era",
-              colorPrimary: previewEra.colorPrimary,
-              colorSecondary: previewEra.colorSecondary,
-            }}
-            abilityName={form.abilityName.trim() || null}
-            abilityEffect={(form.abilityEffect || null) as AbilityEffect | null}
-            abilityValue={form.abilityValue.trim() ? Number(form.abilityValue) : null}
-            abilityTrigger={form.abilityTrigger || null}
-            flavorText={form.flavorText.trim() || null}
-            seed={previewSeed}
-            imageUrl={form.imageUrl}
-            imageFrame={imageFrame}
-            holographic={form.holographic}
-            dexLabel={editingId ? dexNumber(editingId) : "NEW"}
-            reserveHeaderActionsSpace={false}
-            onImagePointerDown={form.imageUrl ? imageDragHandlers.onPointerDown : undefined}
-            onImagePointerMove={form.imageUrl ? imageDragHandlers.onPointerMove : undefined}
-            onImagePointerUp={form.imageUrl ? imageDragHandlers.onPointerUp : undefined}
+          <LayoutCharacterCard
+            {...layoutCharacterCardFromCharacter(
+              {
+                id: editingId ?? 0,
+                name: form.name.trim() || "Unnamed character",
+                rarity: form.rarity,
+                cardType: form.cardType,
+                cost: previewCost,
+                attack: previewAttack,
+                defense: previewDefense,
+                archetype: form.archetype || null,
+                abilityName: form.abilityName.trim() || null,
+                abilityEffect: (form.abilityEffect || null) as AbilityEffect | null,
+                abilityValue: form.abilityValue.trim() ? Number(form.abilityValue) : null,
+                abilityTrigger: (form.abilityTrigger || null) as AbilityTrigger | null,
+                flavorText: form.flavorText.trim() || null,
+                seed: previewSeed,
+                imageUrl: form.imageUrl,
+                imageFocusX: imageFrame?.focusX ?? 50,
+                imageFocusY: imageFrame?.focusY ?? 50,
+                imageScale: imageFrame?.scale ?? 100,
+                holographic: form.holographic,
+                era: {
+                  name: previewEraSelection?.name ?? "Select an era",
+                  colorPrimary: previewEra.colorPrimary,
+                  colorSecondary: previewEra.colorSecondary,
+                },
+              },
+              {
+                dexLabel: editingId ? dexNumber(editingId) : "NEW",
+                onImagePointerDown: form.imageUrl ? imageDragHandlers.onPointerDown : undefined,
+                onImagePointerMove: form.imageUrl ? imageDragHandlers.onPointerMove : undefined,
+                onImagePointerUp: form.imageUrl ? imageDragHandlers.onPointerUp : undefined,
+              },
+            )}
           />
 
           <details className="mt-3 rounded-lg border border-border bg-background/50 p-2">

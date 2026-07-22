@@ -1,10 +1,11 @@
 import { ImageOff, Pencil, Trash2 } from "lucide-react";
 import type { Character, Era } from "@/lib/types";
-import { CharacterCardPreview } from "@/components/character-card-preview";
 import { HoloBadge } from "@/components/character-badges";
-import { ScaledCharacterCardShell } from "@/components/scaled-character-card";
-import { imageFrameFromCharacter } from "@/lib/image-frame";
-import { dexNumber } from "@/lib/rarity";
+import {
+  CARD_PREVIEW_WIDTH_REM,
+  LayoutCharacterCard,
+  layoutCharacterCardFromCharacter,
+} from "@/components/layout-character-card";
 
 type AdminGalleryCharacter = Character & { era: Era; owned: boolean; unlockedAt?: string | null };
 
@@ -14,9 +15,6 @@ type AdminCardGalleryProps = {
   onEdit: (character: AdminGalleryCharacter) => void;
   onDelete: (character: AdminGalleryCharacter) => void;
 };
-
-/** Wide enough that the full-density layout (badges, ability panel, quote) stays readable at thumbnail size. */
-const DISPLAY_WIDTH_REM = 12.5;
 
 export function AdminCardGallery({
   characters,
@@ -34,34 +32,13 @@ export function AdminCardGallery({
             className="block cursor-pointer border-0 bg-transparent p-0 text-left"
             aria-label={`View ${character.name}`}
           >
-            <ScaledCharacterCardShell
-              displayWidthRem={DISPLAY_WIDTH_REM}
-              className="rounded-2xl shadow-sm"
-              innerClassName="pointer-events-none transition-[filter] duration-200 group-hover:brightness-110"
-            >
-              <CharacterCardPreview
-                name={character.name}
-                rarity={character.rarity}
-                cardType={character.cardType}
-                cost={character.cost}
-                attack={character.attack}
-                defense={character.defense}
-                archetype={character.archetype}
-                era={character.era}
-                abilityName={character.abilityName}
-                abilityEffect={character.abilityEffect}
-                abilityValue={character.abilityValue}
-                abilityTrigger={character.abilityTrigger}
-                flavorText={character.flavorText}
-                seed={character.seed}
-                imageUrl={character.imageUrl}
-                imageFrame={imageFrameFromCharacter(character)}
-                holographic={character.holographic}
-                dexLabel={dexNumber(character.id)}
-                density="full"
-                ownership={{ showStatus: true, owned: character.owned }}
-              />
-            </ScaledCharacterCardShell>
+            <LayoutCharacterCard
+              {...layoutCharacterCardFromCharacter(character, {
+                displayWidthRem: CARD_PREVIEW_WIDTH_REM,
+                innerClassName: "pointer-events-none transition-[filter] duration-200 group-hover:brightness-110",
+                ownership: { showStatus: true, owned: character.owned },
+              })}
+            />
           </button>
 
           {!character.imageUrl && (

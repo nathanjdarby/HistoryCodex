@@ -1,12 +1,14 @@
 import type { CSSProperties } from "react";
-import { Anchor, BookOpen, CheckCircle2, Coins, Crown, Flag, Lock, MapPin, Shield, Sparkles, Star, Sword, Swords, Zap } from "lucide-react";
+import { Anchor, BookOpen, CheckCircle2, Coins, Crown, Flag, Lock, MapPin, Shield, Sparkles, Star, Sword, Swords, User, Zap } from "lucide-react";
 import {
   cardAbilityPanelLabel,
   describeCardAbility,
   hasCardAbility,
   type CardAbilityInput,
 } from "@/lib/battle";
+import type { CardType } from "@/lib/battle/types";
 import { ARCHETYPE_LABEL, RARITY_META, powerPercent, type RarityTier } from "@/lib/rarity";
+import { adaptiveCardNameClass } from "@/lib/card-layout";
 
 export const ARCHETYPE_OPTIONS = ["warrior", "scholar", "monarch", "merchant", "sailor", "leader"] as const;
 
@@ -19,15 +21,25 @@ const ARCHETYPE_ICON: Record<(typeof ARCHETYPE_OPTIONS)[number], typeof Sword> =
   leader: Flag,
 };
 
-export function StarRating({ rarity, size = 10 }: { rarity: RarityTier; size?: number }) {
+export function StarRating({
+  rarity,
+  size = 10,
+  scaled = false,
+}: {
+  rarity: RarityTier;
+  size?: number;
+  scaled?: boolean;
+}) {
   const { stars, color } = RARITY_META[rarity];
   const slotCount = Math.max(5, stars);
+  const iconClass = scaled ? "card-icon-star shrink-0" : undefined;
   return (
-    <span className="flex shrink-0 items-center gap-0.5">
+    <span className={`flex shrink-0 items-center ${scaled ? "card-stars-row" : "gap-0.5"}`}>
       {Array.from({ length: slotCount }, (_, i) => (
         <Star
           key={i}
-          size={size}
+          size={scaled ? undefined : size}
+          className={iconClass}
           fill={i < stars ? color : "transparent"}
           stroke={i < stars ? color : "#525252"}
         />
@@ -147,15 +159,21 @@ export function CharacterCardHeader({
 export function CopyCountBadge({
   quantity,
   className = "",
+  scaled = false,
 }: {
   quantity: number;
   className?: string;
+  scaled?: boolean;
 }) {
   if (quantity <= 1) return null;
 
   return (
     <span
-      className={`inline-flex min-w-[1.5rem] items-center justify-center rounded-full border border-border bg-surface/95 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-gold backdrop-blur-sm ${className}`}
+      className={
+        scaled
+          ? `card-copy-badge ${className}`
+          : `inline-flex min-w-[1.5rem] items-center justify-center rounded-full border border-border bg-surface/95 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-gold backdrop-blur-sm ${className}`
+      }
       title={`${quantity} copies owned`}
     >
       ×{quantity}
@@ -214,14 +232,20 @@ export function RarityPill({
   label,
   color,
   size = "default",
+  scaled = false,
 }: {
   label: string;
   color: string;
   size?: CardPillSize;
+  scaled?: boolean;
 }) {
   return (
     <span
-      className={`${CARD_PILL_CLASS[size]} border uppercase`}
+      className={
+        scaled
+          ? "card-pill card-text-pill uppercase"
+          : `${CARD_PILL_CLASS[size]} border uppercase`
+      }
       style={{
         color,
         backgroundColor: `${color}22`,
@@ -238,21 +262,31 @@ export function CharacterCardPowerBadge({
   cost,
   color,
   className = "",
+  scaled = false,
 }: {
   cost: number;
   color: string;
   className?: string;
+  scaled?: boolean;
 }) {
   return (
     <div
-      className={`flex h-11 w-11 flex-col items-center justify-center rounded-full border bg-black/80 font-mono leading-none backdrop-blur-sm ${className}`}
+      className={
+        scaled
+          ? `card-stat-badge ${className}`
+          : `flex h-11 w-11 flex-col items-center justify-center rounded-full border bg-black/80 font-mono leading-none backdrop-blur-sm ${className}`
+      }
       style={{
         borderColor: `${color}aa`,
         boxShadow: `0 0 14px ${color}40`,
       }}
     >
-      <span className="text-[8px] uppercase tracking-wide text-muted">PWR</span>
-      <span className="text-xs font-semibold text-foreground">{cost}</span>
+      <span className={scaled ? "card-text-badge-label uppercase tracking-wide text-muted" : "text-[8px] uppercase tracking-wide text-muted"}>
+        PWR
+      </span>
+      <span className={scaled ? "card-text-badge-value font-semibold text-foreground" : "text-xs font-semibold text-foreground"}>
+        {cost}
+      </span>
     </div>
   );
 }
@@ -261,10 +295,12 @@ export function CharacterCardArchetypeBadge({
   archetype,
   color,
   className = "",
+  scaled = false,
 }: {
   archetype: string | null;
   color: string;
   className?: string;
+  scaled?: boolean;
 }) {
   if (!archetype) return null;
   const label = ARCHETYPE_LABEL[archetype];
@@ -272,7 +308,11 @@ export function CharacterCardArchetypeBadge({
 
   return (
     <div
-      className={`group/archetype relative flex h-11 w-11 items-center justify-center rounded-full border bg-black/80 leading-none backdrop-blur-sm ${className}`}
+      className={
+        scaled
+          ? `group/archetype relative flex items-center justify-center card-stat-badge ${className}`
+          : `group/archetype relative flex h-11 w-11 items-center justify-center rounded-full border bg-black/80 leading-none backdrop-blur-sm ${className}`
+      }
       style={{
         borderColor: `${color}aa`,
         boxShadow: `0 0 14px ${color}40`,
@@ -280,13 +320,15 @@ export function CharacterCardArchetypeBadge({
       title={label}
       aria-label={label}
     >
-      <Icon size={18} className="text-foreground" />
-      <span
-        role="tooltip"
-        className="pointer-events-none absolute right-full top-1/2 z-20 mr-2 -translate-y-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/90 px-2 py-1 text-[10px] font-medium text-foreground opacity-0 shadow-lg transition-opacity duration-150 group-hover/archetype:opacity-100"
-      >
-        {label}
-      </span>
+      <Icon className={scaled ? "card-icon-archetype text-foreground" : undefined} size={scaled ? undefined : 18} />
+      {!scaled ? (
+        <span
+          role="tooltip"
+          className="pointer-events-none absolute right-full top-1/2 z-20 mr-2 -translate-y-1/2 whitespace-nowrap rounded-md border border-white/10 bg-black/90 px-2 py-1 text-[10px] font-medium text-foreground opacity-0 shadow-lg transition-opacity duration-150 group-hover/archetype:opacity-100"
+        >
+          {label}
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -297,16 +339,22 @@ export function CharacterCardCombatStatBadge({
   label,
   color,
   className = "",
+  scaled = false,
 }: {
   icon: typeof Swords;
   value: number;
   label: string;
   color: string;
   className?: string;
+  scaled?: boolean;
 }) {
   return (
     <div
-      className={`flex h-11 w-11 flex-col items-center justify-center gap-0.5 rounded-full border bg-black/80 font-mono leading-none backdrop-blur-sm ${className}`}
+      className={
+        scaled
+          ? `card-stat-badge card-stat-badge-icon ${className}`
+          : `flex h-11 w-11 flex-col items-center justify-center gap-0.5 rounded-full border bg-black/80 font-mono leading-none backdrop-blur-sm ${className}`
+      }
       style={{
         borderColor: `${color}aa`,
         boxShadow: `0 0 14px ${color}40`,
@@ -314,8 +362,14 @@ export function CharacterCardCombatStatBadge({
       title={`${label} ${value}`}
       aria-label={`${label} ${value}`}
     >
-      <Icon size={14} style={{ color }} />
-      <span className="text-xs font-semibold text-foreground">{value}</span>
+      <Icon
+        className={scaled ? "card-icon-combat" : undefined}
+        size={scaled ? undefined : 14}
+        style={{ color }}
+      />
+      <span className={scaled ? "card-text-badge-value font-semibold text-foreground" : "text-xs font-semibold text-foreground"}>
+        {value}
+      </span>
     </div>
   );
 }
@@ -324,10 +378,12 @@ export function CharacterCardAttackBadge({
   attack,
   color,
   className = "",
+  scaled = false,
 }: {
   attack: number;
   color: string;
   className?: string;
+  scaled?: boolean;
 }) {
   return (
     <CharacterCardCombatStatBadge
@@ -336,6 +392,7 @@ export function CharacterCardAttackBadge({
       label="Attack"
       color={color}
       className={className}
+      scaled={scaled}
     />
   );
 }
@@ -344,10 +401,12 @@ export function CharacterCardDefenseBadge({
   defense,
   color,
   className = "",
+  scaled = false,
 }: {
   defense: number;
   color: string;
   className?: string;
+  scaled?: boolean;
 }) {
   return (
     <CharacterCardCombatStatBadge
@@ -356,6 +415,7 @@ export function CharacterCardDefenseBadge({
       label="Defense"
       color={color}
       className={className}
+      scaled={scaled}
     />
   );
 }
@@ -421,16 +481,120 @@ export function ArchetypeBadge({
 export function AbilityChip({
   name,
   size = "default",
+  scaled = false,
 }: {
   name: string | null;
   size?: CardPillSize;
+  scaled?: boolean;
 }) {
   if (!name) return null;
   return (
-    <span className={`${CARD_PILL_CLASS[size]} bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300`}>
-      <Zap size={CARD_PILL_ICON[size]} />
+    <span
+      className={
+        scaled
+          ? "card-pill-chip card-text-chip bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300"
+          : `${CARD_PILL_CLASS[size]} bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300`
+      }
+    >
+      <Zap className={scaled ? "card-icon-chip" : undefined} size={scaled ? undefined : CARD_PILL_ICON[size]} />
       {name}
     </span>
+  );
+}
+
+export function CharacterCardName({
+  name,
+  variant = "prominent",
+  nameClassName,
+  nameStyle,
+  nameClampClass,
+  scaled = false,
+}: {
+  name: string;
+  variant?: CardHeaderVariant;
+  nameClassName?: string;
+  nameStyle?: CSSProperties;
+  nameClampClass?: string;
+  scaled?: boolean;
+}) {
+  const styles = CARD_HEADER_CLASS[variant];
+  const baseNameClass = nameClassName ?? styles.name;
+  const nameClasses = scaled
+    ? `${withoutTextSizeClasses(baseNameClass)} ${adaptiveCardNameClass(name)}`
+    : `${withoutTextSizeClasses(baseNameClass)} ${adaptiveNameSize(name, variant)}`;
+  const clampClass = nameClampClass ?? (variant === "prominent" ? "" : "line-clamp-3");
+
+  return (
+    <p
+      className={`h-full min-w-0 text-left font-bold leading-tight tracking-tight break-words ${clampClass} ${nameClasses}`}
+      style={nameStyle}
+    >
+      {name}
+    </p>
+  );
+}
+
+export function AbilityPanelLabel({
+  cardType,
+  className = "",
+  scaled = false,
+}: {
+  cardType: CardType;
+  className?: string;
+  scaled?: boolean;
+}) {
+  return (
+    <p
+      className={
+        scaled
+          ? `card-panel card-panel-label card-text-panel-label text-foreground ${className}`
+          : `flex h-full items-center justify-center border border-white/10 bg-black/30 px-1 py-1 text-center font-semibold uppercase tracking-wide text-foreground text-[10px] sm:text-[11px] ${className}`
+      }
+    >
+      {cardAbilityPanelLabel(cardType)}
+    </p>
+  );
+}
+
+export function AbilityPanelBody({
+  cardType,
+  abilityName,
+  abilityEffect,
+  abilityValue,
+  abilityTrigger,
+  eraName = "",
+  emptyText,
+  className = "",
+  scaled = false,
+}: CardAbilityInput & {
+  emptyText?: string;
+  className?: string;
+  scaled?: boolean;
+}) {
+  const description = describeCardAbility({
+    cardType,
+    abilityName,
+    abilityEffect,
+    abilityValue,
+    abilityTrigger,
+    eraName,
+  });
+  const showEmpty = emptyText && !hasCardAbility({ abilityName, abilityEffect, abilityTrigger });
+
+  if (!description && !showEmpty) return null;
+
+  const text = description ?? emptyText ?? "";
+
+  return (
+    <p
+      className={
+        scaled
+          ? `card-panel card-panel-body card-text-panel-body ${className}`
+          : `flex h-full items-center overflow-hidden border border-white/10 bg-black/30 px-2 py-1 text-left text-xs leading-snug text-foreground/80 sm:px-3 sm:text-sm ${className}`
+      }
+    >
+      {text}
+    </p>
   );
 }
 
@@ -545,28 +709,61 @@ export function FlavorText({
   );
 }
 
-export function LocationBadge({ size = "default" }: { size?: CardPillSize }) {
+export function LocationBadge({ size = "default", scaled = false }: { size?: CardPillSize; scaled?: boolean }) {
   return (
-    <span className={`${CARD_PILL_CLASS[size]} bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300`}>
-      <MapPin size={CARD_PILL_ICON[size]} />
+    <span
+      className={
+        scaled
+          ? "card-pill-chip card-text-chip bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+          : `${CARD_PILL_CLASS[size]} bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300`
+      }
+    >
+      <MapPin className={scaled ? "card-icon-chip" : undefined} size={scaled ? undefined : CARD_PILL_ICON[size]} />
       Location
     </span>
   );
 }
 
-export function UnitBadge({ size = "default" }: { size?: CardPillSize }) {
+export function UnitBadge({ size = "default", scaled = false }: { size?: CardPillSize; scaled?: boolean }) {
   return (
-    <span className={`${CARD_PILL_CLASS[size]} bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300`}>
-      <Flag size={CARD_PILL_ICON[size]} />
+    <span
+      className={
+        scaled
+          ? "card-pill-chip card-text-chip bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300"
+          : `${CARD_PILL_CLASS[size]} bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300`
+      }
+    >
+      <Flag className={scaled ? "card-icon-chip" : undefined} size={scaled ? undefined : CARD_PILL_ICON[size]} />
       Unit
     </span>
   );
 }
 
-export function EventBadge({ size = "default" }: { size?: CardPillSize }) {
+export function CharacterBadge({ size = "default", scaled = false }: { size?: CardPillSize; scaled?: boolean }) {
   return (
-    <span className={`${CARD_PILL_CLASS[size]} bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300`}>
-      <Swords size={CARD_PILL_ICON[size]} />
+    <span
+      className={
+        scaled
+          ? "card-pill-chip card-text-chip bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300"
+          : `${CARD_PILL_CLASS[size]} bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300`
+      }
+    >
+      <User className={scaled ? "card-icon-chip" : undefined} size={scaled ? undefined : CARD_PILL_ICON[size]} />
+      Character
+    </span>
+  );
+}
+
+export function EventBadge({ size = "default", scaled = false }: { size?: CardPillSize; scaled?: boolean }) {
+  return (
+    <span
+      className={
+        scaled
+          ? "card-pill-chip card-text-chip bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
+          : `${CARD_PILL_CLASS[size]} bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300`
+      }
+    >
+      <Swords className={scaled ? "card-icon-chip" : undefined} size={scaled ? undefined : CARD_PILL_ICON[size]} />
       Event
     </span>
   );

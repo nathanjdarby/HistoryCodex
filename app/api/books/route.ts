@@ -21,8 +21,8 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireUser();
     const body = await request.json();
-    const { catalogBookId } = addToLibrarySchema.parse(body);
-    const created = await addBookToLibrary(user.id, catalogBookId);
+    const input = addToLibrarySchema.parse(body);
+    const created = await addBookToLibrary(user.id, input);
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
     return handleApiError(error);

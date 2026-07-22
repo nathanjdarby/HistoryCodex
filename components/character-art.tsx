@@ -3,6 +3,7 @@ import type { PointerEvent } from "react";
 import { PixelSprite } from "@/components/pixel-sprite";
 import type { Archetype, Rarity } from "@/lib/sprite/generateSprite";
 import { DEFAULT_IMAGE_FRAME, imageFrameStyle, type ImageFrame } from "@/lib/image-frame";
+import { isHostedUploadUrl } from "@/lib/upload-urls";
 
 type CharacterArtProps = {
   seed: string;
@@ -41,8 +42,9 @@ export function CharacterArt({
     };
     const frameCss = imageFrameStyle(frame);
     const interactive = Boolean(onImagePointerDown);
-    // Admin import previews require the browser session cookie; the image optimizer cannot auth.
-    const useDirectImageLoad = imageUrl.startsWith("/api/admin/");
+    // Uploaded art is already WebP from the server — skip next/image so it isn't resized/compressed again.
+    const useDirectImageLoad =
+      imageUrl.startsWith("/api/admin/") || isHostedUploadUrl(imageUrl);
 
     return (
       <div
@@ -69,6 +71,7 @@ export function CharacterArt({
             alt=""
             fill
             sizes={`${Math.max(size, 120)}px`}
+            quality={92}
             draggable={false}
             className="object-cover"
             style={frameCss}

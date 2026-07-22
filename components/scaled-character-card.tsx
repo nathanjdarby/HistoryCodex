@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-/** CharacterCardModal / full-density preview layout width — keep scale math in sync. */
+/** CharacterCardModal / full-density preview layout width — reference for admin tooling. */
 export const MODAL_CARD_WIDTH_REM = 34;
 
 export function ScaledCharacterCardShell({
@@ -14,22 +14,15 @@ export function ScaledCharacterCardShell({
   className?: string;
   innerClassName?: string;
 }) {
-  const scale = displayWidthRem / MODAL_CARD_WIDTH_REM;
-
   return (
     <div
       className={`relative overflow-hidden ${className}`}
-      style={{ width: `${displayWidthRem}rem`, aspectRatio: "5 / 7" }}
+      style={{
+        width: `${displayWidthRem}rem`,
+        aspectRatio: "var(--card-aspect-ratio-w, 5) / var(--card-aspect-ratio-h, 7)",
+      }}
     >
-      <div
-        className={`absolute left-0 top-0 origin-top-left ${innerClassName}`}
-        style={{
-          width: `${MODAL_CARD_WIDTH_REM}rem`,
-          transform: `scale(${scale})`,
-        }}
-      >
-        {children}
-      </div>
+      <div className={`h-full w-full ${innerClassName}`}>{children}</div>
     </div>
   );
 }

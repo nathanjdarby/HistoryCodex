@@ -165,6 +165,7 @@ export function battleCardFaceToPreviewProps(
     imageFrame: imageFrameFromFace(card),
     holographic: card.holographic ?? false,
     dexLabel: dexNumber(card.characterId),
+    density: "full",
     showCost: options?.showCost,
     showCombat: options?.showCombat,
   };

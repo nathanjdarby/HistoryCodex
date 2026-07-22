@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo, useRef, useState } from "react";
+import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -8,17 +8,22 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, BookOpen, Link2, Sparkles, Trash2, User } from "lucide-react";
 import type { Book, Character, Era, TimelineEntry } from "@/lib/types";
 import { BookCampaignMiniMap } from "@/components/book-campaign-mini-map";
+import {
+  BookFormatBadge,
+  BookProgressInput,
+  BookSettingsPanel,
+} from "@/components/book-progress-input";
+import { formatDuration, formatProgressLabel, getProgressPercent } from "@/lib/book-progress";
+import type { ConsumptionFormat } from "@/lib/book-progress";
 import { CharacterCardModal } from "@/components/character-card-modal";
-import { CharacterCardPreview } from "@/components/character-card-preview";
+import { LayoutCharacterCard, layoutCharacterCardFromCharacter } from "@/components/layout-character-card";
 import { ReadingSessionTimer } from "@/components/reading-session-timer";
 import { ReadingProgressBar } from "@/components/reading-progress-bar";
 import { useCardModalNavigation } from "@/lib/client/use-card-modal-navigation";
-import type { AbilityEffect, AbilityTrigger } from "@/lib/battle";
 import { entryHref, linkedPeopleWithSource, type LinkedEntry } from "@/lib/entry-links";
 import { formatMilestonePercents } from "@/lib/format";
-import { imageFrameFromCharacter } from "@/lib/image-frame";
 import { CARD_TYPE_ICONS, CARD_TYPE_LABELS_PLURAL, CARD_TYPES, type CardType } from "@/lib/card-types";
-import { RARITY_ORDER, dexNumber, type RarityTier } from "@/lib/rarity";
+import { RARITY_ORDER, type RarityTier } from "@/lib/rarity";
 
 type BookCard = Character & {
   era: Era;
@@ -95,12 +100,74 @@ export default function BookDetailPage({
     queryKey: ["entries", "person"],
     queryFn: fetchPersonEntries,
   });
-
-  const pageInputRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [showPersonPicker, setShowPersonPicker] = useState(false);
   const [personQuery, setPersonQuery] = useState("");
   const [viewingCardId, setViewingCardId] = useState<number | null>(null);
+
+  const applyProgressSuccess = (data: ProgressResult) => {
+    queryClient.setQueryData(["books", bookId], (current: BookDetail | undefined) =>
+      current
+        ? {
+            ...current,
+            ...data.book,
+            earnedMilestones: [
+              ...new Set([
+                ...current.earnedMilestones,
+                ...data.awardedMilestones.map((type) => Number(type.replace("milestone_", ""))),
+              ]),
+            ].sort((a, b) => a - b),
+          }
+        : data.book,
+    );
+    queryClient.invalidateQueries({ queryKey: ["books"] });
+    queryClient.invalidateQueries({ queryKey: ["stats"] });
+    if (data.awardedMilestones.length > 0) {
+      setToast(`+${data.awardedPoints} points! (${data.awardedMilestones.join(", ")})`);
+      setTimeout(() => setToast(null), 4000);
+    }
+  };
+
+  const progressMutation = useMutation({
+    mutationFn: async (input: { currentPage?: number; currentPositionSeconds?: number }) => {
+      const res = await fetch(`/api/books/${bookId}/progress`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Failed to update progress");
+      }
+      return res.json() as Promise<ProgressResult>;
+    },
+    onSuccess: applyProgressSuccess,
+  });
+
+  const settingsMutation = useMutation({
+    mutationFn: async (input: {
+      consumptionFormat?: ConsumptionFormat;
+      editionTotalPages?: number;
+      totalDurationSeconds?: number;
+    }) => {
+      const res = await fetch(`/api/books/${bookId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Failed to update book settings");
+      }
+      return res.json() as Promise<Book>;
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["books", bookId], (current: BookDetail | undefined) =>
+        current ? { ...current, ...updated } : current,
+      );
+      queryClient.invalidateQueries({ queryKey: ["books"] });
+    },
+  });
 
   const bookCards = book?.cards ?? [];
   const cardsByType = useMemo(() => {
@@ -131,43 +198,6 @@ export default function BookDetailPage({
     viewingCardId,
     setViewingCardId,
   );
-
-  const progressMutation = useMutation({
-    mutationFn: async (currentPage: number) => {
-      const res = await fetch(`/api/books/${bookId}/progress`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPage }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? "Failed to update progress");
-      }
-      return res.json() as Promise<ProgressResult>;
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["books", bookId], (current: BookDetail | undefined) =>
-        current
-          ? {
-              ...current,
-              ...data.book,
-              earnedMilestones: [
-                ...new Set([
-                  ...current.earnedMilestones,
-                  ...data.awardedMilestones.map((type) => Number(type.replace("milestone_", ""))),
-                ]),
-              ].sort((a, b) => a - b),
-            }
-          : data.book,
-      );
-      queryClient.invalidateQueries({ queryKey: ["books"] });
-      queryClient.invalidateQueries({ queryKey: ["stats"] });
-      if (data.awardedMilestones.length > 0) {
-        setToast(`+${data.awardedPoints} points! (${data.awardedMilestones.join(", ")})`);
-        setTimeout(() => setToast(null), 4000);
-      }
-    },
-  });
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -219,7 +249,8 @@ export default function BookDetailPage({
 
   const currentBook = book;
   const era = eras?.find((e) => e.id === currentBook.eraId);
-  const pct = Math.min(100, Math.round((currentBook.currentPage / currentBook.totalPages) * 100));
+  const pct = getProgressPercent(currentBook);
+  const progressLabel = formatProgressLabel(currentBook);
   const milestones = currentBook.readingRules?.milestones ?? [25, 50, 75, 100];
   const pointsPerMilestone = currentBook.readingRules?.pointsPerMilestone ?? 25;
   const maxPerBook = currentBook.readingRules?.maxPerBook ?? milestones.length * pointsPerMilestone;
@@ -293,6 +324,7 @@ export default function BookDetailPage({
                     {era.name}
                   </span>
                 )}
+                <BookFormatBadge format={currentBook.consumptionFormat} />
               </div>
               <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">
                 {currentBook.title}
@@ -316,14 +348,46 @@ export default function BookDetailPage({
             )}
 
             <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-              <div className="rounded-lg border border-border/80 bg-background/40 px-3 py-2">
-                <dt className="text-xs text-muted">Total pages</dt>
-                <dd className="mt-0.5 font-medium text-foreground">{currentBook.totalPages}</dd>
-              </div>
-              <div className="rounded-lg border border-border/80 bg-background/40 px-3 py-2">
-                <dt className="text-xs text-muted">Current page</dt>
-                <dd className="mt-0.5 font-medium text-foreground">{currentBook.currentPage}</dd>
-              </div>
+              {currentBook.consumptionFormat === "audiobook" ? (
+                <>
+                  <div className="rounded-lg border border-border/80 bg-background/40 px-3 py-2">
+                    <dt className="text-xs text-muted">Total runtime</dt>
+                    <dd className="mt-0.5 font-medium text-foreground">
+                      {formatDuration(currentBook.totalDurationSeconds ?? 0)}
+                    </dd>
+                  </div>
+                  <div className="rounded-lg border border-border/80 bg-background/40 px-3 py-2">
+                    <dt className="text-xs text-muted">Current position</dt>
+                    <dd className="mt-0.5 font-medium text-foreground">
+                      {formatDuration(currentBook.currentPositionSeconds)}
+                    </dd>
+                  </div>
+                </>
+              ) : currentBook.consumptionFormat === "ebook" ? (
+                <>
+                  <div className="rounded-lg border border-border/80 bg-background/40 px-3 py-2">
+                    <dt className="text-xs text-muted">Edition pages</dt>
+                    <dd className="mt-0.5 font-medium text-foreground">
+                      {currentBook.editionTotalPages ?? "—"}
+                    </dd>
+                  </div>
+                  <div className="rounded-lg border border-border/80 bg-background/40 px-3 py-2">
+                    <dt className="text-xs text-muted">Current page</dt>
+                    <dd className="mt-0.5 font-medium text-foreground">{currentBook.currentPage}</dd>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="rounded-lg border border-border/80 bg-background/40 px-3 py-2">
+                    <dt className="text-xs text-muted">Total pages</dt>
+                    <dd className="mt-0.5 font-medium text-foreground">{currentBook.totalPages}</dd>
+                  </div>
+                  <div className="rounded-lg border border-border/80 bg-background/40 px-3 py-2">
+                    <dt className="text-xs text-muted">Current page</dt>
+                    <dd className="mt-0.5 font-medium text-foreground">{currentBook.currentPage}</dd>
+                  </div>
+                </>
+              )}
               <div className="rounded-lg border border-border/80 bg-background/40 px-3 py-2">
                 <dt className="text-xs text-muted">Progress</dt>
                 <dd className="mt-0.5 font-medium text-gold-bright">{pct}%</dd>
@@ -342,9 +406,7 @@ export default function BookDetailPage({
             </div>
 
             <div className="mb-1 flex items-center justify-between text-sm text-muted">
-              <span>
-                Page {currentBook.currentPage} of {currentBook.totalPages}
-              </span>
+              <span>{progressLabel}</span>
               <span className="font-medium text-gold-bright">{pct}% complete</span>
             </div>
             <ReadingProgressBar
@@ -354,7 +416,7 @@ export default function BookDetailPage({
             />
             <p className="mt-3 text-xs text-muted">
               Earn {pointsPerMilestone} points at each milestone ({formatMilestonePercents(milestones)})
-              as you read — up to {maxPerBook} points per book.
+              as you {currentBook.consumptionFormat === "audiobook" ? "listen" : "read"} — up to {maxPerBook} points per book.
             </p>
             {earnedMilestones.length > 0 ? (
               <p className="mt-1 text-xs text-emerald-500/90">
@@ -362,69 +424,38 @@ export default function BookDetailPage({
               </p>
             ) : null}
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const value = Number(pageInputRef.current?.value ?? 0);
-                progressMutation.mutate(value);
-              }}
-              className="mt-5 flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-end"
-            >
-              <label className="flex flex-1 flex-col gap-1 text-sm">
-                Update current page
-                <input
-                  key={currentBook.currentPage}
-                  ref={pageInputRef}
-                  type="number"
-                  min={0}
-                  max={currentBook.totalPages}
-                  defaultValue={currentBook.currentPage}
-                  className="max-w-xs rounded border border-border-strong bg-background px-3 py-2"
-                />
-              </label>
-              <button
-                type="submit"
-                disabled={progressMutation.isPending}
-                className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:brightness-110 disabled:opacity-50 sm:shrink-0"
-              >
-                {progressMutation.isPending ? "Saving…" : "Save progress"}
-              </button>
-            </form>
-            {progressMutation.isError && (
-              <p className="mt-2 text-sm text-red-400">
-                {(progressMutation.error as Error).message}
-              </p>
-            )}
+            <div className="mt-5 border-t border-border pt-5">
+              <BookProgressInput
+                book={currentBook}
+                pending={progressMutation.isPending}
+                error={
+                  progressMutation.isError
+                    ? (progressMutation.error as Error).message
+                    : null
+                }
+                onSave={(input) => progressMutation.mutate(input)}
+              />
+              <BookSettingsPanel
+                book={currentBook}
+                pending={settingsMutation.isPending}
+                onSave={(input) => settingsMutation.mutate(input)}
+              />
+            </div>
 
             <ReadingSessionTimer
               bookId={currentBook.id}
-              currentPage={currentBook.currentPage}
-              totalPages={currentBook.totalPages}
+              book={currentBook}
               onFinalized={(result) => {
-                queryClient.setQueryData(["books", bookId], (current: BookDetail | undefined) =>
-                  current
-                    ? {
-                        ...current,
-                        ...result.book,
-                        earnedMilestones: [
-                          ...new Set([
-                            ...current.earnedMilestones,
-                            ...result.awardedMilestones.map((type) =>
-                              Number(type.replace("milestone_", "")),
-                            ),
-                          ]),
-                        ].sort((a, b) => a - b),
-                      }
-                    : current,
-                );
-                queryClient.invalidateQueries({ queryKey: ["stats"] });
+                applyProgressSuccess({
+                  book: { ...currentBook, ...result.book } as Book,
+                  awardedMilestones: result.awardedMilestones,
+                  awardedPoints: result.awardedPoints,
+                  pointsPerMilestone: pointsPerMilestone,
+                });
                 if (era) {
                   queryClient.invalidateQueries({ queryKey: ["campaign", era.slug] });
                 }
-                if (result.awardedPoints > 0) {
-                  setToast(`+${result.awardedPoints} points! (${result.awardedMilestones.join(", ")})`);
-                  setTimeout(() => setToast(null), 4000);
-                } else if (result.pendingPoints > 0) {
+                if (result.pendingPoints > 0) {
                   setToast(`${result.pendingPoints} points pending review (${result.awardedMilestones.join(", ")})`);
                   setTimeout(() => setToast(null), 5000);
                 } else if (result.velocity.flagged) {
@@ -464,41 +495,23 @@ export default function BookDetailPage({
                         <button
                           type="button"
                           onClick={() => setViewingCardId(card.id)}
-                          className="block w-full text-left transition-transform hover:scale-[1.015]"
+                          className="mx-auto block w-full max-w-[26rem] text-left transition-transform hover:scale-[1.015]"
                         >
-                          <CharacterCardPreview
-                            name={card.name}
-                            rarity={card.rarity}
-                            cardType={card.cardType}
-                            cost={card.cost}
-                            attack={card.attack}
-                            defense={card.defense}
-                            archetype={card.archetype}
-                            era={{
-                              name: card.era.name,
-                              colorPrimary: card.era.colorPrimary,
-                              colorSecondary: card.era.colorSecondary,
-                            }}
-                            abilityName={card.abilityName}
-                            abilityEffect={card.abilityEffect as AbilityEffect | null}
-                            abilityValue={card.abilityValue}
-                            abilityTrigger={card.abilityTrigger as AbilityTrigger | null}
-                            flavorText={card.flavorText}
-                            seed={card.seed}
-                            imageUrl={card.imageUrl}
-                            imageFrame={imageFrameFromCharacter(card)}
-                            holographic={card.holographic}
-                            dexLabel={dexNumber(card.id)}
-                            locked={!card.owned}
-                            reserveHeaderActionsSpace={false}
-                            ownership={{ showStatus: true, owned: card.owned, quantity: card.quantity }}
-                            flavorFooter={
-                              card.owned && card.quantity > 1 ? (
-                                <p className="border-t border-white/10 px-2.5 py-2 text-xs text-amber-200/90 sm:px-3">
-                                  You own {card.quantity} copies of this card.
-                                </p>
-                              ) : null
-                            }
+                          <LayoutCharacterCard
+                            {...layoutCharacterCardFromCharacter(card, {
+                              locked: !card.owned,
+                              ownership: {
+                                showStatus: true,
+                                owned: card.owned,
+                                quantity: card.quantity,
+                              },
+                              flavorFooter:
+                                card.owned && card.quantity > 1 ? (
+                                  <p className="border-t border-white/10 px-2.5 py-2 text-xs text-amber-200/90 sm:px-3">
+                                    You own {card.quantity} copies of this card.
+                                  </p>
+                                ) : null,
+                            })}
                           />
                         </button>
                       </li>

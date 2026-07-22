@@ -64,7 +64,7 @@ export function FeaturedBooksShowcase({
           }`}
         >
           The catalog is a reading companion — match what you&apos;re already reading in any format,
-          then log pages to unlock points and cards. We don&apos;t host or sell the book itself.
+          then log your progress to unlock points and cards. We don&apos;t host or sell the book itself.
         </p>
         <p
           className={`max-w-lg rounded-lg px-4 py-3 text-sm leading-relaxed ${

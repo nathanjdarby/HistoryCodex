@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 
-export const WEBP_QUALITY = 85;
+export const WEBP_QUALITY = 92;
 
 export function isWebpFilename(filename: string) {
   return path.extname(filename).toLowerCase() === ".webp";
@@ -14,6 +14,10 @@ export function webpFilenameFrom(originalFilename: string) {
 }
 
 export async function bufferToWebp(buffer: Buffer) {
+  const meta = await sharp(buffer).metadata();
+  if (meta.format === "webp") {
+    return buffer;
+  }
   return sharp(buffer).webp({ quality: WEBP_QUALITY }).toBuffer();
 }
 

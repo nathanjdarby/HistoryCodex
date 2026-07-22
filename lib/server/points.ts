@@ -2,6 +2,12 @@ import { and, eq, like, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { books, pointsLedger, userStats } from "@/db/schema";
 import { ApiError } from "@/lib/api-utils";
+import {
+  getProgressNumerator,
+  getProgressPercent,
+  statusPatchFromProgress,
+} from "@/lib/book-progress";
+import { validateProgressValue } from "@/lib/server/book-progress-validation";
 import { getBook } from "@/lib/server/books";
 import { creditPoints } from "@/lib/server/era-points";
 import { unlockCampaignMilestones } from "@/lib/server/campaigns";
@@ -10,25 +16,40 @@ import { getUserStats } from "@/lib/server/stats";
 
 type MilestoneType = `milestone_${number}`;
 
-export async function updateBookProgress(userId: number, bookId: number, currentPage: number) {
+export type BookProgressInput = {
+  currentPage?: number;
+  currentPositionSeconds?: number;
+};
+
+export async function updateBookProgress(
+  userId: number,
+  bookId: number,
+  input: BookProgressInput,
+) {
   const rules = await getGameRules();
   const book = await getBook(bookId, userId);
-  if (currentPage < 0 || currentPage > book.totalPages) {
-    throw new ApiError(400, `currentPage must be between 0 and ${book.totalPages}`);
+
+  let numerator: number;
+  let fieldPatch: Partial<{ currentPage: number; currentPositionSeconds: number }>;
+
+  if (book.consumptionFormat === "audiobook") {
+    if (input.currentPositionSeconds === undefined) {
+      throw new ApiError(400, "currentPositionSeconds is required for audiobook progress");
+    }
+    validateProgressValue(book, input.currentPositionSeconds);
+    numerator = input.currentPositionSeconds;
+    fieldPatch = { currentPositionSeconds: input.currentPositionSeconds };
+  } else {
+    if (input.currentPage === undefined) {
+      throw new ApiError(400, "currentPage is required for print and e-reader progress");
+    }
+    validateProgressValue(book, input.currentPage);
+    numerator = input.currentPage;
+    fieldPatch = { currentPage: input.currentPage };
   }
 
-  const pct = Math.floor((currentPage / book.totalPages) * 100);
-  const now = new Date();
-
-  const statusUpdate: Partial<typeof books.$inferInsert> = { currentPage, updatedAt: now };
-  if (book.status === "to_read" && currentPage > 0) {
-    statusUpdate.status = "reading";
-    statusUpdate.startedAt = now;
-  }
-  if (currentPage >= book.totalPages) {
-    statusUpdate.status = "finished";
-    statusUpdate.finishedAt = now;
-  }
+  const pct = getProgressPercent({ ...book, ...fieldPatch });
+  const statusUpdate = statusPatchFromProgress(book, numerator, fieldPatch);
 
   const [updatedRow] = await db
     .update(books)
@@ -104,4 +125,8 @@ export async function getBookMilestones(userId: number, bookId: number) {
         like(pointsLedger.type, "milestone_%"),
       ),
     );
+}
+
+export function getCurrentProgressValue(book: Awaited<ReturnType<typeof getBook>>) {
+  return getProgressNumerator(book);
 }

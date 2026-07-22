@@ -4,9 +4,12 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ImageOff, LayoutGrid, List, Search, Trash2, X } from "lucide-react";
 import type { Character, Era } from "@/lib/types";
-import { CharacterArt } from "@/components/character-art";
+import {
+  CARD_PREVIEW_WIDTH_REM,
+  LayoutCharacterCard,
+  layoutCharacterCardFromCharacter,
+} from "@/components/layout-character-card";
 import { CARD_TYPE_ICONS, CARD_TYPE_LABELS, CARD_TYPE_LABELS_PLURAL, CARD_TYPES, type CardType } from "@/lib/card-types";
-import { clampImageFrame } from "@/lib/image-frame";
 import { RARITY_META } from "@/lib/rarity";
 
 type CatalogBookCard = {
@@ -18,6 +21,15 @@ type CatalogBookCard = {
   seed: string;
   cardType: CardType;
   rarity: Character["rarity"];
+  cost: number;
+  attack: number;
+  defense: number;
+  abilityName: string | null;
+  abilityEffect: string | null;
+  abilityValue: number | null;
+  abilityTrigger: string | null;
+  flavorText: string | null;
+  holographic: boolean;
   eraId: number;
   eraName: string;
   eraColorPrimary: string;
@@ -54,21 +66,13 @@ type Props = {
 
 function cardEra(card: CatalogBookCard) {
   return {
+    name: card.eraName,
     colorPrimary: card.eraColorPrimary,
     colorSecondary: card.eraColorSecondary,
   };
 }
 
-function cardImageFrame(card: CatalogBookCard) {
-  if (card.imageFocusX === 50 && card.imageFocusY === 50 && card.imageScale === 100) {
-    return undefined;
-  }
-  return clampImageFrame({
-    focusX: card.imageFocusX,
-    focusY: card.imageFocusY,
-    scale: card.imageScale,
-  });
-}
+const BOOK_CARD_DISPLAY_WIDTH_REM = CARD_PREVIEW_WIDTH_REM;
 
 function LinkedCardGallery({
   cards,
@@ -80,61 +84,39 @@ function LinkedCardGallery({
   removing: boolean;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-      {cards.map((card) => {
-        const meta = RARITY_META[card.rarity];
-        const frame = cardImageFrame(card);
-        return (
-          <div
-            key={card.id}
-            className="group relative overflow-hidden rounded-xl border-2 bg-surface text-left shadow-sm"
-            style={{
-              borderColor: meta.color,
-              boxShadow: meta.glow,
-              background: `linear-gradient(160deg, ${card.eraColorPrimary}18, ${card.eraColorSecondary}18), var(--surface)`,
-            }}
+    <div className="flex flex-wrap justify-center gap-4 sm:justify-start">
+      {cards.map((card) => (
+        <div key={card.id} className="group relative shrink-0">
+          <LayoutCharacterCard
+            {...layoutCharacterCardFromCharacter(
+              {
+                ...card,
+                id: card.characterId,
+                era: cardEra(card),
+              },
+              {
+                displayWidthRem: BOOK_CARD_DISPLAY_WIDTH_REM,
+                innerClassName: "pointer-events-none",
+              },
+            )}
+          />
+          {!card.imageUrl && (
+            <span className="pointer-events-none absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded border border-border bg-surface/95 px-1.5 py-0.5 text-[9px] text-muted shadow-sm">
+              <ImageOff size={10} />
+              Sprite
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => onRemove(card.characterId)}
+            disabled={removing}
+            className="absolute right-1.5 top-1.5 z-20 rounded-md border border-border bg-surface/95 p-1 text-muted opacity-0 shadow-md transition-opacity hover:bg-surface-hover hover:text-red-600 group-hover:opacity-100 disabled:opacity-50 dark:hover:text-red-400"
+            aria-label={`Remove ${card.name}`}
           >
-            <div className="relative aspect-[5/7] w-full overflow-hidden bg-surface-raised">
-              <CharacterArt
-                seed={card.seed}
-                imageUrl={card.imageUrl}
-                imageFrame={frame}
-                era={cardEra(card)}
-                rarity={card.rarity}
-                archetype={card.archetype}
-                size={240}
-              />
-              {!card.imageUrl && (
-                <span className="absolute bottom-1.5 left-1.5 inline-flex items-center gap-1 rounded border border-border bg-surface/95 px-1.5 py-0.5 text-[9px] text-muted shadow-sm">
-                  <ImageOff size={10} />
-                  Sprite
-                </span>
-              )}
-            </div>
-            <div className="space-y-1 border-t border-border/70 p-2">
-              <p className="truncate text-xs font-medium text-foreground">{card.name}</p>
-              <div className="flex items-center justify-between gap-1">
-                <p className="min-w-0 truncate text-[10px] text-muted">{card.eraName}</p>
-                <span
-                  className="shrink-0 rounded px-1 py-0.5 text-[9px] font-medium uppercase"
-                  style={{ color: meta.color, background: `${meta.color}22` }}
-                >
-                  {meta.label}
-                </span>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => onRemove(card.characterId)}
-              disabled={removing}
-              className="absolute right-1.5 top-1.5 rounded-md border border-border bg-surface/95 p-1 text-muted opacity-0 shadow-md transition-opacity hover:bg-surface-hover hover:text-red-600 group-hover:opacity-100 disabled:opacity-50 dark:hover:text-red-400"
-              aria-label={`Remove ${card.name}`}
-            >
-              <Trash2 size={12} />
-            </button>
-          </div>
-        );
-      })}
+            <Trash2 size={12} />
+          </button>
+        </div>
+      ))}
     </div>
   );
 }
@@ -155,15 +137,21 @@ function LinkedCardList({
           key={card.id}
           className="flex items-center gap-3 rounded-lg border border-border bg-background/50 px-3 py-2"
         >
-          <div className="shrink-0 overflow-hidden rounded">
-            <CharacterArt
-              seed={card.seed}
-              imageUrl={card.imageUrl}
-              imageFrame={cardImageFrame(card)}
-              era={cardEra(card)}
-              rarity={card.rarity}
-              archetype={card.archetype}
-              size={40}
+          <div className="relative h-10 w-8 shrink-0 overflow-hidden rounded">
+            <LayoutCharacterCard
+              {...layoutCharacterCardFromCharacter(
+                {
+                  ...card,
+                  id: card.characterId,
+                  era: cardEra(card),
+                },
+                {
+                  displayWidthRem: 2.5,
+                  shellClassName: "rounded-none shadow-none",
+                  innerClassName: "pointer-events-none",
+                  showFlavor: false,
+                },
+              )}
             />
           </div>
           <div className="min-w-0 flex-1">

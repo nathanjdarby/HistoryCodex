@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleApiError, ApiError } from "@/lib/api-utils";
 import { requireUser } from "@/lib/server/auth-context";
-import { getBook, removeBookFromLibrary } from "@/lib/server/books";
+import { getBook, removeBookFromLibrary, updateBookSettings, updateBookSettingsSchema } from "@/lib/server/books";
 import { listCatalogBookCardsForUser } from "@/lib/server/catalog-book-cards";
 import { describeEarnRules, getGameRules } from "@/lib/server/game-rules";
 import { getBookLinksForUser } from "@/lib/server/links";
@@ -38,6 +38,23 @@ export async function GET(
       readingRules: describeEarnRules(rules).readingMilestones,
       earnedMilestones,
     });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const user = await requireUser();
+    const { id } = await params;
+    const bookId = parseId(id);
+    const body = await request.json();
+    const input = updateBookSettingsSchema.parse(body);
+    const updated = await updateBookSettings(bookId, user.id, input);
+    return NextResponse.json(updated);
   } catch (error) {
     return handleApiError(error);
   }

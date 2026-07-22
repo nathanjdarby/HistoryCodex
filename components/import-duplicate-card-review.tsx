@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useState, type ComponentProps } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
-import { CharacterCardPreview } from "@/components/character-card-preview";
-import {
-  ScaledCharacterCardShell,
-} from "@/components/scaled-character-card";
 import type {
   ImportCardPreview,
   ImportDuplicateDecision,
   ImportDuplicateCharacterPreview,
 } from "@/lib/server/import-catalog-book-cards";
 import { dexNumber } from "@/lib/rarity";
+import {
+  CARD_PREVIEW_WIDTH_REM,
+  LayoutCharacterCard,
+  type LayoutCharacterCardProps,
+} from "@/components/layout-character-card";
 
-const THUMBNAIL_WIDTH_REM = 11;
+const THUMBNAIL_WIDTH_REM = CARD_PREVIEW_WIDTH_REM - 1.5;
 const MODAL_COMPARE_WIDTH_REM = 18;
 
 type ImportDuplicateCardReviewProps = {
@@ -44,6 +45,7 @@ function previewFromCharacter(
     imageUrl,
     holographic: character.holographic,
     dexLabel: dexNumber(character.id),
+    density: "full" as const,
     ownership: { showStatus: true, owned: true },
   };
 }
@@ -64,7 +66,7 @@ function ImportCardPreviewTile({
   onOpen,
 }: {
   label: string;
-  previewProps: ComponentProps<typeof CharacterCardPreview>;
+  previewProps: LayoutCharacterCardProps;
   dashed?: boolean;
   onOpen: () => void;
 }) {
@@ -79,13 +81,11 @@ function ImportCardPreviewTile({
         }`}
         aria-label={`View ${label.toLowerCase()} for ${previewProps.name}`}
       >
-        <ScaledCharacterCardShell
+        <LayoutCharacterCard
+          {...previewProps}
           displayWidthRem={THUMBNAIL_WIDTH_REM}
-          className="rounded-2xl shadow-sm"
           innerClassName="pointer-events-none"
-        >
-          <CharacterCardPreview {...previewProps} density="full" />
-        </ScaledCharacterCardShell>
+        />
       </button>
     </div>
   );
@@ -98,8 +98,8 @@ function ImportCompareModal({
   onClose,
 }: {
   card: ImportCardPreview;
-  existingPreview: ComponentProps<typeof CharacterCardPreview> | null;
-  incomingPreview: ComponentProps<typeof CharacterCardPreview> | null;
+  existingPreview: LayoutCharacterCardProps | null;
+  incomingPreview: LayoutCharacterCardProps | null;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -140,12 +140,11 @@ function ImportCompareModal({
               <div className="space-y-2">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted">On platform</p>
                 <div className="flex justify-center">
-                  <ScaledCharacterCardShell
+                  <LayoutCharacterCard
+                    {...existingPreview}
                     displayWidthRem={MODAL_COMPARE_WIDTH_REM}
-                    className="rounded-2xl shadow-2xl"
-                  >
-                    <CharacterCardPreview {...existingPreview} density="full" />
-                  </ScaledCharacterCardShell>
+                    shellClassName="rounded-2xl shadow-2xl"
+                  />
                 </div>
               </div>
             ) : null}
@@ -156,12 +155,11 @@ function ImportCompareModal({
                   Incoming artwork
                 </p>
                 <div className="flex justify-center">
-                  <ScaledCharacterCardShell
+                  <LayoutCharacterCard
+                    {...incomingPreview}
                     displayWidthRem={MODAL_COMPARE_WIDTH_REM}
-                    className="rounded-2xl shadow-2xl"
-                  >
-                    <CharacterCardPreview {...incomingPreview} density="full" />
-                  </ScaledCharacterCardShell>
+                    shellClassName="rounded-2xl shadow-2xl"
+                  />
                 </div>
               </div>
             ) : (

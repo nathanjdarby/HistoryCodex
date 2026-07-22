@@ -14,6 +14,7 @@ export async function middleware(request: NextRequest) {
   if (
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/serve-upload") ||
+    pathname.startsWith("/api/card-layouts") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon")
   ) {

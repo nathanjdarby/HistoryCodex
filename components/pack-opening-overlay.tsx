@@ -3,11 +3,7 @@
 import Image from "next/image";
 import { Gift, Sparkles } from "lucide-react";
 import type { Character, Era } from "@/lib/types";
-import { CharacterArt } from "@/components/character-art";
-import { HolographicOverlay } from "@/components/holographic-overlay";
-import { FlavorText } from "@/components/character-badges";
-import { imageFrameFromCharacter } from "@/lib/image-frame";
-import { RARITY_META } from "@/lib/rarity";
+import { LayoutCharacterCard, layoutCharacterCardFromCharacter } from "@/components/layout-character-card";
 
 export type PulledPackCharacter = Character & { era: Era; quantity: number };
 
@@ -68,7 +64,7 @@ function PackRevealArtwork({
 
 function CardBack() {
   return (
-    <div className="relative flex aspect-[5/7] w-full flex-col items-center justify-center overflow-hidden rounded-lg border-2 border-amber-800/50 bg-gradient-to-br from-amber-950 via-neutral-950 to-neutral-900 shadow-inner sm:rounded-xl">
+    <div className="card-aspect-ratio relative flex w-full flex-col items-center justify-center overflow-hidden rounded-lg border-2 border-amber-800/50 bg-gradient-to-br from-amber-950 via-neutral-950 to-neutral-900 shadow-inner sm:rounded-xl">
       <div className="absolute inset-0 opacity-30 [background:repeating-linear-gradient(45deg,transparent,transparent_8px,rgba(245,158,11,0.08)_8px,rgba(245,158,11,0.08)_16px)]" />
       <Sparkles size={22} className="relative text-amber-500/40 sm:h-7 sm:w-7" />
     </div>
@@ -76,47 +72,22 @@ function CardBack() {
 }
 
 function RevealedCard({ character }: { character: PulledPackCharacter }) {
-  const meta = RARITY_META[character.rarity];
   const isDuplicate = character.quantity > 1;
 
   return (
-    <div
-      className="pack-card-reveal relative flex w-full flex-col overflow-hidden rounded-lg border-2 p-1.5 text-left sm:rounded-xl sm:p-2"
-      style={{
-        borderColor: meta.color,
-        boxShadow: meta.glow,
-        background: `linear-gradient(160deg, ${character.era.colorPrimary}22, ${character.era.colorSecondary}22), #111110`,
-      }}
-    >
-      {isDuplicate && (
-        <span className="absolute right-1 top-1 z-[2] rounded-full border border-amber-500/40 bg-amber-950/80 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-200 sm:right-1.5 sm:top-1.5 sm:text-[10px]">
+    <div className="pack-card-reveal relative w-full">
+      {isDuplicate ? (
+        <span className="absolute right-1 top-1 z-20 rounded-full border border-amber-500/40 bg-amber-950/80 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-200 sm:right-1.5 sm:top-1.5 sm:text-[10px]">
           ×{character.quantity}
         </span>
-      )}
-      {character.holographic && <HolographicOverlay />}
-      <div className="relative z-[1] flex flex-col">
-        <div className="relative flex aspect-[5/7] w-full items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-black/30">
-          <CharacterArt
-            seed={character.seed}
-            imageUrl={character.imageUrl}
-            imageFrame={imageFrameFromCharacter(character)}
-            era={character.era}
-            rarity={character.rarity}
-            archetype={character.archetype}
-            size={72}
-          />
-        </div>
-        <p className="mt-1 line-clamp-2 text-[10px] font-semibold text-foreground sm:mt-1.5 sm:text-xs">
-          {character.name}
-        </p>
-        <span
-          className="mt-0.5 w-fit rounded px-1.5 py-0.5 text-[8px] font-semibold uppercase sm:text-[9px]"
-          style={{ color: meta.color, background: `${meta.color}22` }}
-        >
-          {character.rarity}
-        </span>
-        <FlavorText text={character.flavorText} lines={2} className="mt-0.5 hidden lg:block" />
-      </div>
+      ) : null}
+      <LayoutCharacterCard
+        {...layoutCharacterCardFromCharacter(character, {
+          showFlavor: false,
+          ownership: { showStatus: false, owned: true, quantity: character.quantity },
+        })}
+        className="w-full"
+      />
     </div>
   );
 }

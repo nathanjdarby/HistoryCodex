@@ -299,4 +299,214 @@ export const ANGLO_SAXON_CARD_BALANCE: Record<
     flavorText:
       "Offa's capital and Mercia's crown—Tamworth's burh commanded the crossing of the Tame and the heart of the midlands.",
   },
+
+  // Generic era roster — explicit Anglo-Saxon flavor (replaces template text)
+  "anglo-saxon-england-1": {
+    rarity: "common",
+    archetype: "warrior",
+    statProfile: "aggressive",
+    flavorText:
+      "The thegn's sword goes in first—freemen of the fyrd who learned that a Saxon shield-wall wins or dies on the courage of its front rank.",
+  },
+  "anglo-saxon-england-2": {
+    rarity: "common",
+    archetype: "scholar",
+    statProfile: "fortress",
+    flavorText:
+      "In monastery scriptoria and royal halls, they copied Bede's chronicle and Alfred's laws—memory outlasts the raid that burned the village.",
+  },
+  "anglo-saxon-england-3": {
+    rarity: "common",
+    archetype: "monarch",
+    statProfile: "defensive",
+    flavorText:
+      "When the king rode to war or lay sick, another hand held the seal—regents kept Wessex's burhs manned and its enemies guessing.",
+  },
+  "anglo-saxon-england-4": {
+    rarity: "uncommon",
+    archetype: "merchant",
+    statProfile: "defensive",
+    flavorText:
+      "Silver from Frisia, wool from the downs, salt from the coast—Saxon traders moved England's wealth long before its kings minted a single coin.",
+  },
+  "anglo-saxon-england-5": {
+    rarity: "uncommon",
+    archetype: "warrior",
+    statProfile: "offensive",
+    flavorText:
+      "The king's chosen bodyguard—shield locked to shield beside the royal banner, they took the first blow so the crown could not.",
+  },
+  "anglo-saxon-england-6": {
+    rarity: "rare",
+    archetype: "scholar",
+    statProfile: "fortress",
+    flavorText:
+      "Dunstan's reformers, Bede's heirs—men who turned scripture, law, and precedent into walls stronger than any timber palisade.",
+  },
+  "anglo-saxon-england-7": {
+    rarity: "epic",
+    archetype: "monarch",
+    statProfile: "offensive",
+    flavorText:
+      "Harold at Stamford Bridge, Cnut from the North Sea, Æthelstan at Brunanburh—England's crown has always had more claimants than thrones.",
+  },
+  "anglo-saxon-england-8": {
+    rarity: "legendary",
+    archetype: "merchant",
+    statProfile: "balanced",
+    flavorText:
+      "Guild halls and mint-masters who weighed every penny—when the Danegeld flowed or the burh was built, their ledgers moved armies.",
+  },
+
+  // Characters added after initial book import
+  "custom-thelred-lord-of-mercia-2ca9ef0a": {
+    rarity: "uncommon",
+    archetype: "monarch",
+    statProfile: "defensive",
+    flavorText:
+      "Son of Mercia's last great king, he ruled beneath Wessex's shadow—building fortresses and holding the midlands while Æthelflæd's line still breathed.",
+  },
+  "custom-asser-of-st-david-s-0e7f1547": {
+    rarity: "uncommon",
+    archetype: "scholar",
+    statProfile: "fortress",
+    flavorText:
+      "Welsh bishop and Alfred's chosen scribe—he turned a king hiding in marshes into a saint in parchment, and gave England its first biography of greatness.",
+  },
+  "custom-bishop-denewulf-8da27ae8": {
+    rarity: "common",
+    archetype: "scholar",
+    statProfile: "defensive",
+    flavorText:
+      "Bishop of Winchester and steward of the royal mint—he counted coin for kings and kept the Church's counsel when war emptied the treasury.",
+  },
+  "custom-ealhswith-of-mercia-9b16ffb1": {
+    rarity: "common",
+    archetype: "monarch",
+    statProfile: "defensive",
+    flavorText:
+      "Mercian princess, Alfred's queen—she held the household and the realm's nerve while her husband fought Danes and rebuilt learning from the ashes.",
+  },
+  "custom-odda-ealdorman-of-devon-bcd2ce83": {
+    rarity: "uncommon",
+    archetype: "warrior",
+    statProfile: "aggressive",
+    flavorText:
+      "At Cynwit in 878 he caught the Danish host unprepared and broke it on the slope—proof that one ealdorman's charge could turn Alfred's darkest year.",
+  },
+
+  // Units added after initial book import
+  "custom-housecarls-of-wessex-3be21a56": {
+    rarity: "rare",
+    archetype: "warrior",
+    statProfile: "offensive",
+    flavorText:
+      "Harold's household troops—Danish axes and Saxon oaths, they stood on Senlac Hill until Norman hooves and arrows tore the ridge apart.",
+  },
+  "custom-longbow-levy-e8904f14": {
+    rarity: "common",
+    archetype: "warrior",
+    statProfile: "skirmisher",
+    flavorText:
+      "Hunting bows and hill-country marksmen—before the longbow's later fame, Saxon levies still stung raiders from hedgerow and high ground.",
+  },
+  "custom-mercian-spearmen-a16f273e": {
+    rarity: "common",
+    archetype: "warrior",
+    statProfile: "balanced",
+    flavorText:
+      "Mercia's ash spears and round shields—Offa's heirs and Æthelflæd's garrisons drilled the midlands to stand when the Great Army came calling.",
+  },
+  "custom-monastic-scribes-4f1b2eb2": {
+    rarity: "common",
+    archetype: "scholar",
+    statProfile: "fortress",
+    flavorText:
+      "Quill, vellum, and candle-glow in Lindisfarne's ruins and Winchester's scriptorium—they preserved law and prayer when fire and sword tried to erase both.",
+  },
+  "custom-mounted-thegns-5ba5ecb8": {
+    rarity: "uncommon",
+    archetype: "warrior",
+    statProfile: "skirmisher",
+    flavorText:
+      "Wealthy thegns on swift horses—they could not match Norman knights, but they harried Danish columns and carried a king's orders across Wessex overnight.",
+  },
+  "custom-royal-engineers-191da18f": {
+    rarity: "uncommon",
+    archetype: "scholar",
+    statProfile: "defensive",
+    flavorText:
+      "Alfred's burh-builders—ditch, rampart, and palisade laid out to plan, turning every market town into a knot the Great Army could not cut at once.",
+  },
+  "custom-royal-hearthguard-3bdb6393": {
+    rarity: "rare",
+    archetype: "warrior",
+    statProfile: "defensive",
+    flavorText:
+      "Sword and spear around the king's hall—household warriors sworn to die before the door, whether the enemy wore Danish mail or Saxon oath-ring.",
+  },
+  "custom-scouting-riders-6681ebd3": {
+    rarity: "common",
+    archetype: "warrior",
+    statProfile: "skirmisher",
+    flavorText:
+      "Light hooves on Roman roads and forest tracks—they brought word of longships in the estuary before the smoke of burning farms reached the burh.",
+  },
+  "custom-shieldwall-veterans-c80ba139": {
+    rarity: "uncommon",
+    archetype: "warrior",
+    statProfile: "defensive",
+    flavorText:
+      "Men who had stood at Ashdown, Edington, and Brunanburh—shoulder to shoulder until the line held or no shoulders remained to lock shields.",
+  },
+  "custom-wessex-fyrd-b1665a81": {
+    rarity: "common",
+    archetype: "warrior",
+    statProfile: "balanced",
+    flavorText:
+      "Farmers called from field and fold—two months' service, spear from the hall, and Alfred's law that made a kingdom's defence every free man's duty.",
+  },
+
+  // Signature units — Anglo-Saxon era override
+  "unit-fallen-martyr": {
+    rarity: "uncommon",
+    archetype: "warrior",
+    statProfile: "defensive",
+    flavorText:
+      "Edmund's martyrdom at Pucklechurch, Alphege's blood on the Danish axe—the fallen Saxon saint steels those who still stand in the shield-wall.",
+    customAbility: {
+      abilityName: "Martyrdom",
+      abilityEffect: "vs_higher_rarity_attack",
+      abilityValue: 10,
+      abilityTrigger: "death",
+    },
+  },
+
+  // Locations added after initial book import
+  "custom-athelney-marshes-3f5a0242": {
+    rarity: "rare",
+    statProfile: "defensive",
+    locationBuffAdjust: 4,
+    flavorText:
+      "Somerset's reed beds hid a beaten king—Alfred burned cakes, gathered men, and from these marshes launched the reconquest of England.",
+  },
+  "custom-burh-of-wareham-8f7e88f4": {
+    rarity: "common",
+    statProfile: "defensive",
+    locationBuffAdjust: -2,
+    flavorText:
+      "One ring in Alfred's chain of fortified towns—Wareham's burh guarded the Dorset coast where Danish ships first tested Saxon resolve.",
+  },
+  "custom-royal-mint-of-wessex-a7048002": {
+    rarity: "uncommon",
+    statProfile: "balanced",
+    flavorText:
+      "Dunstan's scales and Alfred's silver pennies—whoever controlled the mint controlled the army's pay and the merchant's trust.",
+  },
+  "custom-the-king-s-library-407d0a9c": {
+    rarity: "uncommon",
+    statProfile: "defensive",
+    flavorText:
+      "Alfred's translations from Latin to English—Boethius, Gregory, and the law codes that turned a war-king into the father of English learning.",
+  },
 };

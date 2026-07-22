@@ -99,8 +99,9 @@ export function BattleCard({
         <div className="battle-play-card-inner">
           <CharacterCardPreview
             {...previewProps}
-            density="play"
+            density="full"
             embedded
+            showFlavor={false}
             reserveHeaderActionsSpace={false}
             className="h-full w-full"
           />

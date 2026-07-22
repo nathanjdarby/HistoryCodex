@@ -13,22 +13,24 @@ import {
   Sparkles,
 } from "lucide-react";
 import { CharacterCardModal, type CharacterCardView } from "@/components/character-card-modal";
-import { CharacterCardPreview } from "@/components/character-card-preview";
+import {
+  CARD_PREVIEW_WIDTH_REM,
+  LayoutCharacterCard,
+  layoutCharacterCardFromCharacter,
+} from "@/components/layout-character-card";
 import {
   PackOpeningOverlay,
   type PackRevealPhase,
   type PulledPackCharacter,
 } from "@/components/pack-opening-overlay";
-import { ScaledCharacterCardShell } from "@/components/scaled-character-card";
 import { useCardModalNavigation } from "@/lib/client/use-card-modal-navigation";
 import { CARD_TYPE_LABELS_PLURAL, type CardType } from "@/lib/card-types";
-import { imageFrameFromCharacter } from "@/lib/image-frame";
 import {
   defaultPackPaymentMethod,
   getPackPrices,
   type PackPaymentMethod,
 } from "@/lib/pack-pricing";
-import { RARITY_META, RARITY_ORDER, dexNumber, type RarityTier } from "@/lib/rarity";
+import { RARITY_META, RARITY_ORDER, type RarityTier } from "@/lib/rarity";
 import type { Era } from "@/lib/types";
 
 type Eligibility = {
@@ -77,7 +79,7 @@ async function fetchPackDetail(packId: number): Promise<PackDetail> {
   return res.json();
 }
 
-const CARD_DISPLAY_WIDTH_REM = 11;
+const CARD_DISPLAY_WIDTH_REM = CARD_PREVIEW_WIDTH_REM - 1.5;
 
 function HeroPackArt({
   name,
@@ -436,33 +438,17 @@ export function PackDetailView({ packId }: { packId: number }) {
                 className="group border-0 bg-transparent p-0 text-left"
                 aria-label={`Preview ${card.name}`}
               >
-                <ScaledCharacterCardShell
-                  displayWidthRem={CARD_DISPLAY_WIDTH_REM}
-                  innerClassName="pointer-events-none transition-[filter] duration-200 group-hover:brightness-110"
-                >
-                  <CharacterCardPreview
-                    name={card.name}
-                    rarity={card.rarity}
-                    cardType={card.cardType}
-                    cost={card.cost}
-                    attack={card.attack}
-                    defense={card.defense}
-                    archetype={card.archetype}
-                    era={card.era}
-                    abilityName={card.abilityName}
-                    abilityEffect={card.abilityEffect}
-                    abilityValue={card.abilityValue}
-                    abilityTrigger={card.abilityTrigger}
-                    flavorText={card.flavorText}
-                    seed={card.seed}
-                    imageUrl={card.imageUrl}
-                    imageFrame={imageFrameFromCharacter(card)}
-                    holographic={card.holographic}
-                    dexLabel={dexNumber(card.id)}
-                    density="full"
-                    ownership={{ showStatus: true, owned: card.owned ?? false, quantity: card.quantity }}
-                  />
-                </ScaledCharacterCardShell>
+                <LayoutCharacterCard
+                  {...layoutCharacterCardFromCharacter(card, {
+                    displayWidthRem: CARD_DISPLAY_WIDTH_REM,
+                    innerClassName: "pointer-events-none transition-[filter] duration-200 group-hover:brightness-110",
+                    ownership: {
+                      showStatus: true,
+                      owned: card.owned ?? false,
+                      quantity: card.quantity,
+                    },
+                  })}
+                />
               </button>
             ))}
           </div>

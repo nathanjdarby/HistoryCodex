@@ -10,10 +10,11 @@ import {
   type ReactNode,
 } from "react";
 import { Moon, Sun } from "lucide-react";
-
-export const THEME_STORAGE_KEY = "historycodex-theme";
-
-export type ThemePreference = "light" | "dark";
+import {
+  THEME_STORAGE_KEY,
+  resolveThemePreference,
+  type ThemePreference,
+} from "@/lib/theme";
 
 type ThemeContextValue = {
   theme: ThemePreference;
@@ -24,8 +25,11 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-export function resolveThemePreference(stored: string | null): ThemePreference {
-  return stored === "light" ? "light" : "dark";
+const THEME_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+
+function persistThemePreference(theme: ThemePreference) {
+  window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  document.cookie = `${THEME_STORAGE_KEY}=${theme};path=/;max-age=${THEME_COOKIE_MAX_AGE_SECONDS};SameSite=Lax`;
 }
 
 export function applyThemePreference(theme: ThemePreference) {
@@ -43,19 +47,20 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const initial = resolveThemePreference(stored);
     setThemeState(initial);
     applyThemePreference(initial);
+    persistThemePreference(initial);
     setHydrated(true);
   }, []);
 
   const setTheme = useCallback((next: ThemePreference) => {
     setThemeState(next);
-    window.localStorage.setItem(THEME_STORAGE_KEY, next);
+    persistThemePreference(next);
     applyThemePreference(next);
   }, []);
 
   const toggleTheme = useCallback(() => {
     setThemeState((current) => {
       const next: ThemePreference = current === "dark" ? "light" : "dark";
-      window.localStorage.setItem(THEME_STORAGE_KEY, next);
+      persistThemePreference(next);
       applyThemePreference(next);
       return next;
     });

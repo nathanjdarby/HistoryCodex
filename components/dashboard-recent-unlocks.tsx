@@ -3,15 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { CharacterCardModal, type CharacterCardView } from "@/components/character-card-modal";
-import { CharacterCardPreview } from "@/components/character-card-preview";
 import { useCardModalNavigation } from "@/lib/client/use-card-modal-navigation";
-import { imageFrameFromCharacter } from "@/lib/image-frame";
-import { dexNumber } from "@/lib/rarity";
+import {
+  CARD_PREVIEW_WIDTH_REM,
+  LayoutCharacterCard,
+  layoutCharacterCardFromCharacter,
+} from "@/components/layout-character-card";
 import type { Character, Era } from "@/lib/types";
-import { ScaledCharacterCardShell } from "@/components/scaled-character-card";
-
-/** Dashboard unlock tiles — slightly larger than home featured cards for readable modal ratios. */
-const DISPLAY_WIDTH_REM = 12.5;
 
 type CharacterWithEra = Character & {
   era: Era;
@@ -34,38 +32,18 @@ function UnlockCard({
       aria-label={`Preview ${character.name}`}
       className="group shrink-0 cursor-pointer border-0 bg-transparent p-0 text-left transition-transform duration-300 hover:-translate-y-1 hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
     >
-      <ScaledCharacterCardShell
-        displayWidthRem={DISPLAY_WIDTH_REM}
-        innerClassName="pointer-events-none transition-[filter] duration-300 group-hover:brightness-110"
-      >
-        <CharacterCardPreview
-          name={character.name}
-          rarity={character.rarity}
-          cardType={character.cardType}
-          cost={character.cost}
-          attack={character.attack}
-          defense={character.defense}
-          archetype={character.archetype}
-          era={character.era}
-          abilityName={character.abilityName}
-          abilityEffect={character.abilityEffect}
-          abilityValue={character.abilityValue}
-          abilityTrigger={character.abilityTrigger}
-          flavorText={character.flavorText}
-          seed={character.seed}
-          imageUrl={character.imageUrl}
-          imageFrame={imageFrameFromCharacter(character)}
-          holographic={character.holographic}
-          dexLabel={dexNumber(character.id)}
-          locked={false}
-          density="full"
-          ownership={{
+      <LayoutCharacterCard
+        {...layoutCharacterCardFromCharacter(character, {
+          displayWidthRem: CARD_PREVIEW_WIDTH_REM,
+          innerClassName: "pointer-events-none transition-[filter] duration-300 group-hover:brightness-110",
+          locked: false,
+          ownership: {
             showStatus: true,
             owned: true,
             quantity: character.quantity ?? 1,
-          }}
-        />
-      </ScaledCharacterCardShell>
+          },
+        })}
+      />
     </button>
   );
 }

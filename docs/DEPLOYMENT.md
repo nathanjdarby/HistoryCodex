@@ -28,7 +28,7 @@ See `.env.example` for the exact variable names and format.
 docker compose up -d --build
 ```
 
-The app listens on port **3000** (or `APP_PORT` from `.env`).
+The app listens on port **3005** by default (or `APP_PORT` from `.env`; Docker maps that host port to container port 3000).
 
 On first boot the container runs **database migrations** automatically against Supabase via `DATABASE_URL_DIRECT`.
 
@@ -47,7 +47,7 @@ server {
   client_max_body_size 100M;
 
   location / {
-    proxy_pass http://127.0.0.1:3000;
+    proxy_pass http://127.0.0.1:3005;
     proxy_http_version 1.1;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
@@ -178,7 +178,7 @@ npm run build
 node scripts/migrate-production.mjs
 # Do NOT run db:seed / db:seed-auth on shared Supabase unless migrating from scratch
 
-PORT=3000 npm run start
+PORT=3005 npm run start
 ```
 
 Use **PM2** or **systemd** to keep the process running:
@@ -226,6 +226,66 @@ See `.env.example` for the full list.
 | Apply card balance | `docker compose --profile setup run --rm setup npm run db:seed-all-card-balance` |
 | Backup database | Supabase dashboard / `pg_dump` via `DATABASE_URL_DIRECT` |
 | Update app | `git pull && docker compose up -d --build` |
+| Auto-deploy on push to `main` | GitHub Actions → see **Automatic deploys** below |
+
+---
+
+## Automatic deploys (GitHub Actions)
+
+Push to **`main`** can deploy without SSHing in manually.
+
+### 1. One-time server setup
+
+On the VPS (once):
+
+```bash
+# Clone if needed — use the same path you will put in DEPLOY_PATH
+git clone https://github.com/nathanjdarby/HistoryCodex.git ~/HistoryCodex
+cd ~/HistoryCodex
+cp .env.example .env   # edit with production secrets
+
+# Let the deploy user pull without a password:
+# Option A — SSH deploy key (recommended): generate on server, add public key as a
+# read-only Deploy key on GitHub → repo → Settings → Deploy keys
+ssh-keygen -t ed25519 -f ~/.ssh/historycodex_deploy -N ""
+cat ~/.ssh/historycodex_deploy.pub   # paste into GitHub Deploy keys
+
+# Option B — HTTPS with a fine-grained PAT stored in git credential helper
+```
+
+Ensure Docker works for your deploy user (`docker compose` without sudo, or add user to the `docker` group).
+
+Test manually:
+
+```bash
+cd ~/HistoryCodex
+./scripts/deploy-production.sh
+```
+
+### 2. GitHub repository secrets
+
+In **GitHub → Settings → Secrets and variables → Actions**, add:
+
+| Secret | Example |
+|--------|---------|
+| `DEPLOY_HOST` | Your server IP or hostname |
+| `DEPLOY_USER` | SSH user (e.g. `ubuntu`, `deploy`) |
+| `DEPLOY_SSH_KEY` | Private key that can SSH as `DEPLOY_USER` (full PEM, including `BEGIN`/`END` lines) |
+| `DEPLOY_PATH` | Optional — absolute path to repo on server (default `~/HistoryCodex`) |
+
+The workflow file is `.github/workflows/deploy-production.yml`. It runs on every push to `main`, or manually via **Actions → Deploy production → Run workflow**.
+
+### 3. Day-to-day flow
+
+```bash
+git checkout main
+git merge your-feature-branch
+git push origin main
+```
+
+GitHub SSHes to the server and runs `scripts/deploy-production.sh` (`git pull` + `docker compose up -d --build` + migrations on container start).
+
+**Note:** Local dev and production share Supabase — only merge to `main` when you are happy for live to get schema/data-facing changes.
 
 ---
 

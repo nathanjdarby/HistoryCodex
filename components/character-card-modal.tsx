@@ -187,7 +187,7 @@ export function CharacterCardModal({
         <div
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className="relative w-[min(98vw,34rem,calc((100dvh-2rem)*5/7))] max-h-[min(calc(100dvh-2rem),52rem)] sm:max-h-[min(calc(100dvh-2.5rem),52rem)] sm:w-[min(34rem,calc((100dvh-2.5rem)*5/7))]"
+          className="card-modal-container relative"
         >
           <CharacterCardPreview
             name={character.name}
@@ -212,6 +212,7 @@ export function CharacterCardModal({
             imageFrame={imageFrameFromCharacter(character)}
             holographic={character.holographic}
             dexLabel={dexNumber(character.id)}
+            density="full"
             locked={locked}
             footer={footer}
             ownership={{

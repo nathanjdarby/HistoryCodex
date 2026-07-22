@@ -6,7 +6,7 @@ services:
         DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${APP_PORT:-3000}:3000"
+      - "127.0.0.1:${APP_PORT:-3005}:3000"
     environment:
       NODE_ENV: production
       AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in .env}

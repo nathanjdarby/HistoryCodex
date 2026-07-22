@@ -4,6 +4,13 @@ import { db } from "@/db";
 import { books, readingSessions, userStats } from "@/db/schema";
 import { ApiError } from "@/lib/api-utils";
 import {
+  getProgressNumerator,
+  getProgressPercent,
+  statusPatchFromProgress,
+  wordsPerPageForBook,
+} from "@/lib/book-progress";
+import { validateProgressValue } from "@/lib/server/book-progress-validation";
+import {
   applyPointCaps,
   decayTrustScore,
   enqueueVerification,
@@ -12,7 +19,7 @@ import {
   recordCapUsage,
 } from "@/lib/server/anti-cheat/caps";
 import { ANTI_CHEAT } from "@/lib/server/anti-cheat/config";
-import { evaluateReadingVelocity, type VelocityRules } from "@/lib/server/anti-cheat/velocity";
+import { evaluateReadingVelocity, type VelocityRoute, type VelocityRules } from "@/lib/server/anti-cheat/velocity";
 import { creditPoints } from "@/lib/server/era-points";
 import { unlockCampaignMilestones } from "@/lib/server/campaigns";
 import { getBook } from "@/lib/server/books";
@@ -21,34 +28,34 @@ import { getUserStats } from "@/lib/server/stats";
 
 type MilestoneType = `milestone_${number}`;
 
-function pct(currentPage: number, totalPages: number) {
-  if (totalPages <= 0) return 0;
-  return Math.floor((currentPage / totalPages) * 100);
+const AUDIOBOOK_POSITION_TOLERANCE_SEC = 120;
+
+function sessionStartPosition(book: Awaited<ReturnType<typeof getBook>>) {
+  return getProgressNumerator(book);
 }
 
-function wordsPerPageForBook(book: {
-  wordsPerPage: number | null;
-  wordCount: number | null;
-  totalPages: number;
-}) {
-  if (book.wordsPerPage != null) return book.wordsPerPage;
-  if (book.wordCount != null && book.totalPages > 0) {
-    return Math.round(book.wordCount / book.totalPages);
+function evaluateAudiobookVelocity(
+  positionLogged: number,
+  activeSeconds: number,
+): {
+  velocityScore: number;
+  flagged: boolean;
+  flagReason: string | null;
+  route: "instant" | "verification_queue";
+} {
+  if (positionLogged <= 0) {
+    return { velocityScore: 1, flagged: false, flagReason: null, route: "instant" };
   }
-  return null;
-}
-
-function statusFromPage(currentPage: number, totalPages: number, existing: typeof books.$inferSelect) {
-  const patch: Partial<typeof books.$inferInsert> = { currentPage, updatedAt: new Date() };
-  if (existing.status === "to_read" && currentPage > 0) {
-    patch.status = "reading";
-    patch.startedAt = existing.startedAt ?? new Date();
+  const maxAllowed = activeSeconds + AUDIOBOOK_POSITION_TOLERANCE_SEC;
+  if (positionLogged > maxAllowed) {
+    return {
+      velocityScore: 0,
+      flagged: true,
+      flagReason: "Listening position advanced faster than session time",
+      route: "verification_queue",
+    };
   }
-  if (currentPage >= totalPages) {
-    patch.status = "finished";
-    patch.finishedAt = new Date();
-  }
-  return patch;
+  return { velocityScore: 1, flagged: false, flagReason: null, route: "instant" };
 }
 
 async function assertSessionToken(sessionId: number, userId: number, clientToken: string) {
@@ -106,7 +113,7 @@ export async function startReadingSession(userId: number, bookId: number) {
     .values({
       userId,
       bookId,
-      startPage: book.currentPage,
+      startPage: sessionStartPosition(book),
       startTime: now,
       lastHeartbeat: now,
       clientToken: randomUUID(),
@@ -196,12 +203,17 @@ export async function resumeReadingSession(
   return updated;
 }
 
+export type FinalizeSessionInput = {
+  endPage?: number;
+  endPositionSeconds?: number;
+};
+
 export async function finalizeReadingSession(
   userId: number,
   bookId: number,
   sessionId: number,
   clientToken: string,
-  endPage: number,
+  input: FinalizeSessionInput,
 ) {
   const session = await assertSessionToken(sessionId, userId, clientToken);
   if (session.bookId !== bookId) throw new ApiError(400, "Session does not match book");
@@ -211,67 +223,108 @@ export async function finalizeReadingSession(
 
   const book = await getBook(bookId, userId);
   const rules = await getGameRules();
-  const velocityRules: VelocityRules = {
-    minSecondsPerPage: rules.minSecondsPerPage,
-    softSecondsPerPage: rules.softSecondsPerPage,
-    maxWpm: rules.maxWpm,
-    softWpm: rules.softWpm,
-    defaultWordsPerPage: ANTI_CHEAT.DEFAULT_WORDS_PER_PAGE,
-  };
-  if (endPage < session.startPage) {
-    throw new ApiError(400, "End page cannot be before session start page");
-  }
-  if (endPage > book.totalPages) {
-    throw new ApiError(400, `End page must be at most ${book.totalPages}`);
+
+  let endPosition: number;
+  if (book.consumptionFormat === "audiobook") {
+    if (input.endPositionSeconds === undefined) {
+      throw new ApiError(400, "endPositionSeconds is required for audiobook sessions");
+    }
+    endPosition = input.endPositionSeconds;
+  } else {
+    if (input.endPage === undefined) {
+      throw new ApiError(400, "endPage is required for print and e-reader sessions");
+    }
+    endPosition = input.endPage;
   }
 
-  const pagesLogged = endPage - session.startPage;
+  validateProgressValue(book, endPosition);
+  if (endPosition < session.startPage) {
+    throw new ApiError(400, "End position cannot be before session start");
+  }
+
+  const positionLogged = endPosition - session.startPage;
   const activeSeconds = session.activeSeconds;
-  const velocity = evaluateReadingVelocity(
-    {
-      pagesLogged,
-      activeSeconds,
-      wordsPerPage: wordsPerPageForBook(book),
-      source: session.source,
-    },
-    velocityRules,
-  );
 
-  const oldPct = pct(book.currentPage, book.totalPages);
-  const newPct = pct(endPage, book.totalPages);
+  let velocityScore = 1;
+  let flagged = false;
+  let flagReason: string | null = null;
+  let route: VelocityRoute = "instant";
+  let pagesPerMin = 0;
+  let wpmEstimate: number | null = null;
+  let pagesLogged = positionLogged;
+
+  if (book.consumptionFormat === "audiobook") {
+    const audioVelocity = evaluateAudiobookVelocity(positionLogged, activeSeconds);
+    velocityScore = audioVelocity.velocityScore;
+    flagged = audioVelocity.flagged;
+    flagReason = audioVelocity.flagReason;
+    route = audioVelocity.route;
+    pagesLogged = Math.max(1, Math.round(positionLogged / 60));
+    pagesPerMin = activeSeconds > 0 ? (positionLogged / activeSeconds) * 60 : 0;
+  } else {
+    const velocityRules: VelocityRules = {
+      minSecondsPerPage: rules.minSecondsPerPage,
+      softSecondsPerPage: rules.softSecondsPerPage,
+      maxWpm: rules.maxWpm,
+      softWpm: rules.softWpm,
+      defaultWordsPerPage: ANTI_CHEAT.DEFAULT_WORDS_PER_PAGE,
+    };
+    const velocity = evaluateReadingVelocity(
+      {
+        pagesLogged: positionLogged,
+        activeSeconds,
+        wordsPerPage: wordsPerPageForBook(book),
+        source: session.source,
+      },
+      velocityRules,
+    );
+    velocityScore = velocity.velocityScore;
+    flagged = velocity.flagged;
+    flagReason = velocity.flagReason;
+    route = velocity.route;
+    pagesPerMin = velocity.pagesPerMin;
+    wpmEstimate = velocity.wpmEstimate;
+  }
+
+  const oldPct = getProgressPercent(book);
+  const fieldPatch =
+    book.consumptionFormat === "audiobook"
+      ? { currentPositionSeconds: endPosition }
+      : { currentPage: endPosition };
+  const newPct = getProgressPercent({ ...book, ...fieldPatch });
   const milestonesCrossed = rules.milestones.filter((m) => oldPct < m && newPct >= m);
-  const pointsPerMilestone = Math.floor(rules.pointsPerMilestone * velocity.velocityScore);
+  const pointsPerMilestone = Math.floor(rules.pointsPerMilestone * velocityScore);
   const pointsRequested = milestonesCrossed.length * pointsPerMilestone;
 
   const caps = await getOrResetCaps(userId);
   const { allowedPoints, overflowPoints } = applyPointCaps(pointsRequested, caps);
 
   const needsQueue =
-    velocity.route === "verification_queue" ||
+    route === "verification_queue" ||
     overflowPoints > 0 ||
     caps.trustScore < rules.minTrustForInstantAward;
 
   const now = new Date();
-  const velocityScoreInt = Math.round(velocity.velocityScore * 100);
-  const pagesPerMinX100 = Math.round(velocity.pagesPerMin * 100);
+  const velocityScoreInt = Math.round(velocityScore * 100);
+  const pagesPerMinX100 = Math.round(pagesPerMin * 100);
 
   const [updatedSession] = await db
     .update(readingSessions)
     .set({
-      status: velocity.flagged ? "flagged" : "completed",
-      endPage,
+      status: flagged ? "flagged" : "completed",
+      endPage: endPosition,
       pagesLogged,
       endTime: now,
       pagesPerMinX100,
-      wpmEstimate: velocity.wpmEstimate != null ? Math.round(velocity.wpmEstimate) : null,
+      wpmEstimate: wpmEstimate != null ? Math.round(wpmEstimate) : null,
       velocityScore: velocityScoreInt,
-      flagReason: velocity.flagReason,
+      flagReason,
       updatedAt: now,
     })
     .where(eq(readingSessions.id, sessionId))
     .returning();
 
-  const bookPatch = statusFromPage(endPage, book.totalPages, book);
+  const bookPatch = statusPatchFromProgress(book, endPosition, fieldPatch);
   const [updatedBook] = await db
     .update(books)
     .set(bookPatch)
@@ -301,7 +354,7 @@ export async function finalizeReadingSession(
         ${ledgerPoints},
         ${pointsPerMilestone},
         ${needsQueue ? "held" : "settled"},
-        ${JSON.stringify({ velocityScore: velocity.velocityScore, flagReason: velocity.flagReason })}
+        ${JSON.stringify({ velocityScore, flagReason })}
       )
       on conflict (book_id, type) where type like 'milestone_%' do nothing
       returning id
@@ -338,15 +391,15 @@ export async function finalizeReadingSession(
       pointsRequested,
       allowedPoints,
       overflowPoints,
-      velocity,
+      velocity: { velocityScore, flagged, flagReason, route },
       milestonesCrossed,
       bookId,
       eraId: book.eraId,
     });
   }
 
-  if (velocity.flagged) {
-    await recordAntiCheatEvent(userId, "velocity_flag", sessionId, velocity);
+  if (flagged) {
+    await recordAntiCheatEvent(userId, "velocity_flag", sessionId, { velocityScore, flagReason });
     await decayTrustScore(userId);
   }
 
@@ -364,12 +417,12 @@ export async function finalizeReadingSession(
     pendingPoints,
     campaignNodesUnlocked,
     velocity: {
-      pagesPerMin: velocity.pagesPerMin,
-      wpmEstimate: velocity.wpmEstimate,
-      velocityScore: velocity.velocityScore,
-      flagged: velocity.flagged,
-      flagReason: velocity.flagReason,
-      route: velocity.route,
+      pagesPerMin,
+      wpmEstimate,
+      velocityScore,
+      flagged,
+      flagReason,
+      route,
     },
     stats,
   };

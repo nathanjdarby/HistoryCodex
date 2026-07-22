@@ -35,7 +35,7 @@ export function BattleCardInspect({ card, onClose }: Props) {
     >
       <div className="flex min-h-full items-center justify-center p-1.5 sm:p-3">
         <div className="my-auto flex w-full flex-col items-center" onClick={(event) => event.stopPropagation()}>
-          <div className="relative w-[min(98vw,34rem,calc((100dvh-2rem)*5/7))] max-h-[min(calc(100dvh-2rem),52rem)] sm:max-h-[min(calc(100dvh-2.5rem),52rem)] sm:w-[min(34rem,calc((100dvh-2.5rem)*5/7))]">
+          <div className="card-modal-container relative">
             <CharacterCardPreview
               {...previewProps}
               density="full"
