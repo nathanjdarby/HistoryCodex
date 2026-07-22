@@ -52,7 +52,7 @@ export function BookProgressInput({
 
   useEffect(() => {
     if (book.consumptionFormat === "audiobook") {
-      const parts = durationToParts(book.currentPositionSeconds);
+      const parts = durationToParts(book.currentPositionSeconds ?? 0);
       setHours(String(parts.h));
       setMinutes(String(parts.m));
       setSeconds(String(parts.s));
@@ -178,13 +178,13 @@ export function BookSettingsPanel({
   }) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [format, setFormat] = useState<ConsumptionFormat>(book.consumptionFormat);
+  const [format, setFormat] = useState<ConsumptionFormat>(normalizeFormat(book.consumptionFormat));
   const [editionPages, setEditionPages] = useState(String(book.editionTotalPages ?? book.totalPages));
   const [runtimeHours, setRuntimeHours] = useState("0");
   const [runtimeMinutes, setRuntimeMinutes] = useState("0");
 
   useEffect(() => {
-    setFormat(book.consumptionFormat);
+    setFormat(normalizeFormat(book.consumptionFormat));
     setEditionPages(String(book.editionTotalPages ?? book.totalPages));
     if (book.totalDurationSeconds) {
       const parts = durationToParts(book.totalDurationSeconds);

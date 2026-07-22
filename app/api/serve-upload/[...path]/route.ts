@@ -23,7 +23,7 @@ export async function GET(
   if (filePath && fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
     const ext = path.extname(filePath).toLowerCase();
     const body = fs.readFileSync(filePath);
-    return new NextResponse(body, {
+    return new NextResponse(new Uint8Array(body), {
       headers: {
         "Content-Type": MIME_TYPES[ext] ?? "application/octet-stream",
         "Cache-Control": "public, max-age=31536000, immutable",
@@ -41,7 +41,7 @@ export async function GET(
   }
 
   const ext = path.extname(resolved.filePath).toLowerCase();
-  return new NextResponse(resolved.body, {
+  return new NextResponse(new Uint8Array(resolved.body), {
     headers: {
       "Content-Type": MIME_TYPES[ext] ?? "application/octet-stream",
       "Cache-Control": "public, max-age=31536000, immutable",

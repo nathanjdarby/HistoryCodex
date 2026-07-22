@@ -102,7 +102,7 @@ export function formatProgressLabel(book: BookProgressFields): string {
   switch (normalizeFormat(book.consumptionFormat)) {
     case "audiobook": {
       const denom = book.totalDurationSeconds ?? 0;
-      return `${formatDuration(book.currentPositionSeconds)} / ${formatDuration(denom)} (${pct}%)`;
+      return `${formatDuration(book.currentPositionSeconds ?? 0)} / ${formatDuration(denom)} (${pct}%)`;
     }
     case "ebook": {
       const denom = book.editionTotalPages ?? 0;
