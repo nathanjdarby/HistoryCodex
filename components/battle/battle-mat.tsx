@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Bot, Layers, MapPin, Plus, Trash2 } from "lucide-react";
+import { Bot, Flag, Layers, MapPin, Plus, ScrollText, Trash2 } from "lucide-react";
 import { BattleCard } from "@/components/battle/battle-card";
 import { BattleCardBack } from "@/components/battle/battle-card-back";
+import { BattleLogModal } from "@/components/battle/battle-log-modal";
 import { BattlePileModal } from "@/components/battle/battle-pile-modal";
 import {
   HAND_CARD_DRAG_MIME,
@@ -43,6 +44,7 @@ type Props = {
   playerHand: CardSnapshot[];
   playerDeck: CardSnapshot[];
   playerDiscard: CardSnapshot[];
+  aiDiscard: CardSnapshot[];
   aiHandCount: number;
   log: MatchState["log"];
   selectedHandIndex: number | null;
@@ -61,6 +63,7 @@ type Props = {
   onEndPhase: () => void;
   canPlaySelected: boolean;
   actionPending: boolean;
+  hasEstablishedInfluenceThisTurn: boolean;
 };
 
 const PHASES: Phase[] = ["opening", "chronos", "logistics", "campaign", "consolidation"];
@@ -71,6 +74,13 @@ const PHASE_LABEL: Record<Phase, string> = {
   campaign: "Campaign",
   consolidation: "Consolidation",
 };
+
+function establishActionsForLane(legalActions: BattleAction[], laneIndex: number) {
+  return legalActions.filter(
+    (action): action is Extract<BattleAction, { type: "establish_influence" }> =>
+      action.type === "establish_influence" && action.laneIndex === laneIndex,
+  );
+}
 
 function attackActionsFor(
   legalActions: BattleAction[],
@@ -144,6 +154,7 @@ export function BattleMat({
   playerHand,
   playerDeck,
   playerDiscard,
+  aiDiscard,
   aiHandCount,
   log,
   selectedHandIndex,
@@ -162,11 +173,14 @@ export function BattleMat({
   onEndPhase,
   canPlaySelected,
   actionPending,
+  hasEstablishedInfluenceThisTurn,
 }: Props) {
-  const [pileView, setPileView] = useState<"deck" | "discard" | null>(null);
+  const [pileView, setPileView] = useState<"deck" | "discard" | "enemy-discard" | null>(null);
+  const [logOpen, setLogOpen] = useState(false);
   const [draggingHandIndex, setDraggingHandIndex] = useState<number | null>(null);
   const [dragOverZone, setDragOverZone] = useState<string | null>(null);
   const [locationHoverRect, setLocationHoverRect] = useState<DOMRect | null>(null);
+  const [establishMenuOpen, setEstablishMenuOpen] = useState(false);
   const locationCardRef = useRef<HTMLDivElement>(null);
   const fieldHoverEnabled = draggingHandIndex == null;
   const lane = lanes[0];
@@ -186,6 +200,24 @@ export function BattleMat({
     activeDragIndex != null && handCardCanDropOnLane(legalActions, activeDragIndex, laneIndex);
   const inCampaign = isPlayerTurn && phase === "campaign";
   const inLogistics = isPlayerTurn && phase === "logistics";
+  const establishActions = establishActionsForLane(legalActions, laneIndex);
+
+  useEffect(() => {
+    if (!inLogistics) setEstablishMenuOpen(false);
+  }, [inLogistics, phase]);
+
+  function handleEstablishInfluence(unitInstanceId: string) {
+    setEstablishMenuOpen(false);
+    onEstablishInfluence(laneIndex, unitInstanceId);
+  }
+
+  function handleEstablishButtonClick() {
+    if (establishActions.length === 1) {
+      handleEstablishInfluence(establishActions[0]!.unitInstanceId);
+      return;
+    }
+    setEstablishMenuOpen((open) => !open);
+  }
 
   function clearDragState() {
     setDraggingHandIndex(null);
@@ -238,6 +270,15 @@ export function BattleMat({
                   <Layers size={11} />
                   {aiHandCount}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => setPileView("enemy-discard")}
+                  className="flex items-center gap-1 rounded border border-red-900/40 px-1.5 py-0.5 text-neutral-500 transition-colors hover:border-red-700/50 hover:bg-red-950/30 hover:text-red-200/90"
+                  title="View enemy discard pile"
+                >
+                  <Trash2 size={11} />
+                  {aiDiscard.length}
+                </button>
                 <CapturePips count={aiCapturedLocations} total={locationsToWin} color="red" />
               </div>
             </div>
@@ -254,6 +295,15 @@ export function BattleMat({
                 </span>
               ))}
               <span className="ml-1 whitespace-nowrap text-[11px] text-neutral-400">T{turnNumber}</span>
+              <button
+                type="button"
+                onClick={() => setLogOpen(true)}
+                className="ml-1 inline-flex items-center gap-1 rounded-full border border-neutral-800 bg-neutral-900/60 px-2 py-0.5 text-[10px] text-neutral-400 transition-colors hover:border-neutral-600 hover:text-neutral-200"
+                title="Open match log"
+              >
+                <ScrollText size={11} />
+                Log
+              </button>
               <span
                 className={`whitespace-nowrap text-[11px] ${
                   activePlayer === "player" ? "text-sky-300" : "text-red-300"
@@ -272,14 +322,29 @@ export function BattleMat({
             </div>
           </div>
 
-          {/* Latest action ticker — lives here, well clear of the hand, so it
-              never overlaps a hovered/enlarged hand card below. */}
+          {/* Latest action ticker — click to open full match log */}
           {log.slice(-1)[0] ? (
-            <p className="shrink-0 truncate border-b border-amber-950/40 px-4 py-1 text-center text-[10px] text-neutral-600 sm:px-6">
+            <button
+              type="button"
+              onClick={() => setLogOpen(true)}
+              className="shrink-0 truncate border-b border-amber-950/40 px-4 py-1 text-center text-[10px] text-neutral-600 transition-colors hover:bg-neutral-900/40 hover:text-neutral-400 sm:px-6"
+              title="Open full match log"
+            >
               <span className="text-neutral-700">[{log.slice(-1)[0]!.type}]</span>{" "}
               {log.slice(-1)[0]!.message}
-            </p>
-          ) : null}
+            </button>
+          ) : (
+            <div className="flex shrink-0 justify-center border-b border-amber-950/40 px-4 py-1 sm:px-6">
+              <button
+                type="button"
+                onClick={() => setLogOpen(true)}
+                className="inline-flex items-center gap-1 text-[10px] text-neutral-500 hover:text-neutral-300"
+              >
+                <ScrollText size={12} />
+                Match log
+              </button>
+            </div>
+          )}
 
           {/* Battlefield — fixed 5-slot rows so proportions hold regardless of
               how many units are actually deployed. */}
@@ -324,6 +389,7 @@ export function BattleMat({
                 {lane.location ? (
                   <div
                     ref={locationCardRef}
+                    className="shrink-0"
                     onMouseEnter={() => {
                       if (!fieldHoverEnabled) return;
                       setLocationHoverRect(locationCardRef.current?.getBoundingClientRect() ?? null);
@@ -335,6 +401,7 @@ export function BattleMat({
                       size="board"
                       showCost={false}
                       showCombat={false}
+                      liftOnHover={false}
                       onClick={() => onInspect(cardSnapshotToFace(lane.location!))}
                       className={locationHoverRect ? "ring-2 ring-amber-400/70" : ""}
                     />
@@ -351,6 +418,17 @@ export function BattleMat({
                     ai={lane.aiInfluence}
                     toCapture={influenceToCapture}
                   />
+                  {inLogistics && lane.location ? (
+                    <EstablishInfluenceControl
+                      actions={establishActions}
+                      units={lane.playerUnits}
+                      hasEstablished={hasEstablishedInfluenceThisTurn}
+                      menuOpen={establishMenuOpen}
+                      disabled={actionPending}
+                      onPrimaryClick={handleEstablishButtonClick}
+                      onPickUnit={handleEstablishInfluence}
+                    />
+                  ) : null}
                   {canDeploy && lane.location && !laneAcceptsHandDrop ? (
                     <button
                       type="button"
@@ -431,11 +509,13 @@ export function BattleMat({
                 {draggingHandIndex != null && phase === "logistics" && (inCampaign || inLogistics)
                   ? " · "
                   : null}
-                {inLogistics && selectedMonarchId
-                  ? "Tap a friendly unit to unify"
-                  : inLogistics
-                    ? "Tap a ready unit to establish Influence, or a Monarch to unify"
-                    : null}
+                {inLogistics && establishMenuOpen && establishActions.length > 1
+                  ? "Choose which unit commits (+1 Influence, no attack this turn)"
+                  : inLogistics && selectedMonarchId
+                    ? "Tap a friendly unit to unify"
+                    : inLogistics
+                      ? "Use Establish Influence above, or tap a ready unit on your row"
+                      : null}
                 {inLogistics && inCampaign ? " · " : null}
                 {inCampaign ? "Tap your unit, then a highlighted enemy" : null}
               </p>
@@ -445,7 +525,7 @@ export function BattleMat({
               <CardHoverPreview
                 face={cardSnapshotToFace(lane.location)}
                 anchorRect={locationHoverRect}
-                placement="below"
+                placement="above"
               />
             ) : null}
           </div>
@@ -502,6 +582,17 @@ export function BattleMat({
           onInspect={onInspect}
           onClose={() => setPileView(null)}
         />
+      ) : null}
+      {pileView === "enemy-discard" ? (
+        <BattlePileModal
+          title={`Enemy discard (${aiDiscard.length})`}
+          cards={[...aiDiscard].reverse()}
+          onInspect={onInspect}
+          onClose={() => setPileView(null)}
+        />
+      ) : null}
+      {logOpen ? (
+        <BattleLogModal log={log} currentTurn={turnNumber} onClose={() => setLogOpen(false)} />
       ) : null}
     </>
   );
@@ -635,6 +726,84 @@ function InfluenceTrack({ player, ai, toCapture }: { player: number; ai: number;
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function EstablishInfluenceControl({
+  actions,
+  units,
+  hasEstablished,
+  menuOpen,
+  disabled,
+  onPrimaryClick,
+  onPickUnit,
+}: {
+  actions: Extract<BattleAction, { type: "establish_influence" }>[];
+  units: BoardUnit[];
+  hasEstablished: boolean;
+  menuOpen: boolean;
+  disabled: boolean;
+  onPrimaryClick: () => void;
+  onPickUnit: (unitInstanceId: string) => void;
+}) {
+  const canUse = actions.length > 0;
+  const label = hasEstablished
+    ? "Influence established"
+    : canUse
+      ? menuOpen && actions.length > 1
+        ? "Cancel"
+        : "Establish Influence"
+      : units.length === 0
+        ? "Deploy a unit first"
+        : "No ready units";
+
+  return (
+    <div className="relative w-full min-w-[9.5rem]">
+      <button
+        type="button"
+        disabled={disabled || hasEstablished || !canUse}
+        onClick={onPrimaryClick}
+        title={
+          hasEstablished
+            ? "You already established Influence this Logistics phase."
+            : canUse
+              ? "Commit a unit for +1 Influence. It cannot attack this turn."
+              : units.length === 0
+                ? "Deploy a unit to the lane before establishing Influence."
+                : "Units need to be ready — not summoning sick or already committed."
+        }
+        className={`flex w-full items-center justify-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:text-[11px] ${
+          canUse && !hasEstablished
+            ? "border-sky-500/60 bg-sky-950/50 text-sky-100 hover:bg-sky-900/60"
+            : "border-neutral-700 bg-neutral-950/60 text-neutral-500"
+        }`}
+      >
+        <Flag size={12} />
+        {label}
+      </button>
+
+      {menuOpen && actions.length > 1 ? (
+        <ul className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-sky-800/60 bg-[#0c0a08] shadow-xl">
+          {actions.map((action) => {
+            const unit = units.find((u) => u.instanceId === action.unitInstanceId);
+            if (!unit) return null;
+            return (
+              <li key={action.unitInstanceId}>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onPickUnit(action.unitInstanceId)}
+                  className="flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left text-[10px] text-sky-100 hover:bg-sky-950/70 disabled:opacity-50 sm:text-[11px]"
+                >
+                  <span className="truncate font-medium">{unit.name}</span>
+                  <span className="shrink-0 text-neutral-500">+1 Influence</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
     </div>
   );
 }
@@ -785,6 +954,7 @@ function SlotRow({
           state={state}
           resting={side === "player" && (unit.summoningSickness || isCommitted)}
           showCost={false}
+          liftOnHover={false}
           className={isHovered ? "ring-2 ring-amber-400/70" : ""}
           onClick={() => {
             if (isTarget && selectedAttackerId) {
@@ -966,7 +1136,7 @@ function CardHoverPreview({
         ["--battle-card-width" as string]: `${HOVER_PREVIEW_WIDTH_REM}rem`,
       }}
     >
-      <BattleCard card={face} size="board" state="default" />
+      <BattleCard card={face} size="board" state="default" liftOnHover={false} />
     </div>,
     document.body,
   );

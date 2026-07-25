@@ -7,6 +7,12 @@ import { PageHeader } from "@/components/page-header";
 import { Check, Layers } from "lucide-react";
 import type { Era } from "@/lib/types";
 import { formatYearRange } from "@/lib/format";
+import {
+  filterErasByRegion,
+  formatEraRegionLabel,
+  getEraRegions,
+} from "@/lib/client/era-regions";
+import { REGION_ERA_FILTER_SELECT_CLASS } from "@/components/region-era-filters";
 
 type TimelinesProfile = {
   available: Era[];
@@ -62,9 +68,18 @@ export default function ProfileTimelinesPage() {
     onError: (err: Error) => setError(err.message),
   });
 
+  const [regionFilter, setRegionFilter] = useState("");
+
   const sortedAvailable = useMemo(
     () => [...(profile?.available ?? [])].sort((a, b) => a.startYear - b.startYear),
     [profile?.available],
+  );
+
+  const regions = useMemo(() => getEraRegions(sortedAvailable), [sortedAvailable]);
+
+  const visibleEras = useMemo(
+    () => filterErasByRegion(sortedAvailable, regionFilter),
+    [sortedAvailable, regionFilter],
   );
 
   function toggleEra(eraId: number) {
@@ -134,8 +149,29 @@ export default function ProfileTimelinesPage() {
 
       {isLoading && <p className="text-muted">Loading available timelines…</p>}
 
+      {!isLoading && regions.length > 1 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={regionFilter}
+            onChange={(e) => setRegionFilter(e.target.value)}
+            className={REGION_ERA_FILTER_SELECT_CLASS}
+            aria-label="Filter timelines by region"
+          >
+            <option value="">All regions</option>
+            {regions.map((region) => (
+              <option key={region || "__unset__"} value={region}>
+                {formatEraRegionLabel(region)}
+              </option>
+            ))}
+          </select>
+          <p className="text-sm text-muted">
+            Showing {visibleEras.length} timeline{visibleEras.length === 1 ? "" : "s"}
+          </p>
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {sortedAvailable.map((era) => {
+        {visibleEras.map((era) => {
           const active = selectedIds.includes(era.id);
           return (
             <button

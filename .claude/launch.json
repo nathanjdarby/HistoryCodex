@@ -7,6 +7,12 @@
       "runtimeArgs": ["run", "dev"],
       "port": 3005,
       "autoPort": true
+    },
+    {
+      "name": "historycodex-db-studio",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "db:studio"],
+      "port": 4983
     }
   ]
 }

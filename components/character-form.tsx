@@ -23,6 +23,7 @@ import {
   clampImageFrame,
   type ImageFrame,
 } from "@/lib/image-frame";
+import { RegionEraField } from "@/components/region-era-filters";
 import { fetchEras } from "@/lib/client/eras";
 import { AbilityBuilder } from "@/components/ability-builder";
 import {
@@ -375,6 +376,7 @@ export function CharacterForm({
                 imageFocusY: imageFrame?.focusY ?? 50,
                 imageScale: imageFrame?.scale ?? 100,
                 holographic: form.holographic,
+                layoutId: null,
                 era: {
                   name: previewEraSelection?.name ?? "Select an era",
                   colorPrimary: previewEra.colorPrimary,
@@ -497,24 +499,13 @@ export function CharacterForm({
               <option value="event">Event</option>
             </select>
           </label>
-          <label className="flex flex-col gap-1 text-sm">
-            Era
-            <select
-              required
-              value={form.eraId}
-              onChange={(e) => handleEraChange(e.target.value)}
-              className="rounded border border-border-strong bg-background px-2 py-1.5"
-            >
-              <option value="" disabled>
-                Select an era
-              </option>
-              {eras?.map((era) => (
-                <option key={era.id} value={era.id}>
-                  {era.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <RegionEraField
+            eras={eras}
+            eraValue={form.eraId}
+            onEraChange={handleEraChange}
+            requireRegion
+            className="contents"
+          />
           {!editingId && (
             <label className="col-span-full flex flex-col gap-1 text-sm">
               Link to book (optional)

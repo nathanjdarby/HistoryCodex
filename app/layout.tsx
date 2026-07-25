@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { dehydrate } from "@tanstack/react-query";
+import "@history-codex/card-renderer/card.css";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { MainShell } from "@/components/main-shell";

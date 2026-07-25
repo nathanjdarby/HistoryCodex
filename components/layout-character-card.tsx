@@ -34,6 +34,7 @@ type CharacterPreviewSource = Pick<
   | "imageFocusY"
   | "imageScale"
   | "holographic"
+  | "layoutId"
 > & {
   era: Pick<Era, "name" | "colorPrimary" | "colorSecondary">;
 };

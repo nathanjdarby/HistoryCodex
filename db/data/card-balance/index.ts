@@ -15,6 +15,7 @@ import { HISTORY_OF_BRITAIN_VOLUME_2_BALANCE } from "./history-of-britain-volume
 import { HISTORY_OF_BRITAIN_VOLUME_3_BALANCE } from "./history-of-britain-volume-3";
 import { IMPERIAL_POSSESSION_BALANCE } from "./imperial-possession";
 import { IMPORTED_BOOKS_CARD_BALANCE } from "./imported-books-balance";
+import { HISTORY_OF_JAPAN_TO_1334_BALANCE } from "./history-of-japan-to-1334";
 
 const EXPLICIT_BALANCE: Record<string, CardBalanceDef> = {
   ...GLOBAL_EVENT_BALANCE,
@@ -32,6 +33,7 @@ const EXPLICIT_BALANCE: Record<string, CardBalanceDef> = {
   ...HISTORY_OF_BRITAIN_VOLUME_3_BALANCE,
   ...IMPERIAL_POSSESSION_BALANCE,
   ...IMPORTED_BOOKS_CARD_BALANCE,
+  ...HISTORY_OF_JAPAN_TO_1334_BALANCE,
 };
 
 export function resolveCardBalance(params: {
@@ -64,4 +66,5 @@ export {
   HISTORY_OF_BRITAIN_VOLUME_3_BALANCE,
   IMPERIAL_POSSESSION_BALANCE,
   IMPORTED_BOOKS_CARD_BALANCE,
+  HISTORY_OF_JAPAN_TO_1334_BALANCE,
 };

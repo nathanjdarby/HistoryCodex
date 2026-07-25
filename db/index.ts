@@ -1,3 +1,4 @@
+import "./load-env";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
@@ -9,9 +10,11 @@ let dbInstance: Db | undefined;
 
 function getClient() {
   if (!client) {
-    const url = process.env.DATABASE_URL;
+    const url = process.env.DATABASE_URL ?? process.env.DATABASE_URL_DIRECT;
     if (!url) {
-      throw new Error("DATABASE_URL is required (Supabase Postgres connection string).");
+      throw new Error(
+        "DATABASE_URL or DATABASE_URL_DIRECT is required (Supabase Postgres connection string).",
+      );
     }
     client = postgres(url, {
       prepare: false,

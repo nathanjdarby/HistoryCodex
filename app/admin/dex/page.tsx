@@ -22,6 +22,7 @@ import {
   CARD_TYPE_LABELS_PLURAL,
   type CardType,
 } from "@/lib/card-types";
+import { RegionEraField } from "@/components/region-era-filters";
 import { AdminCardSearchInput } from "@/components/admin-card-search-input";
 import { matchesAdminCardSearch } from "@/lib/client/admin-card-search";
 
@@ -427,21 +428,14 @@ export default function AdminDexPage() {
                 <option value="themed">Themed (points shop)</option>
               </select>
             </label>
-            <label className="block space-y-1">
-              <span className="text-sm text-foreground/80">Era theme</span>
-              <select
-                className="w-full rounded-md border border-border-strong bg-background px-3 py-2 text-sm"
-                value={form.eraId}
-                onChange={(e) => setForm((f) => ({ ...f, eraId: e.target.value }))}
-              >
-                <option value="">Any era</option>
-                {(eras ?? []).map((era) => (
-                  <option key={era.id} value={era.id}>
-                    {era.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <RegionEraField
+              eras={eras}
+              eraValue={form.eraId}
+              onEraChange={(eraId) => setForm((f) => ({ ...f, eraId }))}
+              allowEmptyEra
+              emptyEraLabel="Any era"
+              className="contents"
+            />
             <label className="block space-y-1">
               <span className="text-sm text-foreground/80">Price (points)</span>
               <input

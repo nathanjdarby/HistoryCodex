@@ -24,6 +24,19 @@ export const USER_API_PREFIXES = [
   "/api/matches",
 ] as const;
 
+/** Play APIs admins may call when testing from /admin/play. */
+export const ADMIN_PLAY_API_PREFIXES = [
+  "/api/decks",
+  "/api/catalog-decks",
+  "/api/matches",
+] as const;
+
+export function isAdminPlayApiPath(pathname: string): boolean {
+  return ADMIN_PLAY_API_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
 export function isUserAppPath(pathname: string): boolean {
   if (pathname === "/dashboard") return true;
   return USER_APP_PREFIXES.some(

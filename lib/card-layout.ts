@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import type { RegistryRow } from "@history-codex/card-renderer/registry";
 import type { CardType } from "@/lib/battle/types";
 
 export const LAYOUT_ELEMENT_IDS = [
@@ -105,6 +106,25 @@ export const CARD_ASPECT_RATIO_CSS_VARS = {
 export type CardLayoutBundle = {
   layouts: CardLayoutsByType;
   settings: CardLayoutSettings;
+};
+
+export type LayoutPresetRef = {
+  id: string;
+  name: string;
+  layout: unknown;
+};
+
+export type LayoutAssignmentsByType = Record<CardType, string | null>;
+
+export type CardPlatformBundle = CardLayoutBundle & {
+  presets: LayoutPresetRef[];
+  assignments: LayoutAssignmentsByType;
+  registry: {
+    fields: RegistryRow[];
+    elements: RegistryRow[];
+  };
+  supportedRenderKinds: string[];
+  packageVersion: string;
 };
 
 export function defaultCardLayoutsByType(): CardLayoutsByType {

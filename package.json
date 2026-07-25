@@ -37,6 +37,7 @@
     "test": "tsx --test lib/battle/__tests__/*.test.ts lib/server/__tests__/*.test.ts"
   },
   "dependencies": {
+    "@history-codex/card-renderer": "file:../../History Codex - Manager/packages/card-renderer",
     "@supabase/supabase-js": "^2.110.7",
     "@tanstack/react-query": "^5.101.2",
     "bcryptjs": "^3.0.3",

@@ -72,7 +72,7 @@ export function playLocationFromHand(
  * both players' deck-list Locations, shuffled once) and seats it directly
  * into an empty lane. Locations are no longer played from hand — this is
  * the sole way a lane ever gets a location, called once per active lane at
- * match start and again immediately after a capture clears the lane.
+ * match start and again immediately after a capture on the lane.
  */
 export function seatLocationFromDeck(state: MatchState, laneIndex: number): MatchState {
   const lane = state.lanes[laneIndex];

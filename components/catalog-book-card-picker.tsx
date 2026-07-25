@@ -39,6 +39,7 @@ type CatalogBookCard = {
   imageFocusY: number;
   imageScale: number;
   archetype: Character["archetype"];
+  layoutId: Character["layoutId"];
 };
 
 type CharacterWithEra = Character & { era: Era; owned: boolean; unlockedAt: string | null };

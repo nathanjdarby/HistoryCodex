@@ -8,6 +8,7 @@ import { BookOpen, Calendar, Layers, ScrollText, StickyNote, User, X, Plus } fro
 import type { Era, TimelineEntry } from "@/lib/types";
 import { formatYear } from "@/lib/format";
 import { entryFractionalEnd, entryFractionalStart, formatEntryDateRange } from "@/lib/entry-dates";
+import { RegionEraFilters } from "@/components/region-era-filters";
 import {
   assignEraLanes,
   assignTimeRangeLanes,
@@ -68,6 +69,7 @@ export default function TimelinePage() {
     queryFn: fetchEntries,
   });
   const [zoomIdx, setZoomIdx] = useState(2);
+  const [jumpRegion, setJumpRegion] = useState("");
   const [jumpEraId, setJumpEraId] = useState("");
   const [selected, setSelected] = useState<TimelineEntry | null>(null);
 
@@ -172,25 +174,21 @@ export default function TimelinePage() {
               <Layers size={14} />
               My timelines
             </Link>
-            <select
-              value={jumpEraId}
-              onChange={(e) => {
-                const eraId = e.target.value;
+            <RegionEraFilters
+              eras={eras}
+              region={jumpRegion}
+              onRegionChange={setJumpRegion}
+              eraValue={jumpEraId}
+              onEraChange={(eraId) => {
                 setJumpEraId(eraId);
                 if (eraId) jumpToEra(eraId);
               }}
+              allErasLabel="Jump to era…"
+              selectClassName="app-input py-1.5 disabled:opacity-50"
+              regionAriaLabel="Filter jump by region"
+              eraAriaLabel="Jump to era"
               disabled={!hasTimelines}
-              className="app-input py-1.5 disabled:opacity-50"
-            >
-              <option value="" disabled>
-                Jump to era...
-              </option>
-              {eras?.map((era) => (
-                <option key={era.id} value={era.id}>
-                  {era.name}
-                </option>
-              ))}
-            </select>
+            />
             <div className="app-segment">
               {ZOOM_LEVELS.map((level, i) => (
                 <button

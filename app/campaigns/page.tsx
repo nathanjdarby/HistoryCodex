@@ -17,6 +17,7 @@ type CampaignSummary = {
   colorSecondary: string;
   nodesUnlocked: string[];
   currentNode: string | null;
+  theme: CampaignTheme;
 };
 
 async function fetchCampaigns(): Promise<CampaignSummary[]> {
@@ -26,7 +27,7 @@ async function fetchCampaigns(): Promise<CampaignSummary[]> {
 }
 
 export default function CampaignsPage() {
-  const { data: campaigns, isLoading } = useQuery({
+  const { data: campaigns, isLoading, isError } = useQuery({
     queryKey: ["campaigns"],
     queryFn: fetchCampaigns,
   });
@@ -42,7 +43,14 @@ export default function CampaignsPage() {
 
       {isLoading && <p className="text-sm text-muted">Loading campaigns…</p>}
 
-      {!isLoading && (campaigns?.length ?? 0) === 0 && (
+      {isError && (
+        <div className="app-empty">
+          <p className="text-foreground/80">Could not load campaigns.</p>
+          <p className="mt-1 text-sm text-muted">Try refreshing the page.</p>
+        </div>
+      )}
+
+      {!isLoading && !isError && (campaigns?.length ?? 0) === 0 && (
         <div className="app-empty">
           <ScrollText size={28} className="mx-auto text-subtle" />
           <p className="mt-3 text-foreground/80">No campaigns yet</p>
@@ -60,26 +68,12 @@ export default function CampaignsPage() {
             <div className="border-b border-border px-4 py-3">
               <p className="font-medium text-foreground group-hover:text-foreground">{campaign.title}</p>
               <p className="text-xs text-muted">
-                {campaign.nodesUnlocked.length} node{campaign.nodesUnlocked.length === 1 ? "" : "s"}{" "}
-                unlocked
+                {campaign.nodesUnlocked.length} / {campaign.theme.nodes.length} milestone
+                {campaign.theme.nodes.length === 1 ? "" : "s"} unlocked
               </p>
             </div>
             <CampaignMap
-              theme={
-                {
-                  nodes: [
-                    { id: "m25", milestone: 25, label: "Start", x: 0.15, y: 0.75 },
-                    { id: "m50", milestone: 50, label: "Mid", x: 0.4, y: 0.5 },
-                    { id: "m75", milestone: 75, label: "Late", x: 0.65, y: 0.35 },
-                    { id: "m100", milestone: 100, label: "End", x: 0.88, y: 0.2 },
-                  ],
-                  edges: [
-                    ["m25", "m50"],
-                    ["m50", "m75"],
-                    ["m75", "m100"],
-                  ],
-                } satisfies CampaignTheme
-              }
+              theme={campaign.theme}
               nodesUnlocked={campaign.nodesUnlocked}
               colorPrimary={campaign.colorPrimary}
               colorSecondary={campaign.colorSecondary}

@@ -9,6 +9,7 @@ import {
   groupBoosterPacksByEraAz,
   sortBoosterPacksByEraAz,
 } from "@/lib/client/booster-packs-by-era";
+import { RegionEraField } from "@/components/region-era-filters";
 import { fetchEras } from "@/lib/client/eras";
 import { CARD_TYPE_LABELS_PLURAL, type CardType } from "@/lib/card-types";
 
@@ -587,21 +588,14 @@ export default function AdminPacksPage() {
                   className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
-              <label className="flex flex-col gap-1 text-sm">
-                Era scope
-                <select
-                  value={form.eraId}
-                  onChange={(e) => setForm({ ...form, eraId: e.target.value })}
-                  className="rounded border border-border-strong bg-background px-2 py-1.5"
-                >
-                  <option value="">Any era</option>
-                  {eras?.map((era) => (
-                    <option key={era.id} value={era.id}>
-                      {era.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <RegionEraField
+                eras={eras}
+                eraValue={form.eraId}
+                onEraChange={(eraId) => setForm({ ...form, eraId })}
+                allowEmptyEra
+                emptyEraLabel="Any era"
+                className="contents"
+              />
               <label className="flex flex-col gap-1 text-sm">
                 Card type
                 <select

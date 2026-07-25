@@ -51,6 +51,8 @@ type Props = {
   resting?: boolean;
   onClick?: () => void;
   onInspect?: () => void;
+  /** Board/hand cards use a portal preview — disable in-place lift to avoid clip/flicker. */
+  liftOnHover?: boolean;
   className?: string;
   style?: React.CSSProperties;
 };
@@ -64,6 +66,7 @@ export function BattleCard({
   resting = false,
   onClick,
   onInspect,
+  liftOnHover = true,
   className = "",
   style,
 }: Props) {
@@ -72,6 +75,8 @@ export function BattleCard({
   const interactive = Boolean(onClick) && !isDisabled;
   const Wrapper = interactive ? "button" : "div";
   const isPlaySize = PLAY_SIZES.has(size);
+  const hoverMotion =
+    interactive && liftOnHover ? "cursor-pointer hover:-translate-y-1 hover:shadow-xl" : interactive ? "cursor-pointer" : "";
 
   if (isHidden) {
     return null;
@@ -93,7 +98,7 @@ export function BattleCard({
             : undefined
         }
         disabled={interactive ? isDisabled : undefined}
-        className={`${BATTLE_PLAY_CARD_CLASS} relative block text-left transition-transform ${STATE_RING[state]} ${interactive ? "cursor-pointer hover:-translate-y-1 hover:shadow-xl" : ""} ${className}`}
+        className={`${BATTLE_PLAY_CARD_CLASS} relative block text-left transition-transform ${STATE_RING[state]} ${hoverMotion} ${className}`}
         style={style}
       >
         <div className="battle-play-card-inner">
@@ -132,7 +137,7 @@ export function BattleCard({
           : undefined
       }
       disabled={interactive ? isDisabled : undefined}
-      className={`relative shrink-0 text-left transition-transform ${SIZE_CLASS[size]} ${STATE_RING[state]} ${interactive ? "cursor-pointer hover:-translate-y-1 hover:shadow-xl" : ""} ${className}`}
+      className={`relative shrink-0 text-left transition-transform ${SIZE_CLASS[size]} ${STATE_RING[state]} ${hoverMotion} ${className}`}
       style={style}
     >
       <CharacterCardPreview {...previewProps} density="full" className="w-full" />

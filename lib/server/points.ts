@@ -127,6 +127,54 @@ export async function getBookMilestones(userId: number, bookId: number) {
     );
 }
 
+/** Credit any legacy held milestone rows — reading awards are now instant on good faith. */
+export async function settleHeldBookMilestones(userId: number, bookId: number) {
+  const heldRows = await db
+    .select()
+    .from(pointsLedger)
+    .where(
+      and(
+        eq(pointsLedger.userId, userId),
+        eq(pointsLedger.bookId, bookId),
+        eq(pointsLedger.status, "held"),
+        like(pointsLedger.type, "milestone_%"),
+      ),
+    );
+
+  if (heldRows.length === 0) return;
+
+  const book = await getBook(bookId, userId);
+  const rules = await getGameRules();
+
+  for (const row of heldRows) {
+    const award = row.pointsRequested ?? rules.pointsPerMilestone;
+    if (award <= 0) continue;
+
+    await db
+      .update(pointsLedger)
+      .set({ status: "settled", points: award })
+      .where(eq(pointsLedger.id, row.id));
+    await creditPoints(userId, book.eraId, award);
+  }
+}
+
+export function splitBookMilestones(rows: Awaited<ReturnType<typeof getBookMilestones>>) {
+  const earnedMilestones: number[] = [];
+
+  for (const row of rows) {
+    const value = Number(row.type.replace("milestone_", ""));
+    if (!Number.isFinite(value)) continue;
+    if (row.status === "settled" && row.points > 0) {
+      earnedMilestones.push(value);
+    } else if (row.status === "held") {
+      earnedMilestones.push(value);
+    }
+  }
+
+  earnedMilestones.sort((a, b) => a - b);
+  return { earnedMilestones, pendingMilestones: [] as number[] };
+}
+
 export function getCurrentProgressValue(book: Awaited<ReturnType<typeof getBook>>) {
   return getProgressNumerator(book);
 }

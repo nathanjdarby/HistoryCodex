@@ -18,6 +18,7 @@ import {
 } from "@/lib/client/deck-builder";
 import { DeckCompositionBlueprint } from "@/components/deck-composition-blueprint";
 import { CARD_TYPE_LABELS_PLURAL, type CardType } from "@/lib/card-types";
+import { playPaths, usePlayBasePath } from "@/lib/play/base-path-context";
 
 const DECK_SIZE = DEFAULT_BATTLE_RULES.deckSize;
 const PICKER_CARD_TYPES: CardType[] = ["unit", "event", "location", "character"];
@@ -60,6 +61,9 @@ async function fetchCharacters(): Promise<(Character & { owned?: boolean; quanti
 }
 
 export default function DeckBuilderPage() {
+  const basePath = usePlayBasePath();
+  const paths = playPaths(basePath);
+  const isAdminPlay = basePath === "/admin/play";
   const queryClient = useQueryClient();
   const { data: starterDecks } = useQuery({ queryKey: ["starter-decks"], queryFn: fetchStarterDecks });
   const { data: decks } = useQuery({ queryKey: ["decks"], queryFn: fetchDecks });
@@ -201,7 +205,7 @@ export default function DeckBuilderPage() {
           </p>
         }
       />
-      <Link href="/play" className="app-link -mt-4 inline-block text-sm">
+      <Link href={paths.home} className="app-link -mt-4 inline-block text-sm">
         ← Back to Play
       </Link>
 
@@ -256,11 +260,20 @@ export default function DeckBuilderPage() {
 
       {ownedCards.length === 0 ? (
         <div className="rounded-md border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-foreground">
-          You don&apos;t own any playable cards yet. Add a starter deck above, or open packs on the{" "}
-          <Link href="/packs" className="underline">
-            Packs
-          </Link>{" "}
-          page first, then return here to build a deck.
+          {isAdminPlay ? (
+            <>
+              You don&apos;t own any playable cards yet. Add a starter deck above to get cards and a
+              ready-to-play list.
+            </>
+          ) : (
+            <>
+              You don&apos;t own any playable cards yet. Add a starter deck above, or open packs on the{" "}
+              <Link href="/packs" className="underline">
+                Packs
+              </Link>{" "}
+              page first, then return here to build a deck.
+            </>
+          )}
         </div>
       ) : null}
 

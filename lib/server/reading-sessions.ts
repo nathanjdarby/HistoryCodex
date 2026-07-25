@@ -12,10 +12,7 @@ import {
 import { validateProgressValue } from "@/lib/server/book-progress-validation";
 import {
   applyPointCaps,
-  decayTrustScore,
-  enqueueVerification,
   getOrResetCaps,
-  recordAntiCheatEvent,
   recordCapUsage,
 } from "@/lib/server/anti-cheat/caps";
 import { ANTI_CHEAT } from "@/lib/server/anti-cheat/config";
@@ -56,6 +53,18 @@ function evaluateAudiobookVelocity(
     };
   }
   return { velocityScore: 1, flagged: false, flagReason: null, route: "instant" };
+}
+
+function computeActiveSecondsIncrement(
+  lastHeartbeat: Date,
+  tabVisible: boolean,
+  now: Date = new Date(),
+): number {
+  const gapSec = (now.getTime() - lastHeartbeat.getTime()) / 1000;
+  if (gapSec > ANTI_CHEAT.MAX_HEARTBEAT_GAP_SEC) return 0;
+  return tabVisible
+    ? Math.floor(Math.min(gapSec, ANTI_CHEAT.MAX_HEARTBEAT_INCREMENT_SEC))
+    : 0;
 }
 
 async function assertSessionToken(sessionId: number, userId: number, clientToken: string) {
@@ -138,25 +147,12 @@ export async function heartbeatReadingSession(
   if (session.status !== "active") return session;
 
   const now = new Date();
-  const gapSec = (now.getTime() - session.lastHeartbeat.getTime()) / 1000;
-
-  if (gapSec > ANTI_CHEAT.MAX_HEARTBEAT_GAP_SEC) {
-    const [updated] = await db
-      .update(readingSessions)
-      .set({ lastHeartbeat: now, updatedAt: now })
-      .where(eq(readingSessions.id, sessionId))
-      .returning();
-    return updated;
-  }
-
-  const increment = tabVisible
-    ? Math.min(gapSec, ANTI_CHEAT.MAX_HEARTBEAT_INCREMENT_SEC)
-    : 0;
+  const increment = computeActiveSecondsIncrement(session.lastHeartbeat, tabVisible, now);
 
   const [updated] = await db
     .update(readingSessions)
     .set({
-      activeSeconds: session.activeSeconds + Math.floor(increment),
+      activeSeconds: session.activeSeconds + increment,
       lastHeartbeat: now,
       updatedAt: now,
     })
@@ -176,9 +172,17 @@ export async function pauseReadingSession(
   if (session.bookId !== bookId) throw new ApiError(400, "Session does not match book");
   if (session.status !== "active") return session;
 
+  const now = new Date();
+  const increment = computeActiveSecondsIncrement(session.lastHeartbeat, true, now);
+
   const [updated] = await db
     .update(readingSessions)
-    .set({ status: "paused", updatedAt: new Date() })
+    .set({
+      status: "paused",
+      activeSeconds: session.activeSeconds + increment,
+      lastHeartbeat: now,
+      updatedAt: now,
+    })
     .where(eq(readingSessions.id, sessionId))
     .returning();
   return updated;
@@ -243,7 +247,11 @@ export async function finalizeReadingSession(
   }
 
   const positionLogged = endPosition - session.startPage;
-  const activeSeconds = session.activeSeconds;
+  const now = new Date();
+  let activeSeconds = session.activeSeconds;
+  if (session.status === "active") {
+    activeSeconds += computeActiveSecondsIncrement(session.lastHeartbeat, true, now);
+  }
 
   let velocityScore = 1;
   let flagged = false;
@@ -293,28 +301,24 @@ export async function finalizeReadingSession(
       : { currentPage: endPosition };
   const newPct = getProgressPercent({ ...book, ...fieldPatch });
   const milestonesCrossed = rules.milestones.filter((m) => oldPct < m && newPct >= m);
-  const pointsPerMilestone = Math.floor(rules.pointsPerMilestone * velocityScore);
-  const pointsRequested = milestonesCrossed.length * pointsPerMilestone;
+  const fullPointsPerMilestone = rules.pointsPerMilestone;
+  const pointsRequested = milestonesCrossed.length * fullPointsPerMilestone;
 
   const caps = await getOrResetCaps(userId);
-  const { allowedPoints, overflowPoints } = applyPointCaps(pointsRequested, caps);
+  const { allowedPoints } = applyPointCaps(pointsRequested, caps);
 
-  const needsQueue =
-    route === "verification_queue" ||
-    overflowPoints > 0 ||
-    caps.trustScore < rules.minTrustForInstantAward;
-
-  const now = new Date();
   const velocityScoreInt = Math.round(velocityScore * 100);
   const pagesPerMinX100 = Math.round(pagesPerMin * 100);
 
   const [updatedSession] = await db
     .update(readingSessions)
     .set({
-      status: flagged ? "flagged" : "completed",
+      status: "completed",
       endPage: endPosition,
       pagesLogged,
+      activeSeconds,
       endTime: now,
+      lastHeartbeat: now,
       pagesPerMinX100,
       wpmEstimate: wpmEstimate != null ? Math.round(wpmEstimate) : null,
       velocityScore: velocityScoreInt,
@@ -333,17 +337,18 @@ export async function finalizeReadingSession(
 
   const awardedMilestones: MilestoneType[] = [];
   let awardedPoints = 0;
-  let pendingPoints = 0;
   let campaignNodesUnlocked: string[] = [];
 
   const pointsPerMilestoneAward =
-    !needsQueue && pointsPerMilestone > 0
-      ? Math.min(pointsPerMilestone, Math.floor(allowedPoints / Math.max(milestonesCrossed.length, 1)))
+    milestonesCrossed.length > 0
+      ? Math.min(
+          fullPointsPerMilestone,
+          Math.floor(allowedPoints / milestonesCrossed.length),
+        )
       : 0;
 
   for (const milestone of milestonesCrossed) {
     const type = `milestone_${milestone}` as MilestoneType;
-    const ledgerPoints = needsQueue ? 0 : pointsPerMilestoneAward;
 
     const result = await db.execute(sql`
       insert into points_ledger (
@@ -351,9 +356,9 @@ export async function finalizeReadingSession(
       )
       values (
         ${userId}, ${bookId}, ${book.eraId}, ${sessionId}, ${type},
-        ${ledgerPoints},
-        ${pointsPerMilestone},
-        ${needsQueue ? "held" : "settled"},
+        ${pointsPerMilestoneAward},
+        ${fullPointsPerMilestone},
+        ${"settled"},
         ${JSON.stringify({ velocityScore, flagReason })}
       )
       on conflict (book_id, type) where type like 'milestone_%' do nothing
@@ -365,7 +370,7 @@ export async function finalizeReadingSession(
     }
   }
 
-  if (!needsQueue && allowedPoints > 0 && awardedMilestones.length > 0) {
+  if (awardedMilestones.length > 0 && pointsPerMilestoneAward > 0) {
     const actualAward = awardedMilestones.length * pointsPerMilestoneAward;
     await creditPoints(userId, book.eraId, actualAward);
     awardedPoints = actualAward;
@@ -381,30 +386,12 @@ export async function finalizeReadingSession(
         .set({ booksFinished: stats.booksFinished + 1, updatedAt: new Date() })
         .where(eq(userStats.userId, userId));
     }
+  }
 
+  if (milestonesCrossed.length > 0) {
     campaignNodesUnlocked = (
       await unlockCampaignMilestones(userId, book.eraId, milestonesCrossed)
     ).newlyUnlocked;
-  } else if (allowedPoints > 0) {
-    pendingPoints = allowedPoints;
-    await enqueueVerification(userId, sessionId, needsQueue ? "velocity_or_trust" : "cap_overflow", {
-      pointsRequested,
-      allowedPoints,
-      overflowPoints,
-      velocity: { velocityScore, flagged, flagReason, route },
-      milestonesCrossed,
-      bookId,
-      eraId: book.eraId,
-    });
-  }
-
-  if (flagged) {
-    await recordAntiCheatEvent(userId, "velocity_flag", sessionId, { velocityScore, flagReason });
-    await decayTrustScore(userId);
-  }
-
-  if (overflowPoints > 0) {
-    await enqueueVerification(userId, sessionId, "cap_overflow", { overflowPoints, allowedPoints });
   }
 
   const stats = await getUserStats(userId);
@@ -414,14 +401,13 @@ export async function finalizeReadingSession(
     book: updatedBook,
     awardedMilestones,
     awardedPoints,
-    pendingPoints,
     campaignNodesUnlocked,
     velocity: {
       pagesPerMin,
       wpmEstimate,
       velocityScore,
-      flagged,
-      flagReason,
+      flagged: false,
+      flagReason: null,
       route,
     },
     stats,

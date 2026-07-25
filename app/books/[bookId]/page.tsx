@@ -455,13 +455,6 @@ export default function BookDetailPage({
                 if (era) {
                   queryClient.invalidateQueries({ queryKey: ["campaign", era.slug] });
                 }
-                if (result.pendingPoints > 0) {
-                  setToast(`${result.pendingPoints} points pending review (${result.awardedMilestones.join(", ")})`);
-                  setTimeout(() => setToast(null), 5000);
-                } else if (result.velocity.flagged) {
-                  setToast("Session flagged for review — progress saved, points held.");
-                  setTimeout(() => setToast(null), 5000);
-                }
               }}
             />
           </section>

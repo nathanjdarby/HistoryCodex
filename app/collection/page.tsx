@@ -11,8 +11,9 @@ import {
   LayoutCharacterCard,
   layoutCharacterCardFromCharacter,
 } from "@/components/layout-character-card";
+import { RegionEraFilters, useRegionEraFilterState } from "@/components/region-era-filters";
+import { normalizeEraRegion } from "@/lib/client/era-regions";
 import { fetchEras } from "@/lib/client/eras";
-import { RARITY_ORDER } from "@/lib/rarity";
 import type { Character, Era } from "@/lib/types";
 import { useCardModalNavigation } from "@/lib/client/use-card-modal-navigation";
 
@@ -46,7 +47,8 @@ export default function CollectionPage() {
   });
   const { data: stats } = useQuery({ queryKey: ["stats"], queryFn: fetchStats });
 
-  const [eraFilter, setEraFilter] = useState("");
+  const { region: regionFilter, setRegion: setRegionFilter, eraValue: eraFilter, setEraValue: setEraFilter } =
+    useRegionEraFilterState();
   const [ownedFilter, setOwnedFilter] = useState<"all" | "owned" | "locked">("all");
   const [cardTypeFilter, setCardTypeFilter] = useState<
     "all" | "character" | "location" | "unit" | "event"
@@ -58,14 +60,15 @@ export default function CollectionPage() {
     return (characters ?? [])
       .filter((c) => {
         if (!subscribedEraIds.has(c.eraId) && !c.owned) return false;
+        if (regionFilter && normalizeEraRegion(c.era.region) !== regionFilter) return false;
         if (eraFilter && String(c.eraId) !== eraFilter) return false;
         if (ownedFilter === "owned" && !c.owned) return false;
         if (ownedFilter === "locked" && c.owned) return false;
         if (cardTypeFilter !== "all" && c.cardType !== cardTypeFilter) return false;
         return true;
       })
-      .sort((a, b) => RARITY_ORDER.indexOf(a.rarity) - RARITY_ORDER.indexOf(b.rarity));
-  }, [characters, eraFilter, ownedFilter, cardTypeFilter, eras]);
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [characters, regionFilter, eraFilter, ownedFilter, cardTypeFilter, eras]);
 
   const { viewing, onPrevious, onNext, positionLabel } = useCardModalNavigation(
     filtered,
@@ -103,18 +106,13 @@ export default function CollectionPage() {
       />
 
       <div className="flex flex-wrap gap-2">
-        <select
-          value={eraFilter}
-          onChange={(e) => setEraFilter(e.target.value)}
-          className="rounded border border-border-strong bg-surface px-2 py-1.5 text-sm"
-        >
-          <option value="">All eras</option>
-          {eras?.map((era) => (
-            <option key={era.id} value={era.id}>
-              {era.name}
-            </option>
-          ))}
-        </select>
+        <RegionEraFilters
+          eras={eras}
+          region={regionFilter}
+          onRegionChange={setRegionFilter}
+          eraValue={eraFilter}
+          onEraChange={setEraFilter}
+        />
         <div className="flex rounded-md border border-border-strong bg-surface p-0.5 text-sm">
           {(["all", "owned", "locked"] as const).map((f) => (
             <button
