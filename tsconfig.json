@@ -20,12 +20,8 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "@history-codex/card-renderer": [
-        "../../History Codex - Manager/packages/card-renderer/src/index.ts"
-      ],
-      "@history-codex/card-renderer/*": [
-        "../../History Codex - Manager/packages/card-renderer/src/*"
-      ]
+      "@history-codex/card-renderer": ["./vendor/card-renderer/src/index.ts"],
+      "@history-codex/card-renderer/*": ["./vendor/card-renderer/src/*"]
     }
   },
   "include": [

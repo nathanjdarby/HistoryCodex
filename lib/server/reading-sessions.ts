@@ -13,6 +13,7 @@ import { validateProgressValue } from "@/lib/server/book-progress-validation";
 import {
   applyPointCaps,
   getOrResetCaps,
+  recordAntiCheatEvent,
   recordCapUsage,
 } from "@/lib/server/anti-cheat/caps";
 import { ANTI_CHEAT } from "@/lib/server/anti-cheat/config";

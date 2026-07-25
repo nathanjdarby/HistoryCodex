@@ -1,0 +1,498 @@
+.cd-card-shell {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 1rem;
+  text-align: left;
+  aspect-ratio: 5 / 7;
+  background-color: #0a0a0a;
+  color: #e7e5e4;
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  /* Lets descendants use cqw/cqh units so all "chrome" (fonts, icons,
+     padding, badge/chip sizing) scales with however big the card is
+     actually rendered — a 300px canvas and a 700px modal end up looking
+     identically proportioned instead of the smaller one looking "zoomed in". */
+  container-type: inline-size;
+}
+
+/* Every element is positioned via inline left/top/width/height (percent of
+   the card shell) coming from the active CardLayout — see layout.ts and
+   DraggableBox.tsx. This file only styles what's inside each box. */
+.cd-layout-box-content {
+  position: absolute;
+  box-sizing: border-box;
+}
+
+/* Clips content exactly like the app's LayoutSlot (overflow: hidden on the
+   positioned box). Kept as an inner wrapper rather than on the draggable box
+   itself so the edit-mode label/resize handles — which sit just outside the
+   box on purpose — never get clipped. */
+.cd-layout-box-inner {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.cd-layout-box {
+  outline: 1px dashed rgba(255, 255, 255, 0.25);
+  cursor: move;
+}
+
+.cd-layout-box.selected {
+  outline: 2px solid var(--accent, #7c3aed);
+}
+
+.cd-layout-box.interacting {
+  outline-color: #fff;
+}
+
+.cd-layout-box-content.dimmed {
+  opacity: 0.4;
+}
+
+.cd-layout-box.dimmed {
+  outline-style: dashed;
+  outline-color: #f43f5e;
+}
+
+.cd-layout-box-label {
+  position: absolute;
+  top: -20px;
+  left: 0;
+  font-size: 10px;
+  font-family: system-ui, sans-serif;
+  color: #fff;
+  background: var(--accent, #7c3aed);
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.cd-resize-handle {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  background: var(--accent, #7c3aed);
+  border: 1px solid #fff;
+  border-radius: 2px;
+  z-index: 51;
+}
+
+.cd-resize-tl {
+  left: -5px;
+  top: -5px;
+  cursor: nwse-resize;
+}
+.cd-resize-tr {
+  right: -5px;
+  top: -5px;
+  cursor: nesw-resize;
+}
+.cd-resize-bl {
+  left: -5px;
+  bottom: -5px;
+  cursor: nesw-resize;
+}
+.cd-resize-br {
+  right: -5px;
+  bottom: -5px;
+  cursor: nwse-resize;
+}
+
+/* Title sits at the top of its layout box — the box y/h from Layout Designer
+   controls where it lands on the card (WYSIWYG). Avoid flex here: flex-end was
+   pinning text to the bottom of the box and leaving a large gap above it. */
+.cd-name-slot {
+  width: 100%;
+  height: 100%;
+  container-type: size;
+}
+
+.cd-el-name {
+  min-width: 0;
+  width: 100%;
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  overflow-wrap: break-word;
+  text-align: left;
+}
+
+/* Stars: flex only to right-align the row; align to top of box to match title. */
+.cd-stars-slot {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  width: 100%;
+  height: 100%;
+  container-type: size;
+}
+
+.cd-stars {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 5.95cqmin;
+}
+
+.cd-star-icon {
+  width: 58cqmin;
+  height: 58cqmin;
+  flex-shrink: 0;
+}
+
+/* Same shrink-to-fit pattern as the chips: the slot fills the box and
+   left-aligns; the pill itself sizes to its own text. */
+.cd-rarity-pill-slot {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  container-type: size;
+}
+
+.cd-rarity-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 13.39cqmin;
+  height: 100%;
+  max-height: 100%;
+  min-height: 71.43cqmin;
+  font-size: 29.46cqmin;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 13.39cqmin 19.64cqmin;
+  border-radius: 13.39cqmin;
+  border: 1px solid;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.cd-art-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /* Card-relative (not slot-relative) — artFrame has no size-container of
+     its own, matching the app, since its border radius is meant to track
+     the whole card's rounding, not scale with the art box's own size. */
+  border-radius: 2.2cqw;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(0 0 0 / 0.3);
+  cursor: grab;
+  user-select: none;
+}
+
+.cd-art-frame.dragging {
+  cursor: grabbing;
+}
+
+.cd-art-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.cd-art-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #52525b;
+  font-size: 3cqw;
+}
+
+.cd-lock-icon {
+  width: 8cqw;
+  height: 8cqw;
+}
+
+.cd-locked-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.35);
+}
+
+/* Fills the layout slot; the circle uses the slot's full smaller dimension
+   so resizing the box in Layout Designer grows/shrinks the badge with no
+   dead padding. `container-type: size` keeps all inner sizes in `cqmin`
+   (percent of the slot's own smaller side) so everything rescales live. */
+.cd-badge-slot {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  container-type: size;
+}
+
+.cd-stat-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100cqmin;
+  height: 100cqmin;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  border: 1px solid;
+  background: rgb(0 0 0 / 0.8);
+  backdrop-filter: blur(4px);
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  line-height: 1;
+}
+
+.cd-stat-badge-label {
+  font-size: 18.51cqmin;
+  text-transform: uppercase;
+  color: #a8a29e;
+  line-height: 1;
+}
+
+.cd-stat-badge-value {
+  font-size: 27.16cqmin;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.cd-stat-badge-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.85cqmin;
+}
+
+.cd-badge-icon {
+  width: 32.09cqmin;
+  height: 32.09cqmin;
+}
+
+.cd-badge-icon-lg {
+  width: 40.74cqmin;
+  height: 40.74cqmin;
+}
+
+/* Fills the layout slot but does not force the pill to its width — matches
+   the app's chip wrapper (flex, items-center, no width/justify-content).
+   Same `container-type: size` + `cqmin` approach as the badge slot above,
+   calibrated so resizing the chip's box scales the pill live. */
+.cd-chip-slot {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  container-type: size;
+}
+
+.cd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10.71cqmin;
+  min-height: 57.14cqmin;
+  padding: 10.71cqmin 15.71cqmin;
+  border-radius: 10.71cqmin;
+  font-size: 23.57cqmin;
+  font-weight: 500;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.cd-chip-icon {
+  width: 26.43cqmin;
+  height: 26.43cqmin;
+  flex-shrink: 0;
+}
+
+.cd-chip-location {
+  background: rgb(2 44 34 / 0.6);
+  color: #6ee7b7;
+}
+.cd-chip-unit {
+  background: rgb(8 47 73 / 0.6);
+  color: #7dd3fc;
+}
+.cd-chip-character {
+  background: rgb(49 26 96 / 0.6);
+  color: #c4b5fd;
+}
+.cd-chip-event {
+  background: rgb(76 5 25 / 0.6);
+  color: #fda4af;
+}
+.cd-chip-ability {
+  background: rgb(69 39 5 / 0.6);
+  color: #fcd34d;
+}
+
+.cd-ability-label-slot,
+.cd-ability-body-slot {
+  width: 100%;
+  height: 100%;
+  container-type: size;
+}
+
+.cd-ability-label {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 18.88cqmin;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 7.65cqmin;
+  border-radius: 20.41cqmin;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(0 0 0 / 0.3);
+}
+
+.cd-ability-body {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  font-size: 29cqmin;
+  font-weight: 400;
+  line-height: 1.25;
+  color: rgb(231 229 228 / 0.8);
+  padding: 7.65cqmin 15.31cqmin;
+  text-align: left;
+  border-radius: 20.41cqmin;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(0 0 0 / 0.3);
+}
+
+/* eraName and eraDex share the same pill-like box; eraDex additionally
+   right-aligns its content (justify-content + gap) since the dex number
+   sits at the end of the row, not stretched across it. */
+.cd-era-name-slot,
+.cd-era-dex-slot {
+  width: 100%;
+  height: 100%;
+  container-type: size;
+}
+
+.cd-era-box {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  overflow: hidden;
+  box-sizing: border-box;
+  border-radius: 39.29cqmin;
+  padding: 0 33.04cqmin;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(0 0 0 / 0.3);
+}
+
+.cd-era-box-end {
+  justify-content: flex-end;
+  gap: 26.79cqmin;
+}
+
+.cd-era-name-text {
+  min-width: 0;
+  font-size: 33.04cqmin;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cd-era-dex-text {
+  flex-shrink: 0;
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 33.04cqmin;
+  color: #a8a29e;
+}
+
+.cd-flavor-text-slot {
+  width: 100%;
+  height: 100%;
+  container-type: size;
+}
+
+.cd-flavor-text {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  font-size: 13.1cqmin;
+  font-style: italic;
+  line-height: 1.375;
+  color: rgb(231 229 228 / 0.8);
+  padding: 6.55cqmin 11.01cqmin;
+  border-radius: 13.1cqmin;
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(0 0 0 / 0.3);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* Fills the slot but pins content to the bottom-right corner (column flex,
+   flex-end/flex-end) — the dex text shrinks to fit rather than stretching
+   across the whole box, matching the app exactly. */
+.cd-corner-dex-slot {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 26.79cqmin;
+  container-type: size;
+}
+
+.cd-corner-dex {
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 46.43cqmin;
+  line-height: 1;
+  color: #a8a29e;
+  pointer-events: none;
+}
+
+.cd-holo-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.45;
+  mix-blend-mode: screen;
+  background-image: linear-gradient(
+    115deg,
+    transparent 0%,
+    #ff5fa2 15%,
+    #ffe45f 30%,
+    #5fffb0 45%,
+    #5fc9ff 60%,
+    #c95fff 75%,
+    transparent 90%
+  );
+  background-size: 250% 250%;
+  border-radius: inherit;
+  animation: cd-holo-shimmer 3.5s linear infinite;
+}
+
+@keyframes cd-holo-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}

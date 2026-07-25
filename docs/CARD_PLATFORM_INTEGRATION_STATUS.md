@@ -6,7 +6,7 @@ Snapshot against [CARD_PLATFORM_CONTRACT.md](./CARD_PLATFORM_CONTRACT.md).
 
 | Contract piece | Status |
 |----------------|--------|
-| `@history-codex/card-renderer` | Linked via `file:../../History Codex - Manager/packages/card-renderer` |
+| `@history-codex/card-renderer` | Vendored at `vendor/card-renderer` (see `package.json`) |
 | Boot fetch (expanded) | `GET /api/card-layouts` returns presets, assignments, registry, renderer release |
 | `normalizeLayout` / `resolveCardLayout` | Used in `lib/card-platform-bridge.ts` + server bundle |
 | `characters.layout_id` | Drizzle schema + per-card resolution in `useCardLayout` / `useCardLayoutDocument` |

@@ -8,6 +8,7 @@ RUN apt-get update \
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
+COPY vendor/card-renderer ./vendor/card-renderer
 RUN npm ci
 
 FROM base AS builder
