@@ -224,6 +224,11 @@ export const characters = pgTable("characters", {
   abilityEffect: text("ability_effect", { enum: ABILITY_EFFECT_ENUM }),
   abilityValue: integer("ability_value"),
   abilityTrigger: text("ability_trigger", { enum: ABILITY_TRIGGER_ENUM }),
+  layoutId: integer("layout_id").references(() => cardLayouts.id, { onDelete: "set null" }),
+  /** Registry-backed custom field (card_data_fields) — surfaced via card.extras, not hardcoded per-field UI. Empty string means "unassigned", not null (column is NOT NULL). */
+  house: text("house").notNull().default(""),
+  /** Registry-backed custom field (card_data_fields) — surfaced via card.extras, not hardcoded per-field UI. */
+  speed: integer("speed").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -652,6 +657,7 @@ export const cardLayouts = pgTable("card_layouts", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   layout: jsonb("layout").notNull(),
+  schemaVersion: integer("schema_version").notNull().default(1),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -668,5 +674,36 @@ export const cardLayoutSettings = pgTable("card_layout_settings", {
   id: serial("id").primaryKey(),
   aspectRatioW: doublePrecision("aspect_ratio_w").notNull(),
   aspectRatioH: doublePrecision("aspect_ratio_h").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const cardDataFields = pgTable("card_data_fields", {
+  id: text("id").primaryKey(),
+  label: text("label").notNull(),
+  columnName: text("column_name").notNull().unique(),
+  dataType: text("data_type").notNull(),
+  enumOptions: text("enum_options").array(),
+  appliesToCardTypes: text("applies_to_card_types").array(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const cardElementTypes = pgTable("card_element_types", {
+  id: text("id").primaryKey(),
+  label: text("label").notNull(),
+  renderKind: text("render_kind").notNull(),
+  dataFieldId: text("data_field_id").references(() => cardDataFields.id, { onDelete: "set null" }),
+  config: jsonb("config").notNull().default({}),
+  visibilityRule: jsonb("visibility_rule"),
+  appliesToCardTypes: text("applies_to_card_types").array(),
+  introducedInVersion: integer("introduced_in_version").notNull().default(1),
+  deprecated: boolean("deprecated").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const cardRendererReleases = pgTable("card_renderer_releases", {
+  app: text("app").primaryKey(),
+  packageVersion: text("package_version").notNull(),
+  supportedRenderKinds: text("supported_render_kinds").array().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

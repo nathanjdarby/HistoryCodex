@@ -12,6 +12,8 @@ import { CharacterForm } from "@/components/character-form";
 import { HoloBadge } from "@/components/character-badges";
 import { describeLocationBuff } from "@/lib/battle";
 import { RARITY_META, RARITY_ORDER } from "@/lib/rarity";
+import { RegionEraFilters, useRegionEraFilterState } from "@/components/region-era-filters";
+import { normalizeEraRegion } from "@/lib/client/era-regions";
 import { fetchEras } from "@/lib/client/eras";
 import { adminCardResultLabel, matchesAdminCardSearch } from "@/lib/client/admin-card-search";
 import { useCardModalNavigation } from "@/lib/client/use-card-modal-navigation";
@@ -62,7 +64,8 @@ export default function AdminLocationsPage() {
     queryFn: fetchCharacters,
   });
 
-  const [eraFilter, setEraFilter] = useState("");
+  const { region: regionFilter, setRegion: setRegionFilter, eraValue: eraFilter, setEraValue: setEraFilter } =
+    useRegionEraFilterState();
   const [searchQuery, setSearchQuery] = useState("");
   const [rarityFilter, setRarityFilter] = useState("");
   const [ownedFilter, setOwnedFilter] = useState<"all" | "owned" | "locked">("all");
@@ -132,6 +135,7 @@ export default function AdminLocationsPage() {
   const filtered = useMemo(() => {
     const rows = locationRows.filter((c) => {
       if (!matchesAdminCardSearch(c, searchQuery)) return false;
+      if (regionFilter && normalizeEraRegion(c.era.region) !== regionFilter) return false;
       if (eraFilter && String(c.eraId) !== eraFilter) return false;
       if (rarityFilter && c.rarity !== rarityFilter) return false;
       if (ownedFilter === "owned" && !c.owned) return false;
@@ -158,7 +162,7 @@ export default function AdminLocationsPage() {
           return 0;
       }
     });
-  }, [locationRows, searchQuery, eraFilter, rarityFilter, ownedFilter, imageFilter, sortKey, sortDir]);
+  }, [locationRows, searchQuery, regionFilter, eraFilter, rarityFilter, ownedFilter, imageFilter, sortKey, sortDir]);
 
   const { viewing, onPrevious, onNext, positionLabel } = useCardModalNavigation(
     filtered,
@@ -188,18 +192,13 @@ export default function AdminLocationsPage() {
 
       <div className="flex flex-wrap gap-2">
         <AdminCardSearchInput value={searchQuery} onChange={setSearchQuery} />
-        <select
-          value={eraFilter}
-          onChange={(e) => setEraFilter(e.target.value)}
-          className="rounded border border-border-strong bg-surface px-2 py-1.5 text-sm text-foreground"
-        >
-          <option value="">All eras</option>
-          {eras?.map((era) => (
-            <option key={era.id} value={era.id}>
-              {era.name}
-            </option>
-          ))}
-        </select>
+        <RegionEraFilters
+          eras={eras}
+          region={regionFilter}
+          onRegionChange={setRegionFilter}
+          eraValue={eraFilter}
+          onEraChange={setEraFilter}
+        />
         <select
           value={rarityFilter}
           onChange={(e) => setRarityFilter(e.target.value)}

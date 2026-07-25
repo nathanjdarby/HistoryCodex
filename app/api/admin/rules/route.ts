@@ -7,6 +7,7 @@ import {
   getGameRules,
   updateGameRules,
 } from "@/lib/server/game-rules";
+import { syncAllCampaignThemes } from "@/lib/server/campaigns";
 
 export async function GET() {
   try {
@@ -27,6 +28,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const input = assertValidGameRulesInput(body);
     const rules = await updateGameRules(input);
+    await syncAllCampaignThemes(rules.milestones);
     return NextResponse.json({
       ...rules,
       summary: describeEarnRules(rules),

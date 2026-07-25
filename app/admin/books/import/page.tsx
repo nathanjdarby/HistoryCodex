@@ -17,6 +17,7 @@ import type {
   ImportDuplicateDecision,
 } from "@/lib/server/import-catalog-book-cards";
 import { ImportDuplicateCardReview } from "@/components/import-duplicate-card-review";
+import { RegionEraField } from "@/components/region-era-filters";
 
 type CatalogBook = {
   id: number;
@@ -333,23 +334,19 @@ function ImportBookCardsPageInner() {
           </select>
         </label>
 
-        <label className="block space-y-1">
-          <span className="text-sm text-foreground/80">
-            {form.multiEra ? "Default era (optional)" : "Era"}
-          </span>
-          <select
-            value={form.eraSlug}
+        <div className="space-y-1">
+          <RegionEraField
+            eras={eras}
+            eraValue={form.eraSlug}
+            valueKey="slug"
+            onEraChange={(eraSlug) => setForm((current) => ({ ...current, eraSlug }))}
+            allowEmptyEra={form.multiEra}
+            emptyEraLabel="Select era…"
+            requireRegion={!form.multiEra}
             disabled={eraLockedToBook}
-            onChange={(e) => setForm((current) => ({ ...current, eraSlug: e.target.value }))}
-            className="w-full rounded-md border border-border-strong bg-background px-3 py-2 text-sm disabled:opacity-60"
-          >
-            <option value="">Select era…</option>
-            {(eras ?? []).map((era) => (
-              <option key={era.id} value={era.slug}>
-                {era.name}
-              </option>
-            ))}
-          </select>
+            selectClassName="w-full rounded-md border border-border-strong bg-background px-3 py-2 text-sm disabled:opacity-60"
+            className="grid gap-3 sm:grid-cols-2"
+          />
           {eraLockedToBook ? (
             <span className="block text-xs text-emerald-400/90">
               Using {selectedBook?.eraName} from the selected book.
@@ -363,7 +360,7 @@ function ImportBookCardsPageInner() {
               codex cards by name.
             </span>
           ) : null}
-        </label>
+        </div>
 
         <label className="flex items-center gap-2 text-sm text-foreground/80 sm:col-span-2">
           <input

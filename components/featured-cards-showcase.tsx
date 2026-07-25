@@ -44,6 +44,9 @@ function toCardView(card: FeaturedCharacter): CharacterCardView {
     abilityEffect: card.abilityEffect,
     abilityValue: card.abilityValue,
     abilityTrigger: card.abilityTrigger,
+    layoutId: card.layoutId,
+    house: card.house,
+    speed: card.speed,
     createdAt: new Date(0),
     era: {
       id: card.era.id,

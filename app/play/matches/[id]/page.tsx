@@ -16,8 +16,10 @@ import { DEFAULT_BATTLE_RULES } from "@/lib/battle/constants";
 import type { BattleAction, Phase } from "@/lib/battle/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import { Trash2 } from "lucide-react";
+import { playPaths, usePlayBasePath } from "@/lib/play/base-path-context";
 
 type ClientMatch = {
   id: number;
@@ -61,6 +63,8 @@ async function fetchMatch(id: string): Promise<ClientMatch> {
 
 export default function MatchPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const paths = playPaths(usePlayBasePath());
   const queryClient = useQueryClient();
   const [selectedHandIndex, setSelectedHandIndex] = useState<number | null>(null);
   const [selectedAttackerId, setSelectedAttackerId] = useState<string | null>(null);
@@ -95,6 +99,21 @@ export default function MatchPage() {
       setSelectedMonarchId(null);
       setPendingConfirm(null);
       setError(null);
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/matches/${params.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Failed to delete match");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["matches"] });
+      router.push(paths.home);
     },
     onError: (err: Error) => setError(err.message),
   });
@@ -198,12 +217,26 @@ export default function MatchPage() {
 
   const matchLabel = (
     <div className="flex min-w-0 items-center gap-2">
-      <Link href="/play" className="shrink-0 text-xs text-muted hover:text-foreground/80">
+      <Link href={paths.home} className="shrink-0 text-xs text-muted hover:text-foreground/80">
         ← Play
       </Link>
       <h1 className="truncate text-sm font-semibold text-foreground sm:text-base">
         Match #{currentMatch.id}
       </h1>
+      <button
+        type="button"
+        disabled={deleteMutation.isPending}
+        aria-label={`Delete match #${currentMatch.id}`}
+        title="Delete match"
+        onClick={() => {
+          if (confirm(`Delete match #${currentMatch.id}? This cannot be undone.`)) {
+            deleteMutation.mutate();
+          }
+        }}
+        className="ml-auto shrink-0 rounded-md p-1.5 text-muted hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60"
+      >
+        <Trash2 size={14} />
+      </button>
     </div>
   );
 
@@ -318,6 +351,7 @@ export default function MatchPage() {
           playerHand={state.player.hand}
           playerDeck={state.player.deck}
           playerDiscard={state.player.discard}
+          aiDiscard={state.ai.discard}
           aiHandCount={state.ai.hand.length}
           log={state.log}
           selectedHandIndex={selectedHandIndex}
@@ -339,6 +373,7 @@ export default function MatchPage() {
           onEndPhase={endPhase}
           canPlaySelected={canPlaySelected}
           actionPending={actionMutation.isPending}
+          hasEstablishedInfluenceThisTurn={state.player.hasEstablishedInfluenceThisTurn}
         />
       </div>
 

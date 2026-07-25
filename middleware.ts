@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
   defaultPathForRole,
+  isAdminPlayApiPath,
   isUserApiPath,
   isUserAppPath,
 } from "@/lib/auth/routes";
@@ -55,7 +56,11 @@ export async function middleware(request: NextRequest) {
     if (isUserAppPath(pathname)) {
       return NextResponse.redirect(new URL("/admin", request.url));
     }
-    if (pathname.startsWith("/api/") && isUserApiPath(pathname)) {
+    if (
+      pathname.startsWith("/api/") &&
+      isUserApiPath(pathname) &&
+      !isAdminPlayApiPath(pathname)
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
   }

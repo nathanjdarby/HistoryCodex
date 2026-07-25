@@ -301,8 +301,8 @@ export default function AboutPage() {
         </div>
 
         <Tip>
-          Reading sessions may be reviewed if progress looks unusually fast. Points from flagged
-          sessions can be held until approved — your page count is still saved.
+          Daily and weekly point caps still apply — if you hit the limit, extra milestone points wait until
+          the cap resets.
         </Tip>
       </GuideSection>
 

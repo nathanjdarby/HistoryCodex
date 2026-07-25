@@ -380,43 +380,44 @@ body {
 }
 
 /*
- * Stat badges + chips scale with their layout box (not the whole card).
- * Calibrated so default box sizes match the previous card-width cqw values.
+ * Stat badges scale with their layout box (not the whole card).
+ * Badge circle fills the slot's smaller dimension so resizing the box
+ * in the admin Layout Designer grows/shrinks the badge with no dead padding.
  */
 .stat-badge-slot {
   display: flex;
   width: 100%;
   height: 100%;
-  align-items: flex-start;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: center;
   container-type: size;
 }
 
 .stat-badge-slot .card-stat-badge {
-  width: 64.29cqmin;
-  height: 64.29cqmin;
+  width: 100cqmin;
+  height: 100cqmin;
 }
 
 .stat-badge-slot .card-text-badge-label {
-  font-size: 11.9cqmin;
+  font-size: 18.51cqmin;
 }
 
 .stat-badge-slot .card-text-badge-value {
-  font-size: 17.46cqmin;
+  font-size: 27.16cqmin;
 }
 
 .stat-badge-slot .card-icon-combat {
-  width: 20.63cqmin;
-  height: 20.63cqmin;
+  width: 32.09cqmin;
+  height: 32.09cqmin;
 }
 
 .stat-badge-slot .card-icon-archetype {
-  width: 26.19cqmin;
-  height: 26.19cqmin;
+  width: 40.74cqmin;
+  height: 40.74cqmin;
 }
 
 .stat-badge-slot .card-stat-badge-icon {
-  gap: 1.19cqmin;
+  gap: 1.85cqmin;
 }
 
 .chip-slot {
@@ -543,7 +544,8 @@ body {
 }
 
 .ability-body-slot .card-text-panel-body {
-  font-size: 22.45cqmin;
+  font-size: 29cqmin;
+  line-height: 1.3;
 }
 
 .era-name-slot,
@@ -599,24 +601,13 @@ body {
 }
 
 .flavor-text-slot .card-flavor-scroll {
+  height: 100%;
+  max-height: 100%;
   padding: 6.55cqmin 11.01cqmin;
-}
-
-.flavor-text-slot .card-flavor-scroll-expanded {
-  max-height: 122.62cqmin;
-}
-
-.flavor-text-slot .card-flavor-scroll-collapsed {
-  max-height: 48.21cqmin;
 }
 
 .flavor-text-slot .card-text-flavor {
   font-size: 15cqmin;
-}
-
-.flavor-text-slot .card-text-flavor-toggle {
-  margin-top: 5.95cqmin;
-  font-size: 11.01cqmin;
 }
 
 .corner-dex-slot {

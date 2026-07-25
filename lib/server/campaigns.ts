@@ -1,39 +1,112 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { eraCampaigns, eras, userCampaignProgress } from "@/db/schema";
 import { ApiError } from "@/lib/api-utils";
-import { defaultCampaignTheme, nodeIdForMilestone, type CampaignTheme } from "@/lib/campaign-theme";
+import {
+  campaignThemeFromMilestones,
+  milestonesMatchTheme,
+  nodeIdForMilestone,
+  type CampaignTheme,
+} from "@/lib/campaign-theme";
+import { getGameRules } from "@/lib/server/game-rules";
+
+/** Admin staging bucket — not a playable historical era. */
+const SKIP_ERA_SLUGS = new Set(["to-organise"]);
+
+function parseCampaignTheme(themeJson: string): CampaignTheme {
+  const theme = JSON.parse(themeJson) as CampaignTheme;
+  if (!Array.isArray(theme?.nodes)) {
+    throw new Error("Invalid campaign theme");
+  }
+  return theme;
+}
+
+async function reconcileCampaignThemeRecord(
+  campaign: typeof eraCampaigns.$inferSelect,
+  eraName: string,
+  milestones: number[],
+) {
+  const theme = JSON.parse(campaign.themeJson) as CampaignTheme;
+  if (milestonesMatchTheme(theme, milestones)) return campaign;
+
+  const nextTheme = campaignThemeFromMilestones(eraName, milestones);
+  const [updated] = await db
+    .update(eraCampaigns)
+    .set({ themeJson: JSON.stringify(nextTheme) })
+    .where(eq(eraCampaigns.id, campaign.id))
+    .returning();
+  return updated ?? campaign;
+}
+
+export async function syncAllCampaignThemes(milestones: number[]) {
+  const rows = await db
+    .select({
+      campaign: eraCampaigns,
+      eraName: eras.name,
+    })
+    .from(eraCampaigns)
+    .innerJoin(eras, eq(eraCampaigns.eraId, eras.id));
+
+  await Promise.all(
+    rows.map(({ campaign, eraName }) => reconcileCampaignThemeRecord(campaign, eraName, milestones)),
+  );
+}
 
 export async function ensureCampaignForEra(eraId: number) {
-  const [existing] = await db.select().from(eraCampaigns).where(eq(eraCampaigns.eraId, eraId));
-  if (existing) return existing;
-
   const [era] = await db.select().from(eras).where(eq(eras.id, eraId));
   if (!era) throw new ApiError(404, "Era not found");
+  if (SKIP_ERA_SLUGS.has(era.slug)) {
+    throw new ApiError(400, "Campaigns are not created for staging eras");
+  }
 
+  const rules = await getGameRules();
+  const [existing] = await db.select().from(eraCampaigns).where(eq(eraCampaigns.eraId, eraId));
+  if (existing) {
+    if (existing.slug !== era.slug) {
+      const [reslugged] = await db
+        .update(eraCampaigns)
+        .set({ slug: era.slug })
+        .where(eq(eraCampaigns.id, existing.id))
+        .returning();
+      return reconcileCampaignThemeRecord(reslugged ?? existing, era.name, rules.milestones);
+    }
+    return reconcileCampaignThemeRecord(existing, era.name, rules.milestones);
+  }
+
+  const theme = campaignThemeFromMilestones(era.name, rules.milestones);
   const [created] = await db
     .insert(eraCampaigns)
     .values({
       eraId,
       slug: era.slug,
       title: `${era.name} Campaign`,
-      themeJson: JSON.stringify(defaultCampaignTheme(era.name)),
+      themeJson: JSON.stringify(theme),
     })
     .returning();
   return created;
 }
 
 export async function getCampaignBySlug(slug: string) {
-  const [campaign] = await db.select().from(eraCampaigns).where(eq(eraCampaigns.slug, slug));
-  if (!campaign) return null;
+  if (SKIP_ERA_SLUGS.has(slug)) return null;
+
+  let [campaign] = await db.select().from(eraCampaigns).where(eq(eraCampaigns.slug, slug));
+
+  if (!campaign) {
+    const [era] = await db.select().from(eras).where(eq(eras.slug, slug));
+    if (!era || SKIP_ERA_SLUGS.has(era.slug)) return null;
+    campaign = await ensureCampaignForEra(era.id);
+  }
 
   const [era] = await db.select().from(eras).where(eq(eras.id, campaign.eraId));
   if (!era) return null;
 
+  const rules = await getGameRules();
+  const synced = await reconcileCampaignThemeRecord(campaign, era.name, rules.milestones);
+
   return {
-    ...campaign,
+    ...synced,
     era,
-    theme: JSON.parse(campaign.themeJson) as CampaignTheme,
+    theme: parseCampaignTheme(synced.themeJson),
   };
 }
 
@@ -95,11 +168,24 @@ export async function unlockCampaignMilestones(
   return { newlyUnlocked };
 }
 
+async function ensureMissingCampaigns() {
+  const [allEras, existing] = await Promise.all([
+    db.select({ id: eras.id, slug: eras.slug }).from(eras),
+    db.select({ eraId: eraCampaigns.eraId }).from(eraCampaigns),
+  ]);
+
+  const coveredEraIds = new Set(existing.map((row) => row.eraId));
+  const missing = allEras.filter(
+    (era) => !coveredEraIds.has(era.id) && !SKIP_ERA_SLUGS.has(era.slug),
+  );
+
+  if (missing.length === 0) return;
+
+  await Promise.all(missing.map((era) => ensureCampaignForEra(era.id)));
+}
+
 export async function listCampaignsForUser(userId: number) {
-  const allEras = await db.select().from(eras).orderBy(eras.startYear);
-  for (const era of allEras) {
-    await ensureCampaignForEra(era.id);
-  }
+  await ensureMissingCampaigns();
 
   const campaigns = await db
     .select({
@@ -110,15 +196,22 @@ export async function listCampaignsForUser(userId: number) {
       eraName: eras.name,
       colorPrimary: eras.colorPrimary,
       colorSecondary: eras.colorSecondary,
+      themeJson: eraCampaigns.themeJson,
     })
     .from(eraCampaigns)
     .innerJoin(eras, eq(eraCampaigns.eraId, eras.id))
+    .where(ne(eras.slug, "to-organise"))
     .orderBy(eras.startYear);
 
   const withProgress = await Promise.all(
     campaigns.map(async (campaign) => {
       const progress = await getUserCampaignProgress(userId, campaign.eraId);
-      return { ...campaign, ...progress };
+      const { themeJson, ...rest } = campaign;
+      return {
+        ...rest,
+        ...progress,
+        theme: parseCampaignTheme(themeJson),
+      };
     }),
   );
 

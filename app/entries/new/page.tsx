@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { RegionEraField } from "@/components/region-era-filters";
 import { EntryDateFields } from "@/components/entry-date-fields";
 import { emptyEntryDateForm, entryDateFormToPayload } from "@/lib/entry-dates";
 import type { Era } from "@/lib/types";
@@ -94,21 +95,13 @@ function NewEntryForm() {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Era
-          <select
-            value={form.eraId}
-            onChange={(e) => setForm({ ...form, eraId: e.target.value })}
-            className="rounded border border-border-strong bg-background px-2 py-1.5"
-          >
-            <option value="">— None —</option>
-            {eras?.map((era) => (
-              <option key={era.id} value={era.id}>
-                {era.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <RegionEraField
+          eras={eras}
+          eraValue={form.eraId}
+          onEraChange={(eraId) => setForm({ ...form, eraId })}
+          allowEmptyEra
+          className="contents"
+        />
 
         <label className="col-span-full flex flex-col gap-1 text-sm">
           Title

@@ -1,4 +1,8 @@
 import type { NextConfig } from "next";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 const lanDevOrigins = process.env.DEV_ALLOWED_ORIGINS?.split(",")
   .map((origin) => origin.trim())
@@ -9,6 +13,10 @@ const supabaseHost = process.env.SUPABASE_URL?.replace(/^https?:\/\//, "").repla
 const nextConfig: NextConfig = {
   output: "standalone",
   serverExternalPackages: ["postgres"],
+  transpilePackages: ["@history-codex/card-renderer"],
+  turbopack: {
+    root: path.join(projectRoot, "../.."),
+  },
   allowedDevOrigins: lanDevOrigins?.length ? lanDevOrigins : ["192.168.1.43"],
   experimental: {
     proxyClientMaxBodySize: "100mb",

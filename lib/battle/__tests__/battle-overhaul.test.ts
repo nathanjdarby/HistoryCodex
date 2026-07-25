@@ -179,6 +179,49 @@ describe("battle overhaul", () => {
     assert.ok(result.error);
   });
 
+  it("capture keeps lane units in place while the next location is seated", () => {
+    let state = readyMatch();
+    const friendly = cardToBoardUnit(
+      sampleCard({ attack: 40, defense: 20, eraId: 2 }),
+      "player",
+      "p1",
+      1,
+      state.lanes[0]!.location,
+    );
+    const enemy = cardToBoardUnit(
+      sampleCard({ defense: 5, attack: 5, eraId: 2 }),
+      "ai",
+      "a1",
+      1,
+      state.lanes[0]!.location,
+    );
+    state = {
+      ...state,
+      player: { ...state.player, capturedLocations: 0 },
+      lanes: [
+        {
+          ...state.lanes[0]!,
+          playerInfluence: 2,
+          playerUnits: [{ ...friendly, summoningSickness: false }],
+          aiUnits: [{ ...enemy, summoningSickness: false }],
+        },
+      ],
+    };
+    const playerDiscardBefore = state.player.discard.length;
+    const aiDiscardBefore = state.ai.discard.length;
+
+    state = captureActiveLocation(state, "player", 0, DEFAULT_BATTLE_RULES);
+
+    assert.equal(state.lanes[0]!.playerUnits.length, 1);
+    assert.equal(state.lanes[0]!.playerUnits[0]!.instanceId, "p1");
+    assert.equal(state.lanes[0]!.aiUnits.length, 1);
+    assert.equal(state.lanes[0]!.aiUnits[0]!.instanceId, "a1");
+    assert.equal(state.player.discard.length, playerDiscardBefore);
+    assert.equal(state.ai.discard.length, aiDiscardBefore);
+    assert.equal(state.player.capturedLocations, 1);
+    assert.ok(state.lanes[0]?.location != null);
+  });
+
   it("capture increments capturedLocations without instant match win at threshold", () => {
     let state = readyMatch();
     state = {
@@ -191,7 +234,6 @@ describe("battle overhaul", () => {
     // The shared location deck immediately auto-seats the next Location —
     // the lane doesn't sit empty waiting on a manual play anymore.
     assert.ok(state.lanes[0]?.location != null);
-    assert.ok(state.lanes[0]!.playerUnits.length >= 0);
   });
 
   it("match wins only at locationsToWin captures", () => {

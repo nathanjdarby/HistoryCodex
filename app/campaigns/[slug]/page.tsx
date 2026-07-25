@@ -35,13 +35,28 @@ export default function CampaignDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = use(params);
-  const { data: campaign, isLoading } = useQuery({
+  const { data: campaign, isLoading, isError } = useQuery({
     queryKey: ["campaign", slug],
     queryFn: () => fetchCampaign(slug),
   });
 
-  if (isLoading || !campaign) {
+  if (isLoading) {
     return <p className="text-muted">Loading campaign…</p>;
+  }
+
+  if (isError || !campaign) {
+    return (
+      <div className="space-y-4">
+        <Link
+          href="/campaigns"
+          className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground"
+        >
+          <ArrowLeft size={15} />
+          All campaigns
+        </Link>
+        <p className="text-muted">Could not load this campaign. It may not exist yet — try the campaigns list.</p>
+      </div>
+    );
   }
 
   const unlockedCount = campaign.progress.nodesUnlocked.length;

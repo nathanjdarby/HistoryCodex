@@ -36,6 +36,7 @@ const mainLinks: NavLinkItem[] = [
   { href: "/admin/users", label: "Users", icon: UserCog },
   { href: "/admin/verification", label: "Verification", icon: ShieldAlert, badgeKey: "verification" },
   { href: "/admin/rules", label: "Rules", icon: Scale },
+  { href: "/admin/play", label: "Play", icon: Swords },
   { href: "/admin/books", label: "Books", icon: BookOpen },
 ];
 
@@ -62,6 +63,9 @@ async function fetchVerificationCount(): Promise<number> {
 }
 
 function isNavActive(pathname: string, href: string) {
+  if (href === "/admin/play") {
+    return pathname === "/admin/play" || pathname.startsWith("/admin/play/");
+  }
   return href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);
 }
 

@@ -1,10 +1,9 @@
 import { clearTemporaryLaneEffects, syncLaneUnitDefenses } from "@/lib/battle/abilities";
-import { destroyUnitsToDiscard } from "@/lib/battle/unit-lifecycle";
 import { checkVictoryAfterCapture } from "@/lib/battle/influence";
 import { seatLocationFromDeck } from "@/lib/battle/locations";
 import { appendLog } from "@/lib/battle/rng";
 import type { BattleRules, CardSnapshot, MatchState, PlayerId } from "@/lib/battle/types";
-import { playerState, setPlayerState, unitsInLane } from "@/lib/battle/types";
+import { playerState, setPlayerState } from "@/lib/battle/types";
 
 export function resolveCaptureAftermath(
   state: MatchState,
@@ -16,28 +15,11 @@ export function resolveCaptureAftermath(
   const lane = state.lanes[laneIndex];
   if (!lane) return state;
 
-  const opponent = capturer === "player" ? "ai" : "player";
-  const enemyUnits = unitsInLane(lane, opponent);
-  const friendlyUnits = unitsInLane(lane, capturer);
-
-  let next = destroyUnitsToDiscard(state, capturer, laneIndex, enemyUnits, "routed");
-
-  const ps = playerState(next, capturer);
-  next = setPlayerState(next, capturer, {
+  const ps = playerState(state, capturer);
+  let next = setPlayerState(state, capturer, {
     ...ps,
     capturedLocationHistory: [...ps.capturedLocationHistory, capturedLocation],
   });
-
-  const surviving = friendlyUnits.map((u) => ({
-    ...u,
-    summoningSickness: true,
-    isCommitted: true,
-    committedUntilTurn: next.turnNumber + 1,
-    cannotAttack: true,
-    cannotEstablishInfluence: true,
-    tempAttackBonus: 0,
-    tempDefenseBonus: 0,
-  }));
 
   const lanes = [...next.lanes];
   lanes[laneIndex] = syncLaneUnitDefenses(
@@ -48,8 +30,6 @@ export function resolveCaptureAftermath(
       playerInfluence: 0,
       aiInfluence: 0,
       captureResolvedThisTurn: false,
-      playerUnits: capturer === "player" ? surviving : [],
-      aiUnits: capturer === "ai" ? surviving : [],
     }),
   );
 
@@ -57,7 +37,7 @@ export function resolveCaptureAftermath(
   next = appendLog(
     next,
     "capture_aftermath",
-    `${capturer} holds the lane with ${surviving.length} surviving unit(s).`,
+    `${capturer} captures the location — units hold the lane as the next site is revealed.`,
   );
 
   next = checkVictoryAfterCapture(next, capturer, rules);

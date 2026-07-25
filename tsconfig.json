@@ -19,7 +19,13 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@history-codex/card-renderer": [
+        "../../History Codex - Manager/packages/card-renderer/src/index.ts"
+      ],
+      "@history-codex/card-renderer/*": [
+        "../../History Codex - Manager/packages/card-renderer/src/*"
+      ]
     }
   },
   "include": [

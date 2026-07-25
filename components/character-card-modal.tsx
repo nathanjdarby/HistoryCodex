@@ -5,9 +5,7 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import type { Character, Era } from "@/lib/types";
 import { CharacterCardPreview } from "@/components/character-card-preview";
 import { CopyCountBadge } from "@/components/character-badges";
-import type { AbilityEffect, AbilityTrigger } from "@/lib/battle";
-import { imageFrameFromCharacter } from "@/lib/image-frame";
-import { dexNumber } from "@/lib/rarity";
+import { characterToCardPreviewProps } from "@/lib/character-card-preview-props";
 
 export type CharacterCardView = Character & {
   era: Era;
@@ -190,43 +188,21 @@ export function CharacterCardModal({
           className="card-modal-container relative"
         >
           <CharacterCardPreview
-            name={character.name}
-            rarity={character.rarity}
-            cardType={character.cardType}
-            cost={character.cost}
-            attack={character.attack}
-            defense={character.defense}
-            archetype={character.archetype}
-            era={{
-              name: character.era.name,
-              colorPrimary: character.era.colorPrimary,
-              colorSecondary: character.era.colorSecondary,
-            }}
-            abilityName={character.abilityName}
-            abilityEffect={character.abilityEffect as AbilityEffect | null}
-            abilityValue={character.abilityValue}
-            abilityTrigger={character.abilityTrigger as AbilityTrigger | null}
-            flavorText={character.flavorText}
-            seed={character.seed}
-            imageUrl={character.imageUrl}
-            imageFrame={imageFrameFromCharacter(character)}
-            holographic={character.holographic}
-            dexLabel={dexNumber(character.id)}
-            density="full"
-            locked={locked}
-            footer={footer}
-            ownership={{
-              showStatus: showOwnershipStatus,
-              owned,
-              quantity,
-            }}
-            flavorFooter={
-              owned && quantity > 1 ? (
-                <p className="border-t border-white/10 px-2.5 py-2 text-xs text-amber-200/90 sm:px-3">
-                  You own {quantity} copies of this card.
-                </p>
-              ) : null
-            }
+            {...characterToCardPreviewProps(character, {
+              locked,
+              footer,
+              ownership: {
+                showStatus: showOwnershipStatus,
+                owned,
+                quantity,
+              },
+              flavorFooter:
+                owned && quantity > 1 ? (
+                  <p className="border-t border-white/10 px-2.5 py-2 text-xs text-amber-200/90 sm:px-3">
+                    You own {quantity} copies of this card.
+                  </p>
+                ) : null,
+            })}
           />
 
           <button

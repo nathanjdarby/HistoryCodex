@@ -1,13 +1,13 @@
 "use client";
 
 import type { PointerEvent, ReactNode } from "react";
-import { CharacterCardFullLayout } from "@/components/character-card-full-layout";
+import { PlatformCharacterCardRenderer } from "@/components/platform-character-card-renderer";
 import { HolographicOverlay } from "@/components/holographic-overlay";
 import { type AbilityEffect, type AbilityTrigger } from "@/lib/battle";
 import type { CardType } from "@/lib/battle/types";
-import { useCardLayout } from "@/lib/client/card-layouts";
 import type { CardLayout } from "@/lib/card-layout";
 import type { ImageFrame } from "@/lib/image-frame";
+import { toCardDesignData } from "@/lib/map-card-design-data";
 import { RARITY_META, type RarityTier } from "@/lib/rarity";
 import type { Archetype } from "@/lib/sprite/generateSprite";
 
@@ -52,6 +52,10 @@ export type CharacterCardPreviewProps = {
   embedded?: boolean;
   /** Optional layout override (otherwise loaded from card_layout_assignments). */
   cardLayout?: CardLayout;
+  /** Per-card layout override from characters.layout_id */
+  layoutId?: string | null;
+  /** Registry-backed custom columns (house, future fields) — routed to card.extras, not per-field props. */
+  extras?: Record<string, unknown>;
   className?: string;
   onImagePointerDown?: (event: PointerEvent<HTMLDivElement>) => void;
   onImagePointerMove?: (event: PointerEvent<HTMLDivElement>) => void;
@@ -106,16 +110,39 @@ export function CharacterCardPreview({
   showFlavor,
   embedded = false,
   cardLayout: cardLayoutOverride,
+  layoutId,
+  extras,
   className = "",
   onImagePointerDown,
   onImagePointerMove,
   onImagePointerUp,
 }: CharacterCardPreviewProps) {
   const meta = RARITY_META[rarity];
-  const cardLayout = useCardLayout(cardType, cardLayoutOverride);
   const showFlavorSection = showFlavor ?? DENSITY_SHOW_FLAVOR[density];
   const shellClass = embedded ? "h-full w-full rounded-xl shadow-2xl" : DENSITY_SHELL[density];
   const showGlow = density === "full" || density === "play" || embedded;
+
+  const card = toCardDesignData({
+    name,
+    rarity,
+    cardType,
+    cost,
+    attack,
+    defense,
+    archetype,
+    era,
+    abilityName,
+    abilityEffect,
+    abilityValue,
+    abilityTrigger,
+    flavorText,
+    imageUrl,
+    imageFrame,
+    dexLabel,
+    locked,
+    layoutId,
+    extras,
+  });
 
   return (
     <div
@@ -127,34 +154,19 @@ export function CharacterCardPreview({
       }}
     >
       {holographic ? <HolographicOverlay /> : null}
-      <CharacterCardFullLayout
-        cardLayout={cardLayout}
-        name={name}
-        rarity={rarity}
-        cardType={cardType}
-        cost={cost}
-        attack={attack}
-        defense={defense}
-        archetype={archetype}
-        era={era}
-        abilityName={abilityName}
-        abilityEffect={abilityEffect}
-        abilityValue={abilityValue}
-        abilityTrigger={abilityTrigger}
-        flavorText={flavorText}
+      <PlatformCharacterCardRenderer
+        card={card}
         seed={seed}
-        imageUrl={imageUrl}
-        imageFrame={imageFrame}
-        dexLabel={dexLabel}
-        locked={locked}
-        footer={footer}
-        flavorFooter={flavorFooter}
-        ownership={ownership}
+        cardType={cardType}
+        layoutId={layoutId}
+        cardLayout={cardLayoutOverride}
         showCost={showCost}
         showCombat={showCombat}
         showFlavor={showFlavorSection}
-        rarityLabel={meta.label}
-        rarityColor={meta.color}
+        ownership={ownership}
+        footer={footer}
+        flavorFooter={flavorFooter}
+        className="relative z-[1] h-full w-full"
         onImagePointerDown={onImagePointerDown}
         onImagePointerMove={onImagePointerMove}
         onImagePointerUp={onImagePointerUp}

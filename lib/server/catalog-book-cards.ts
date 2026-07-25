@@ -22,14 +22,14 @@ export type CatalogBookCardRow = {
   name: string;
   seed: string;
   cardType: (typeof CARD_TYPE_ENUM)[number];
-  rarity: string;
+  rarity: (typeof characters.$inferSelect)["rarity"];
   cost: number;
   attack: number;
   defense: number;
   abilityName: string | null;
-  abilityEffect: string | null;
+  abilityEffect: (typeof characters.$inferSelect)["abilityEffect"];
   abilityValue: number | null;
-  abilityTrigger: string | null;
+  abilityTrigger: (typeof characters.$inferSelect)["abilityTrigger"];
   flavorText: string | null;
   holographic: boolean;
   eraId: number;
@@ -41,6 +41,9 @@ export type CatalogBookCardRow = {
   imageFocusY: number;
   imageScale: number;
   archetype: (typeof characters.$inferSelect)["archetype"];
+  layoutId: (typeof characters.$inferSelect)["layoutId"];
+  house: (typeof characters.$inferSelect)["house"];
+  speed: (typeof characters.$inferSelect)["speed"];
 };
 
 export async function listCatalogBookCards(catalogBookId: number): Promise<CatalogBookCardRow[]> {
@@ -74,6 +77,9 @@ export async function listCatalogBookCards(catalogBookId: number): Promise<Catal
       imageFocusY: characters.imageFocusY,
       imageScale: characters.imageScale,
       archetype: characters.archetype,
+      layoutId: characters.layoutId,
+      house: characters.house,
+      speed: characters.speed,
     })
     .from(catalogBookCards)
     .innerJoin(characters, eq(catalogBookCards.characterId, characters.id))

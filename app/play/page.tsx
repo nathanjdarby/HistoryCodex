@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/page-header";
-import { Play, Plus, Swords } from "lucide-react";
+import { Play, Plus, Swords, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { playPaths, usePlayBasePath } from "@/lib/play/base-path-context";
 
 type Deck = {
   id: number;
@@ -37,6 +38,8 @@ async function fetchMatches(): Promise<MatchSummary[]> {
 
 export default function PlayPage() {
   const router = useRouter();
+  const basePath = usePlayBasePath();
+  const paths = playPaths(basePath);
   const queryClient = useQueryClient();
   const { data: decks } = useQuery({ queryKey: ["decks"], queryFn: fetchDecks });
   const { data: matches } = useQuery({ queryKey: ["matches"], queryFn: fetchMatches });
@@ -63,7 +66,22 @@ export default function PlayPage() {
     },
     onSuccess: (match) => {
       queryClient.invalidateQueries({ queryKey: ["matches"] });
-      router.push(`/play/matches/${match.id}`);
+      router.push(paths.match(match.id));
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (matchId: number) => {
+      const res = await fetch(`/api/matches/${matchId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Failed to delete match");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["matches"] });
+      setError(null);
     },
     onError: (err: Error) => setError(err.message),
   });
@@ -72,11 +90,15 @@ export default function PlayPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Chronos"
-        title="Play Chronos"
-        description="Battle the AI on a single historical lane. Capture locations to win the timeline."
+        title={basePath === "/admin/play" ? "Play Chronos (test)" : "Play Chronos"}
+        description={
+          basePath === "/admin/play"
+            ? "Test matches and starter decks from the admin area — uses your admin account collection."
+            : "Battle the AI on a single historical lane. Capture locations to win the timeline."
+        }
         icon={Swords}
         actions={
-          <Link href="/play/decks" className="app-btn-secondary">
+          <Link href={paths.decks} className="app-btn-secondary">
             <Plus size={14} />
             Manage decks
           </Link>
@@ -115,7 +137,7 @@ export default function PlayPage() {
           {!hasValidDeck ? (
             <p className="mt-3 text-sm text-gold-bright/80">
               New to Chronos?{" "}
-              <Link href="/play/decks" className="underline hover:text-foreground">
+              <Link href={paths.decks} className="underline hover:text-foreground">
                 Add a free starter deck
               </Link>{" "}
               to get cards and a ready-to-play list.
@@ -132,7 +154,7 @@ export default function PlayPage() {
               <Play size={14} />
               {startMutation.isPending ? "Starting…" : "Start vs AI"}
             </button>
-            <Link href="/play/decks" className="app-btn-secondary inline-flex items-center gap-1.5 sm:hidden">
+            <Link href={paths.decks} className="app-btn-secondary inline-flex items-center gap-1.5 sm:hidden">
               <Plus size={14} />
               Decks
             </Link>
@@ -147,15 +169,31 @@ export default function PlayPage() {
             ) : (
               (matches ?? []).map((match) => (
                 <li key={match.id}>
-                  <Link
-                    href={`/play/matches/${match.id}`}
-                    className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm hover:bg-surface"
-                  >
-                    <span>Match #{match.id}</span>
-                    <span className="text-muted">
-                      {match.status} · turn {match.turnNumber}
-                    </span>
-                  </Link>
+                  <div className="flex items-stretch overflow-hidden rounded-md border border-border">
+                    <Link
+                      href={paths.match(match.id)}
+                      className="flex flex-1 items-center justify-between px-3 py-2 text-sm hover:bg-surface"
+                    >
+                      <span>Match #{match.id}</span>
+                      <span className="text-muted">
+                        {match.status} · turn {match.turnNumber}
+                      </span>
+                    </Link>
+                    <button
+                      type="button"
+                      disabled={deleteMutation.isPending}
+                      aria-label={`Delete match #${match.id}`}
+                      title="Delete match"
+                      onClick={() => {
+                        if (confirm(`Delete match #${match.id}? This cannot be undone.`)) {
+                          deleteMutation.mutate(match.id);
+                        }
+                      }}
+                      className="border-l border-border px-3 text-muted hover:bg-red-950/40 hover:text-red-300 disabled:opacity-60"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </li>
               ))
             )}

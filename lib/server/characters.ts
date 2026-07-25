@@ -49,6 +49,9 @@ export type FeaturedCharacter = {
   abilityEffect: (typeof ABILITY_EFFECT_ENUM)[number] | null;
   abilityValue: number | null;
   abilityTrigger: (typeof ABILITY_TRIGGER_ENUM)[number] | null;
+  layoutId: number | null;
+  house: string;
+  speed: number;
   era: {
     id: number;
     name: string;

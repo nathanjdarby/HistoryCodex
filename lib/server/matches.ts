@@ -268,3 +268,13 @@ export async function abandonMatch(userId: number, matchId: number) {
     .set({ status: "abandoned", updatedAt: new Date() })
     .where(eq(matches.id, matchId));
 }
+
+export async function deleteMatch(userId: number, matchId: number) {
+  const [row] = await db
+    .select({ id: matches.id })
+    .from(matches)
+    .where(and(eq(matches.id, matchId), eq(matches.userId, userId)));
+  if (!row) throw new ApiError(404, "Match not found");
+
+  await db.delete(matches).where(eq(matches.id, matchId));
+}

@@ -9,6 +9,7 @@ import type { Era } from "@/lib/types";
 import { BookCoverUpload } from "@/components/book-cover-upload";
 import { CatalogBookCardPicker } from "@/components/catalog-book-card-picker";
 import { CatalogBooksEraSections } from "@/components/catalog-books-era-sections";
+import { RegionEraField } from "@/components/region-era-filters";
 import { applyPastedTextToTextarea } from "@/lib/client/paste-text";
 
 type CatalogBook = {
@@ -520,32 +521,22 @@ export default function AdminBooksPage() {
                   className="rounded border border-border-strong bg-background px-2 py-1.5"
                 />
               </label>
-              <label className="flex flex-col gap-1 text-sm">
-                Era
-                <select
-                  value={form.eraId}
-                  onChange={(e) => {
-                    const eraId = e.target.value;
-                    const era = eras?.find((item) => String(item.id) === eraId);
-                    setForm((f) => ({
-                      ...f,
-                      eraId,
-                      timelineYear:
-                        f.timelineYear.trim() || !era
-                          ? f.timelineYear
-                          : String(era.startYear),
-                    }));
-                  }}
-                  className="rounded border border-border-strong bg-background px-2 py-1.5"
-                >
-                  <option value="">— None (multi-era) —</option>
-                  {eras?.map((era) => (
-                    <option key={era.id} value={era.id}>
-                      {era.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <RegionEraField
+                eras={eras}
+                eraValue={form.eraId}
+                onEraChange={(eraId) => {
+                  const era = eras?.find((item) => String(item.id) === eraId);
+                  setForm((f) => ({
+                    ...f,
+                    eraId,
+                    timelineYear:
+                      f.timelineYear.trim() || !era ? f.timelineYear : String(era.startYear),
+                  }));
+                }}
+                allowEmptyEra
+                emptyEraLabel="— None (multi-era) —"
+                className="contents"
+              />
               <label className="flex flex-col gap-1 text-sm">
                 Starting year
                 <input

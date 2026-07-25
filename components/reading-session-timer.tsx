@@ -27,12 +27,6 @@ type FinalizeResult = {
   book: { currentPage: number; currentPositionSeconds: number; status: string };
   awardedMilestones: string[];
   awardedPoints: number;
-  pendingPoints: number;
-  velocity: {
-    velocityScore: number;
-    flagged: boolean;
-    flagReason: string | null;
-  };
 };
 
 const STORAGE_KEY = (bookId: number) => `reading-session:${bookId}`;
@@ -70,14 +64,22 @@ export function ReadingSessionTimer({
   const [hours, setHours] = useState("0");
   const [minutes, setMinutes] = useState("0");
   const [seconds, setSeconds] = useState("0");
-  const [localSeconds, setLocalSeconds] = useState(0);
+  const [displaySeconds, setDisplaySeconds] = useState(0);
   const [tabVisible, setTabVisible] = useState(true);
-  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sessionRef = useRef<ReadingSession | null | undefined>(null);
+  const tabVisibleRef = useRef(tabVisible);
+  const displayAnchorRef = useRef({ seconds: 0, at: Date.now() });
+  const heartbeatMutateRef = useRef<
+    (args: { s: ReadingSession; tabVisible: boolean }) => void
+  >(() => {});
 
   const { data: session, refetch } = useQuery({
     queryKey: ["reading-session", bookId],
     queryFn: () => fetchActiveSession(bookId),
   });
+
+  sessionRef.current = session;
+  tabVisibleRef.current = tabVisible;
 
   useEffect(() => {
     setEndPageInput(String(currentPosition));
@@ -88,7 +90,14 @@ export function ReadingSessionTimer({
   }, [currentPosition]);
 
   useEffect(() => {
-    const onVisibility = () => setTabVisible(document.visibilityState === "visible");
+    const onVisibility = () => {
+      const visible = document.visibilityState === "visible";
+      setTabVisible(visible);
+      const activeSession = sessionRef.current;
+      if (visible && activeSession?.status === "active") {
+        heartbeatMutateRef.current({ s: activeSession, tabVisible: true });
+      }
+    };
     onVisibility();
     document.addEventListener("visibilitychange", onVisibility);
     return () => document.removeEventListener("visibilitychange", onVisibility);
@@ -116,16 +125,17 @@ export function ReadingSessionTimer({
     onSuccess: ({ session: s }) => {
       persistSession(s);
       queryClient.setQueryData(["reading-session", bookId], s);
-      setLocalSeconds(s.activeSeconds);
+      displayAnchorRef.current = { seconds: s.activeSeconds, at: Date.now() };
+      setDisplaySeconds(s.activeSeconds);
     },
   });
 
   const heartbeatMutation = useMutation({
-    mutationFn: async (s: ReadingSession) => {
+    mutationFn: async ({ s, tabVisible: visible }: { s: ReadingSession; tabVisible: boolean }) => {
       const res = await fetch(`/api/books/${bookId}/sessions/${s.id}/heartbeat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientToken: s.clientToken, tabVisible }),
+        body: JSON.stringify({ clientToken: s.clientToken, tabVisible: visible }),
       });
       if (!res.ok) return s;
       const data = await res.json();
@@ -134,10 +144,13 @@ export function ReadingSessionTimer({
     onSuccess: (updated) => {
       if (updated) {
         queryClient.setQueryData(["reading-session", bookId], updated);
-        setLocalSeconds(updated.activeSeconds);
+        displayAnchorRef.current = { seconds: updated.activeSeconds, at: Date.now() };
+        setDisplaySeconds(updated.activeSeconds);
       }
     },
   });
+
+  heartbeatMutateRef.current = heartbeatMutation.mutate;
 
   const pauseMutation = useMutation({
     mutationFn: async (s: ReadingSession) => {
@@ -201,22 +214,45 @@ export function ReadingSessionTimer({
   });
 
   useEffect(() => {
-    if (!session || session.status !== "active") {
-      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+    if (!session || (session.status !== "active" && session.status !== "paused")) {
+      setDisplaySeconds(0);
       return;
     }
 
-    setLocalSeconds(session.activeSeconds);
+    displayAnchorRef.current = { seconds: session.activeSeconds, at: Date.now() };
+    setDisplaySeconds(session.activeSeconds);
+  }, [session?.id, session?.status, session?.activeSeconds]);
 
-    heartbeatRef.current = setInterval(() => {
-      heartbeatMutation.mutate(session);
-      setLocalSeconds((n) => n + HEARTBEAT_INTERVAL_SEC);
-    }, HEARTBEAT_INTERVAL_SEC * 1000);
+  useEffect(() => {
+    if (session?.status !== "active") return;
+
+    const tickDisplay = () => {
+      if (!tabVisibleRef.current) return;
+      const anchor = displayAnchorRef.current;
+      const elapsed = Math.floor((Date.now() - anchor.at) / 1000);
+      setDisplaySeconds(anchor.seconds + elapsed);
+    };
+
+    tickDisplay();
+    const displayInterval = setInterval(tickDisplay, 1000);
+
+    const sendHeartbeat = () => {
+      const activeSession = sessionRef.current;
+      if (!activeSession || activeSession.status !== "active") return;
+      heartbeatMutateRef.current({
+        s: activeSession,
+        tabVisible: tabVisibleRef.current,
+      });
+    };
+
+    sendHeartbeat();
+    const heartbeatInterval = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_SEC * 1000);
 
     return () => {
-      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      clearInterval(displayInterval);
+      clearInterval(heartbeatInterval);
     };
-  }, [session, heartbeatMutation]);
+  }, [session?.id, session?.status]);
 
   const isActive = session?.status === "active";
   const isPaused = session?.status === "paused";
@@ -235,7 +271,7 @@ export function ReadingSessionTimer({
       <p className="text-xs text-muted">
         {isAudiobook
           ? "Start a timed session while you listen. Points are awarded when you finalize with your playback position."
-          : "Start a timed session while you read. Points are awarded when you finalize with your page number — fast or bulk entries may be flagged for review."}
+          : "Start a timed session while you read. Points are awarded when you finalize with your page number."}
       </p>
 
       {!session && (
@@ -256,7 +292,7 @@ export function ReadingSessionTimer({
             <div>
               <p className="text-xs uppercase tracking-wide text-muted">Engaged time</p>
               <p className="text-2xl font-semibold tabular-nums text-gold-bright">
-                {formatTimerDuration(localSeconds)}
+                {formatTimerDuration(displaySeconds)}
               </p>
             </div>
             <div>

@@ -5,7 +5,7 @@ import { getBook, removeBookFromLibrary, updateBookSettings, updateBookSettingsS
 import { listCatalogBookCardsForUser } from "@/lib/server/catalog-book-cards";
 import { describeEarnRules, getGameRules } from "@/lib/server/game-rules";
 import { getBookLinksForUser } from "@/lib/server/links";
-import { getBookMilestones } from "@/lib/server/points";
+import { getBookMilestones, settleHeldBookMilestones, splitBookMilestones } from "@/lib/server/points";
 
 function parseId(idParam: string) {
   const id = Number(idParam);
@@ -22,21 +22,21 @@ export async function GET(
     const { id } = await params;
     const bookId = parseId(id);
     const book = await getBook(bookId, user.id);
+    await settleHeldBookMilestones(user.id, bookId);
     const [links, cards, rules, milestoneRows] = await Promise.all([
       getBookLinksForUser(bookId, user.id),
       listCatalogBookCardsForUser(book.catalogBookId, user.id),
       getGameRules(),
       getBookMilestones(user.id, bookId),
     ]);
-    const earnedMilestones = milestoneRows
-      .map((row) => Number(row.type.replace("milestone_", "")))
-      .filter((value) => Number.isFinite(value));
+    const { earnedMilestones, pendingMilestones } = splitBookMilestones(milestoneRows);
     return NextResponse.json({
       ...book,
       ...links,
       cards,
       readingRules: describeEarnRules(rules).readingMilestones,
       earnedMilestones,
+      pendingMilestones,
     });
   } catch (error) {
     return handleApiError(error);

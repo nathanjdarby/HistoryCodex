@@ -95,11 +95,9 @@ When you capture a Location:
 
 - Your **captured Locations** counter increases
 - Captured Location is recorded in **capture history** (not sent to discard)
-- **Enemy Units are routed to discard** (death triggers fire)
-- **Your surviving Units remain** in the lane
+- **Units on the lane stay in place** — nothing is routed or destroyed by the capture itself
 - Active Location is cleared; Influence resets
-- Surviving Units cannot attack, establish Influence, or gain Location synergy until a new Location is played
-- Either player may play the next Location during Logistics
+- The next Location from the shared deck is seated automatically when the match continues
 
 ---
 

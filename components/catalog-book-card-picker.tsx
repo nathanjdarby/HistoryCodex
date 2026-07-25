@@ -25,9 +25,9 @@ type CatalogBookCard = {
   attack: number;
   defense: number;
   abilityName: string | null;
-  abilityEffect: string | null;
+  abilityEffect: Character["abilityEffect"];
   abilityValue: number | null;
-  abilityTrigger: string | null;
+  abilityTrigger: Character["abilityTrigger"];
   flavorText: string | null;
   holographic: boolean;
   eraId: number;
@@ -39,6 +39,7 @@ type CatalogBookCard = {
   imageFocusY: number;
   imageScale: number;
   archetype: Character["archetype"];
+  layoutId: Character["layoutId"];
 };
 
 type CharacterWithEra = Character & { era: Era; owned: boolean; unlockedAt: string | null };

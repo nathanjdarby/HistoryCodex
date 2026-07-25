@@ -25,9 +25,51 @@ type CharacterLike = Pick<
   | "imageFocusY"
   | "imageScale"
   | "holographic"
+  | "layoutId"
 > & {
   era: Pick<Era, "name" | "colorPrimary" | "colorSecondary">;
 };
+
+/**
+ * Columns already mapped explicitly onto CharacterCardPreviewProps/CardDesignData.
+ * Everything else present on the row (house, future registry-backed columns) is
+ * collected generically into extras — new custom columns need a schema.ts entry
+ * to be queryable, but never a change here or in the render pipeline.
+ */
+const CHARACTER_CARD_MAPPED_KEYS = new Set<string>([
+  "id",
+  "eraId",
+  "era",
+  "name",
+  "rarity",
+  "cardType",
+  "cost",
+  "attack",
+  "defense",
+  "archetype",
+  "abilityName",
+  "abilityEffect",
+  "abilityValue",
+  "abilityTrigger",
+  "flavorText",
+  "seed",
+  "imageUrl",
+  "imageFocusX",
+  "imageFocusY",
+  "imageScale",
+  "holographic",
+  "layoutId",
+  "createdAt",
+]);
+
+export function characterExtras(character: Record<string, unknown>): Record<string, unknown> {
+  const extras: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(character)) {
+    if (CHARACTER_CARD_MAPPED_KEYS.has(key)) continue;
+    if (value !== undefined) extras[key] = value;
+  }
+  return extras;
+}
 
 export function characterToCardPreviewProps(
   character: CharacterLike,
@@ -55,9 +97,11 @@ export function characterToCardPreviewProps(
     imageUrl: character.imageUrl,
     imageFrame: imageFrameFromCharacter(character),
     holographic: character.holographic,
+    layoutId: character.layoutId != null ? String(character.layoutId) : null,
     dexLabel: dexNumber(character.id),
     density: "full",
     reserveHeaderActionsSpace: false,
+    extras: characterExtras(character),
     ...options,
   };
 }
